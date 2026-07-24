@@ -17,7 +17,7 @@ type Waiter = {
 };
 type Metric = { waiterId: string; orders: number; salesCents: number; payments: number; tables: number };
 type WaiterInvite = {
-  waiterId: string; waiterName: string; phone: string; link: string; expiresAt: string;
+  waiterId: string; waiterName: string; phone: string; email: string; link: string; expiresAt: string;
 };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels: Record<string, string> = { active: "Ativo", inactive: "Inativo", serving: "Em atendimento", paused: "Pausado", blocked: "Bloqueado" };
@@ -25,6 +25,8 @@ const whatsappNumber = (phone: string) => {
   const digits = phone.replace(/\D/g, "");
   return digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
 };
+const inviteMessage = (invite: WaiterInvite) =>
+  `Olá, ${invite.waiterName}! Você recebeu acesso ao cardápio e aos pedidos do estabelecimento. Crie sua senha neste link: ${invite.link}\n\nEste convite é individual e não deve ser compartilhado.`;
 
 export function AttendanceManager({ establishmentId, slug, initialMode, initialWaiters, metrics }: {
   establishmentId: string; slug: string; initialMode: Mode; initialWaiters: Waiter[]; metrics: Metric[];
@@ -34,6 +36,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   const [waiters, setWaiters] = useState(initialWaiters);
   const [editing, setEditing] = useState<Waiter | null>(null);
   const [inviteReady, setInviteReady] = useState<WaiterInvite | null>(null);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const activeCount = mode.manual_active_waiters ?? waiters.filter(waiter => waiter.active_now && ["active", "serving"].includes(waiter.status)).length;
@@ -49,8 +52,11 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     setBusy(false);
   }
   async function saveWaiter(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setMessage("");
-    const data = new FormData(event.currentTarget);
+    event.preventDefault();
+    const form = event.currentTarget;
+    const editingWaiter = editing;
+    setBusy(true); setMessage("");
+    const data = new FormData(form);
     const values = {
       name: String(data.get("name")), phone: String(data.get("phone") || ""), email: String(data.get("email") || ""),
       sector: String(data.get("sector") || ""), status: String(data.get("status") || "inactive"),
@@ -62,25 +68,31 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         apply_discount: data.get("apply_discount") === "on", cancel_items: data.get("cancel_items") === "on",
       },
     };
-    const { data: saved, error } = await supabase.rpc("manage_waiter", {
-      requested_establishment_id: establishmentId, requested_waiter_id: editing?.id || null, requested_values: values,
-    });
-    if (saved) {
-      const waiter = saved as Waiter;
-      setWaiters(current => editing ? current.map(item => item.id === waiter.id ? waiter : item) : [...current, waiter]);
-      setEditing(null); event.currentTarget.reset();
-      if (!editing) {
-        const invitation = await generateInvite(waiter);
-        setMessage(invitation
-          ? "Garçom cadastrado. O convite já está pronto para enviar pelo WhatsApp."
-          : "Garçom cadastrado, mas não foi possível gerar o convite. Use “Gerar convite” na lista.");
+    try {
+      const { data: saved, error } = await supabase.rpc("manage_waiter", {
+        requested_establishment_id: establishmentId, requested_waiter_id: editingWaiter?.id || null, requested_values: values,
+      });
+      if (saved) {
+        const waiter = saved as Waiter;
+        setWaiters(current => editingWaiter ? current.map(item => item.id === waiter.id ? waiter : item) : [...current, waiter]);
+        setEditing(null);
+        form.reset();
+        if (!editingWaiter) {
+          const invitation = await generateInvite(waiter);
+          setMessage(invitation
+            ? "Garçom cadastrado. Escolha WhatsApp, e-mail ou copiar link no cartão dele."
+            : "Garçom cadastrado, mas não foi possível gerar o convite. Use “Gerar convite” na lista.");
+        } else {
+          setMessage("Alterações do garçom salvas.");
+        }
       } else {
-        setMessage("Alterações do garçom salvas.");
+        setMessage(error?.message || "Não foi possível salvar o garçom.");
       }
-    } else {
-      setMessage(error?.message || "Não foi possível salvar o garçom.");
+    } catch {
+      setMessage("O garçom foi processado, mas ocorreu um erro ao preparar o convite. Tente novamente em “Gerar convite”.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
   async function changeStatus(waiter: Waiter, status: string, activeNow: boolean) {
     const { data, error } = await supabase.rpc("manage_waiter", {
@@ -91,18 +103,26 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     else setWaiters(current => current.map(item => item.id === waiter.id ? data as Waiter : item));
   }
   async function generateInvite(waiter: Waiter) {
-    const { data, error } = await supabase.rpc("create_waiter_invite", { requested_waiter_id: waiter.id });
-    if (error || !data?.token) {
-      setMessage(error?.message || "Não foi possível gerar o convite.");
+    setInvitingId(waiter.id);
+    try {
+      const { data, error } = await supabase.rpc("create_waiter_invite", { requested_waiter_id: waiter.id });
+      if (error || !data?.token) {
+        setMessage(error?.message || "Não foi possível gerar o convite.");
+        return null;
+      }
+      const link = `${window.location.origin}/convite-garcom/${data.token}`;
+      const invitation = {
+        waiterId: waiter.id, waiterName: waiter.name, phone: waiter.phone || "", email: waiter.email || "",
+        link, expiresAt: data.expires_at,
+      };
+      setInviteReady(invitation);
+      return invitation;
+    } catch {
+      setMessage("Não foi possível gerar o convite. Tente novamente.");
       return null;
+    } finally {
+      setInvitingId(null);
     }
-    const link = `${window.location.origin}/convite-garcom/${data.token}`;
-    const invitation = {
-      waiterId: waiter.id, waiterName: waiter.name, phone: waiter.phone || "",
-      link, expiresAt: data.expires_at,
-    };
-    setInviteReady(invitation);
-    return invitation;
   }
   async function invite(waiter: Waiter) {
     const invitation = await generateInvite(waiter);
@@ -163,23 +183,37 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         <div className="permission-grid">{[["open_tables","Abrir mesas"],["create_orders","Lançar pedidos"],["close_bills","Fechar contas"],["register_payments","Registrar pagamentos"],["apply_discount","Aplicar desconto"],["cancel_items","Cancelar itens"]].map(([key,label]) => <label key={key}><input type="checkbox" name={key} defaultChecked={editing ? editing.permissions?.[key] : !["apply_discount","cancel_items"].includes(key)} /> {label}</label>)}</div>
         <div className="form-actions"><button type="button" className="button outline" onClick={() => setEditing(null)}>Limpar</button><button className="button dark" disabled={busy}>{editing ? "Salvar alterações" : "Cadastrar garçom"}</button></div>
       </form>
-      {inviteReady && <div className="waiter-invite-ready" role="status">
-        <div className="invite-ready-heading">
-          <div><small>CONVITE PRONTO</small><h3>Envie o acesso para {inviteReady.waiterName}</h3></div>
-          <button type="button" aria-label="Fechar convite" onClick={() => setInviteReady(null)}>×</button>
-        </div>
-        <p>O garçom poderá abrir o cardápio, lançar e finalizar pedidos e enviá-los para a cozinha conforme as permissões marcadas.</p>
-        <div className="invite-link-box"><span>{inviteReady.link}</span><button type="button" onClick={copyInvite}>Copiar link</button></div>
-        <div className="invite-ready-actions">
-          {whatsappNumber(inviteReady.phone)
-            ? <a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${whatsappNumber(inviteReady.phone)}?text=${encodeURIComponent(`Olá, ${inviteReady.waiterName}! Você recebeu acesso ao cardápio e aos pedidos do estabelecimento. Crie sua senha neste link: ${inviteReady.link}\n\nEste convite é individual e não deve ser compartilhado.`)}`}>Enviar pelo WhatsApp</a>
-            : <span className="invite-phone-warning">Cadastre um telefone para enviar pelo WhatsApp.</span>}
-          <small>Válido até {new Date(inviteReady.expiresAt).toLocaleString("pt-BR")}.</small>
-        </div>
-      </div>}
       <div className="waiter-admin-list">{waiters.map(waiter => {
         const metric = metrics.find(value => value.waiterId === waiter.id);
-        return <article key={waiter.id}><div className="waiter-avatar">{waiter.name.slice(0,2).toUpperCase()}</div><div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando convite"}</p></div><div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div><div className="waiter-row-actions"><button onClick={() => setEditing(waiter)}>Editar</button><button onClick={() => invite(waiter)}>{waiter.user_id ? "Renovar acesso" : "Gerar convite"}</button>{waiter.status === "blocked" ? <button onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}{waiter.active_now ? <button onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}</div></article>;
+        const currentInvite = inviteReady?.waiterId === waiter.id ? inviteReady : null;
+        return <article key={waiter.id}>
+          <div className="waiter-avatar">{waiter.name.slice(0,2).toUpperCase()}</div>
+          <div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando convite"}</p></div>
+          <div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div>
+          <div className="waiter-row-actions">
+            <button type="button" onClick={() => setEditing(waiter)}>Editar</button>
+            <button type="button" disabled={invitingId === waiter.id} onClick={() => invite(waiter)}>{invitingId === waiter.id ? "Gerando..." : waiter.user_id ? "Renovar acesso" : "Gerar convite"}</button>
+            {waiter.status === "blocked" ? <button type="button" onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button type="button" onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}
+            {waiter.active_now ? <button type="button" onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button type="button" onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}
+          </div>
+          {currentInvite && <div className="waiter-invite-ready waiter-inline-invite" role="status">
+            <div className="invite-ready-heading">
+              <div><small>ACESSO PRONTO</small><h3>Enviar convite de {currentInvite.waiterName}</h3></div>
+              <button type="button" aria-label="Fechar convite" onClick={() => setInviteReady(null)}>×</button>
+            </div>
+            <p>Escolha uma forma de envio. O garçom abrirá o link, criará a senha e poderá trabalhar conforme as permissões marcadas.</p>
+            <div className="invite-link-box"><span>{currentInvite.link}</span><button type="button" onClick={copyInvite}>Copiar link</button></div>
+            <div className="invite-ready-actions">
+              {whatsappNumber(currentInvite.phone)
+                ? <a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${whatsappNumber(currentInvite.phone)}?text=${encodeURIComponent(inviteMessage(currentInvite))}`}>Enviar pelo WhatsApp</a>
+                : <span className="invite-phone-warning">Cadastre um telefone para usar o WhatsApp.</span>}
+              {currentInvite.email
+                ? <a className="button email-invite" href={`mailto:${currentInvite.email}?subject=${encodeURIComponent("Seu acesso ao cardápio e pedidos")}&body=${encodeURIComponent(inviteMessage(currentInvite))}`}>Enviar por e-mail</a>
+                : <span className="invite-phone-warning">Cadastre um e-mail para enviar por e-mail.</span>}
+              <small>Válido até {new Date(currentInvite.expiresAt).toLocaleString("pt-BR")}.</small>
+            </div>
+          </div>}
+        </article>;
       })}</div>
     </section>
     {message && <div className={["salvo", "salvas", "copiado", "cadastrado", "gerado"].some(term => message.includes(term)) ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
