@@ -1,5 +1,5 @@
 import { Brand } from "@/components/ui";
-import { OnboardingForm } from "@/components/onboarding-form";
+import { OnboardingForm, type OnboardingInitialData } from "@/components/onboarding-form";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -15,9 +15,52 @@ export default async function OnboardingPage() {
     .from("establishment_members")
     .select("establishment_id")
     .eq("user_id", userId)
+    .eq("role", "owner")
     .limit(1)
     .maybeSingle();
-  if (membership) redirect("/painel");
 
-  return <main className="auth-page"><aside className="auth-aside"><Brand /><div className="auth-quote"><span className="kicker">PRIMEIRO PASSO</span><h2>Vamos preparar a sua nova casa digital.</h2><p>Você poderá configurar cores, horários, entrega, produtos e equipe logo depois.</p></div><small>Seu teste gratuito começa agora.</small></aside><section className="auth-main"><div className="auth-card"><h1>Conte sobre seu negócio.</h1><p>Criaremos um ambiente exclusivo e isolado para o seu estabelecimento.</p><OnboardingForm /></div></section></main>;
+  let initial: OnboardingInitialData | undefined;
+  if (membership) {
+    const [{ data: establishment }, { data: settings }] = await Promise.all([
+      supabase.from("establishments").select("*").eq("id", membership.establishment_id).single(),
+      supabase.from("establishment_settings").select("*").eq("establishment_id", membership.establishment_id).single(),
+    ]);
+    if (establishment?.onboarding_completed) redirect("/painel");
+    if (establishment) {
+      initial = {
+        hasEstablishment: true,
+        name: establishment.name,
+        slug: establishment.slug,
+        description: establishment.description ?? "",
+        phone: establishment.phone ?? "",
+        city: establishment.city ?? "",
+        state: establishment.state ?? "",
+        logoUrl: establishment.logo_url ?? "",
+        coverUrl: establishment.cover_url ?? "",
+        accentColor: establishment.accent_color ?? "#6d2627",
+        secondaryColor: establishment.secondary_color ?? "#f5efe5",
+        whatsapp: settings?.whatsapp ?? "",
+        address: String(settings?.address?.street ?? ""),
+      };
+    }
+  }
+
+  return (
+    <main className="auth-page onboarding-page">
+      <aside className="auth-aside">
+        <Brand />
+        <div className="auth-quote">
+          <span className="kicker">CONFIGURAÇÃO GUIADA</span>
+          <h2>Sua loja pronta para vender em poucos minutos.</h2>
+          <p>Identidade, operação, pagamentos, entrega e o primeiro produto em um único fluxo.</p>
+        </div>
+        <small>Seu teste gratuito começa agora.</small>
+      </aside>
+      <section className="auth-main">
+        <div className="auth-card onboarding-card">
+          <OnboardingForm initial={initial} />
+        </div>
+      </section>
+    </main>
+  );
 }
