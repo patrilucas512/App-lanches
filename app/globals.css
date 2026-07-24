@@ -93,6 +93,8 @@ footer nav { display:flex; gap:24px; }
 .form-success { background:#e1eee6; color:#285b3f; }
 .auth-switch { color:var(--muted); font-size:10px; margin-top:20px; text-align:center; }
 .auth-switch a { color:var(--wine); font-weight:800; }
+.auth-text-button { background:transparent; border:0; color:var(--wine); display:block; font-size:10px; font-weight:800; margin:14px auto 0; text-decoration:underline; }
+.resend-form { border-top:1px solid var(--line); display:flex; flex-direction:column; gap:12px; margin-top:20px; padding-top:20px; }
 
 .pricing-hero { padding:90px 22px 55px; text-align:center; }
 .pricing-hero h1 { font-family:var(--font-display),serif; font-size:clamp(54px,7vw,88px); font-weight:600; letter-spacing:-.05em; line-height:.9; margin:18px auto 22px; }
