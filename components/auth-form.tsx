@@ -2,11 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -34,16 +32,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         });
         if (error) throw error;
         if (signup.session) {
-          router.push("/onboarding");
-          router.refresh();
+          window.location.assign("/onboarding");
           return;
         }
         setMessage(`Enviamos a confirmação para ${email}. Confira também a pasta de spam.`);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: String(data.get("email")), password: String(data.get("password")) });
         if (error) throw error;
-        router.push("/painel");
-        router.refresh();
+        setMessage("Login realizado. Abrindo o painel...");
+        window.location.assign("/painel");
+        return;
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível continuar.");
@@ -59,7 +57,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     {mode === "signup" && <div className="field"><label>CONFIRME O E-MAIL</label><input name="email_confirmation" type="email" autoComplete="email" required placeholder="Digite novamente o mesmo e-mail" /><small>Use um endereço que você consegue abrir agora.</small></div>}
     <div className="field"><label>SENHA</label><input name="password" type="password" minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} required placeholder="Mínimo de 8 caracteres" /></div>
     {message && <div className={`form-message ${message.startsWith("Enviamos") ? "form-success" : ""}`}>{message}</div>}
-    <button className="button dark wide" disabled={loading}>{loading ? "Aguarde..." : mode === "signup" ? "Criar conta grátis →" : "Entrar no painel →"}</button>
+    <button type="submit" className="button dark wide" disabled={loading}>{loading ? "Aguarde..." : mode === "signup" ? "Criar conta grátis →" : "Entrar no painel →"}</button>
     <p className="auth-switch">{mode === "signup" ? <>Já tem uma conta? <Link href="/login">Entrar</Link></> : <>Ainda não usa o Mesa Viva? <Link href="/cadastro">Começar grátis</Link></>}</p>
   </form>;
 }
