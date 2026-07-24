@@ -433,6 +433,18 @@ button.table-qr-card { color:inherit; }
 .waiter-mini-metrics small { color:var(--muted); font-size:6px; font-weight:500; margin-top:3px; }
 .waiter-row-actions { display:flex; flex-wrap:wrap; gap:5px; justify-content:flex-end; max-width:210px; }
 .waiter-row-actions button { background:#eee9df; border:0; border-radius:6px; color:var(--wine); font-size:7px; font-weight:800; padding:7px; }
+.waiter-invite-ready { background:#eef5ef; border:1px solid #bfd9c7; border-radius:12px; display:flex; flex-direction:column; gap:13px; margin-bottom:22px; padding:20px; }
+.invite-ready-heading { align-items:flex-start; display:flex; justify-content:space-between; }
+.invite-ready-heading small { color:#285d3f; font-size:7px; font-weight:800; letter-spacing:.12em; }
+.invite-ready-heading h3 { font-family:var(--font-display),serif; font-size:23px; margin:5px 0 0; }
+.invite-ready-heading > button { background:transparent; border:0; color:var(--muted); font-size:22px; line-height:1; }
+.waiter-invite-ready > p { color:var(--muted); font-size:9px; line-height:1.6; margin:0; max-width:660px; }
+.invite-link-box { align-items:center; background:white; border:1px solid var(--line); border-radius:8px; display:flex; gap:10px; padding:10px 12px; }
+.invite-link-box span { flex:1; font-size:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.invite-link-box button { background:transparent; border:0; color:var(--wine); flex:0 0 auto; font-size:8px; font-weight:800; }
+.invite-ready-actions { align-items:center; display:flex; flex-wrap:wrap; gap:13px; }
+.invite-ready-actions > small,.invite-phone-warning { color:var(--muted); font-size:8px; }
+.invite-phone-warning { background:#fff4db; border-radius:7px; color:#74541f; padding:10px; }
 .waiter-report td:first-child b,.waiter-report td:first-child small { display:block; }
 .waiter-report td:first-child small { color:var(--muted); font-size:7px; margin-top:3px; }
 .proof-link { color:var(--wine); display:block; font-size:7px; font-weight:800; margin-top:4px; text-decoration:underline; }

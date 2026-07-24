@@ -16,8 +16,15 @@ type Waiter = {
   permissions: Record<string, boolean>;
 };
 type Metric = { waiterId: string; orders: number; salesCents: number; payments: number; tables: number };
+type WaiterInvite = {
+  waiterId: string; waiterName: string; phone: string; link: string; expiresAt: string;
+};
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels: Record<string, string> = { active: "Ativo", inactive: "Inativo", serving: "Em atendimento", paused: "Pausado", blocked: "Bloqueado" };
+const whatsappNumber = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+};
 
 export function AttendanceManager({ establishmentId, slug, initialMode, initialWaiters, metrics }: {
   establishmentId: string; slug: string; initialMode: Mode; initialWaiters: Waiter[]; metrics: Metric[];
@@ -26,6 +33,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   const [mode, setMode] = useState(initialMode);
   const [waiters, setWaiters] = useState(initialWaiters);
   const [editing, setEditing] = useState<Waiter | null>(null);
+  const [inviteReady, setInviteReady] = useState<WaiterInvite | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const activeCount = mode.manual_active_waiters ?? waiters.filter(waiter => waiter.active_now && ["active", "serving"].includes(waiter.status)).length;
@@ -61,8 +69,17 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       const waiter = saved as Waiter;
       setWaiters(current => editing ? current.map(item => item.id === waiter.id ? waiter : item) : [...current, waiter]);
       setEditing(null); event.currentTarget.reset();
+      if (!editing) {
+        const invitation = await generateInvite(waiter);
+        setMessage(invitation
+          ? "Garçom cadastrado. O convite já está pronto para enviar pelo WhatsApp."
+          : "Garçom cadastrado, mas não foi possível gerar o convite. Use “Gerar convite” na lista.");
+      } else {
+        setMessage("Alterações do garçom salvas.");
+      }
+    } else {
+      setMessage(error?.message || "Não foi possível salvar o garçom.");
     }
-    setMessage(error ? error.message : "Garçom salvo.");
     setBusy(false);
   }
   async function changeStatus(waiter: Waiter, status: string, activeNow: boolean) {
@@ -73,12 +90,28 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     if (error) setMessage(error.message);
     else setWaiters(current => current.map(item => item.id === waiter.id ? data as Waiter : item));
   }
-  async function invite(waiter: Waiter) {
+  async function generateInvite(waiter: Waiter) {
     const { data, error } = await supabase.rpc("create_waiter_invite", { requested_waiter_id: waiter.id });
-    if (error) return setMessage(error.message);
+    if (error || !data?.token) {
+      setMessage(error?.message || "Não foi possível gerar o convite.");
+      return null;
+    }
     const link = `${window.location.origin}/convite-garcom/${data.token}`;
-    await navigator.clipboard.writeText(link);
-    setMessage(`Link de convite copiado. Válido até ${new Date(data.expires_at).toLocaleString("pt-BR")}.`);
+    const invitation = {
+      waiterId: waiter.id, waiterName: waiter.name, phone: waiter.phone || "",
+      link, expiresAt: data.expires_at,
+    };
+    setInviteReady(invitation);
+    return invitation;
+  }
+  async function invite(waiter: Waiter) {
+    const invitation = await generateInvite(waiter);
+    if (invitation) setMessage(`Convite de ${waiter.name} gerado. Escolha abaixo como enviar.`);
+  }
+  async function copyInvite() {
+    if (!inviteReady) return;
+    await navigator.clipboard.writeText(inviteReady.link);
+    setMessage("Link de acesso copiado.");
   }
   const togglePayment = (value: string) => patch("accepted_payment_methods", mode.accepted_payment_methods.includes(value)
     ? mode.accepted_payment_methods.filter(item => item !== value) : [...mode.accepted_payment_methods, value]);
@@ -120,7 +153,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       <form className="waiter-admin-form form" onSubmit={saveWaiter}>
         <div className="form-grid">
           <div className="field"><label>NOME</label><input name="name" required defaultValue={editing?.name || ""} key={`name-${editing?.id}`} /></div>
-          <div className="field"><label>TELEFONE</label><input name="phone" defaultValue={editing?.phone || ""} key={`phone-${editing?.id}`} /></div>
+          <div className="field"><label>TELEFONE</label><input name="phone" type="tel" inputMode="tel" placeholder="(21) 98139-2823" defaultValue={editing?.phone || ""} key={`phone-${editing?.id}`} /></div>
           <div className="field"><label>E-MAIL DE ACESSO</label><input name="email" type="email" defaultValue={editing?.email || ""} key={`email-${editing?.id}`} /></div>
           <div className="field"><label>SETOR</label><input name="sector" placeholder="Salão, varanda..." defaultValue={editing?.sector || ""} key={`sector-${editing?.id}`} /></div>
           <div className="field"><label>STATUS</label><select name="status" defaultValue={editing?.status || "inactive"} key={`status-${editing?.id}`}>{Object.entries(statusLabels).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></div>
@@ -130,11 +163,25 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         <div className="permission-grid">{[["open_tables","Abrir mesas"],["create_orders","Lançar pedidos"],["close_bills","Fechar contas"],["register_payments","Registrar pagamentos"],["apply_discount","Aplicar desconto"],["cancel_items","Cancelar itens"]].map(([key,label]) => <label key={key}><input type="checkbox" name={key} defaultChecked={editing ? editing.permissions?.[key] : !["apply_discount","cancel_items"].includes(key)} /> {label}</label>)}</div>
         <div className="form-actions"><button type="button" className="button outline" onClick={() => setEditing(null)}>Limpar</button><button className="button dark" disabled={busy}>{editing ? "Salvar alterações" : "Cadastrar garçom"}</button></div>
       </form>
+      {inviteReady && <div className="waiter-invite-ready" role="status">
+        <div className="invite-ready-heading">
+          <div><small>CONVITE PRONTO</small><h3>Envie o acesso para {inviteReady.waiterName}</h3></div>
+          <button type="button" aria-label="Fechar convite" onClick={() => setInviteReady(null)}>×</button>
+        </div>
+        <p>O garçom poderá abrir o cardápio, lançar e finalizar pedidos e enviá-los para a cozinha conforme as permissões marcadas.</p>
+        <div className="invite-link-box"><span>{inviteReady.link}</span><button type="button" onClick={copyInvite}>Copiar link</button></div>
+        <div className="invite-ready-actions">
+          {whatsappNumber(inviteReady.phone)
+            ? <a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${whatsappNumber(inviteReady.phone)}?text=${encodeURIComponent(`Olá, ${inviteReady.waiterName}! Você recebeu acesso ao cardápio e aos pedidos do estabelecimento. Crie sua senha neste link: ${inviteReady.link}\n\nEste convite é individual e não deve ser compartilhado.`)}`}>Enviar pelo WhatsApp</a>
+            : <span className="invite-phone-warning">Cadastre um telefone para enviar pelo WhatsApp.</span>}
+          <small>Válido até {new Date(inviteReady.expiresAt).toLocaleString("pt-BR")}.</small>
+        </div>
+      </div>}
       <div className="waiter-admin-list">{waiters.map(waiter => {
         const metric = metrics.find(value => value.waiterId === waiter.id);
-        return <article key={waiter.id}><div className="waiter-avatar">{waiter.name.slice(0,2).toUpperCase()}</div><div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando convite"}</p></div><div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div><div className="waiter-row-actions"><button onClick={() => setEditing(waiter)}>Editar</button><button onClick={() => invite(waiter)}>Copiar convite</button>{waiter.status === "blocked" ? <button onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}{waiter.active_now ? <button onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}</div></article>;
+        return <article key={waiter.id}><div className="waiter-avatar">{waiter.name.slice(0,2).toUpperCase()}</div><div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando convite"}</p></div><div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div><div className="waiter-row-actions"><button onClick={() => setEditing(waiter)}>Editar</button><button onClick={() => invite(waiter)}>{waiter.user_id ? "Renovar acesso" : "Gerar convite"}</button>{waiter.status === "blocked" ? <button onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}{waiter.active_now ? <button onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}</div></article>;
       })}</div>
     </section>
-    {message && <div className={message.includes("salvo") || message.includes("copiado") ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
+    {message && <div className={["salvo", "salvas", "copiado", "cadastrado", "gerado"].some(term => message.includes(term)) ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
   </div>;
 }
