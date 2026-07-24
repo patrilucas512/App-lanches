@@ -25,9 +25,10 @@ async function getMenu(slug: string): Promise<PublicMenu | null> {
   return response.json();
 }
 
-export default async function PublicMenuPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PublicMenuPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ mesa?: string; origem?: string }> }) {
   const { slug } = await params;
+  const query = await searchParams;
   const menu = await getMenu(slug);
   if (!menu) notFound();
-  return <PublicMenuView menu={menu} />;
+  return <PublicMenuView menu={menu} tableNumber={query.mesa} source={query.origem} />;
 }

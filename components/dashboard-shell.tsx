@@ -6,6 +6,8 @@ export function DashboardShell({ children, active = "overview", storeSlug }: { c
     ["overview", "/painel", "Visão geral"],
     ["orders", "/painel/pedidos", "Pedidos"],
     ["catalog", "/painel/cardapio", "Cardápio"],
+    ["qrcodes", "/painel/qrcodes", "QR Codes"],
+    ["calls", "/painel/chamados", "Chamados"],
     ["team", "/painel/equipe", "Equipe"],
     ["settings", "/painel/configuracoes", "Configurações"],
     ["billing", "/painel/assinatura", "Plano e cobrança"],
