@@ -22,6 +22,9 @@ type PixData = {
   pix_key: string; receiver_name: string; receiver_document_masked?: string; receiver_city: string;
   institution_name?: string; amount_cents: number; establishment_name: string; table_number: string; session_id: string;
 };
+type ServiceMode = {
+  bill_closing_enabled: boolean; card_proof_required: boolean; accepted_payment_methods: string[];
+};
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const labels: Record<string, string> = {
@@ -35,9 +38,9 @@ function addonsFor(product: Product) {
   );
 }
 
-export function WaiterConsole({ establishmentId, establishmentName, userId, role, initialTables, initialSessions, products, categories }: {
+export function WaiterConsole({ establishmentId, establishmentName, userId, role, initialTables, initialSessions, products, categories, serviceMode }: {
   establishmentId: string; establishmentName: string; userId: string; role: string;
-  initialTables: Table[]; initialSessions: Session[]; products: Product[]; categories: { id: string; name: string }[];
+  initialTables: Table[]; initialSessions: Session[]; products: Product[]; categories: { id: string; name: string }[]; serviceMode: ServiceMode;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [tables, setTables] = useState(initialTables);
@@ -53,6 +56,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [pix, setPix] = useState<(PixData & { payload: string; qr: string }) | null>(null);
   const [receipt, setReceipt] = useState<{ method: string; amount: number; date: string } | null>(null);
+  const [cardMethod, setCardMethod] = useState<"credit_card" | "debit_card" | null>(null);
   const selectedTable = tables.find(table => table.id === selectedTableId);
   const selectedSession = sessions.find(session => session.table_id === selectedTableId);
 
@@ -145,16 +149,52 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
     const qr = await QRCode.toDataURL(payload, { width: 600, margin: 2, errorCorrectionLevel: "M" });
     setPix({ ...info, payload, qr }); setBusy(false);
   }
-  async function confirmPayment(method: string) {
+  async function registerPayment(method: string, options?: {
+    proofPath?: string | null; machine?: string; reference?: string; cashReceivedCents?: number | null; notes?: string;
+  }) {
     if (!selectedSession || !confirm("Você conferiu e recebeu o pagamento?")) return;
     setBusy(true);
-    const { error } = await supabase.rpc("confirm_table_payment", {
+    const { error } = await supabase.rpc("register_table_payment", {
       requested_session_id: selectedSession.id, requested_payment_method: method,
       requested_pix_payload: method === "pix" ? pix?.payload || null : null,
+      requested_proof_path: options?.proofPath || null,
+      requested_card_machine: options?.machine || null,
+      requested_transaction_reference: options?.reference || null,
+      requested_cash_received_cents: options?.cashReceivedCents ?? null,
+      requested_notes: options?.notes || null,
+      requested_device_info: navigator.userAgent,
     });
     if (error) setMessage(error.message);
     else { setReceipt({ method, amount: selectedSession.total_cents, date: new Date().toISOString() }); await refresh(); }
     setBusy(false);
+  }
+  async function registerCash() {
+    if (!selectedSession) return;
+    const entered = prompt("Valor recebido em dinheiro (R$):", (selectedSession.total_cents / 100).toFixed(2).replace(".", ","));
+    if (entered === null) return;
+    const cents = Math.round(Number(entered.replace(",", ".")) * 100);
+    if (!Number.isFinite(cents)) return setMessage("Valor recebido inválido.");
+    await registerPayment("cash", { cashReceivedCents: cents });
+  }
+  async function registerCard(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!selectedSession || !cardMethod) return;
+    setBusy(true); setMessage("");
+    const data = new FormData(event.currentTarget);
+    const photo = data.get("proof");
+    let path: string | null = null;
+    if (photo instanceof File && photo.size > 0) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) { setMessage("Envie uma imagem JPG, PNG ou WebP."); setBusy(false); return; }
+      if (photo.size > 5 * 1024 * 1024) { setMessage("A imagem deve ter no máximo 5 MB."); setBusy(false); return; }
+      const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+      path = `${establishmentId}/${selectedSession.id}/${userId}/${Date.now()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(path, photo, { contentType: photo.type, upsert: false });
+      if (uploadError) { setMessage(uploadError.message); setBusy(false); return; }
+    }
+    setBusy(false);
+    await registerPayment(cardMethod, {
+      proofPath: path, machine: String(data.get("machine") || ""), reference: String(data.get("reference") || ""), notes: String(data.get("notes") || ""),
+    });
+    setCardMethod(null);
   }
   async function releaseTable() {
     if (!selectedSession || !confirm("Liberar a mesa para uma nova conta?")) return;
@@ -203,7 +243,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
         </section>
         <aside className="panel waiter-cart"><h2>Pedido da mesa</h2>{cart.length ? <div>{cart.map(item => <article key={item.key}><span>{item.quantity}× {item.product.name}</span><b>{money(itemPrice(item))}</b><button onClick={() => setCart(current => current.filter(value => value.key !== item.key))}>Remover</button>{item.notes && <small>{item.notes}</small>}</article>)}</div> : <div className="empty compact"><span>Adicione itens do cardápio.</span></div>}<footer><span>Total do envio</span><strong>{money(cartTotal)}</strong></footer><button className="button dark wide" disabled={!cart.length || busy} onClick={sendOrder}>Enviar para cozinha</button></aside>
       </div>}
-      {selectedSession.status === "open" && <form className="panel close-account" onSubmit={closeAccount}>
+      {selectedSession.status === "open" && serviceMode.bill_closing_enabled && <form className="panel close-account" onSubmit={closeAccount}>
         <div><h2>Fechar conta</h2><p>O valor só será marcado como pago após sua confirmação manual.</p></div>
         <div className="field"><label>TAXA DE SERVIÇO</label><select name="service" defaultValue="10"><option value="0">Sem taxa</option><option value="10">10%</option><option value="12">12%</option></select></div>
         {role !== "attendant" && <div className="field"><label>DESCONTO (R$)</label><input name="discount" inputMode="decimal" defaultValue="0,00" /></div>}
@@ -215,9 +255,10 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
     {openTableId && <div className="checkout-overlay"><form className="waiter-modal form" onSubmit={openTable}><button type="button" className="checkout-close" onClick={() => setOpenTableId(null)}>×</button><small>ABRIR MESA</small><h2>Mesa {tables.find(value => value.id === openTableId)?.table_number}</h2><div className="field"><label>NOME DO CLIENTE (OPCIONAL)</label><input name="customer" /></div><div className="field"><label>QUANTIDADE DE PESSOAS</label><input name="people" type="number" min="1" max="99" defaultValue="1" /></div><div className="field"><label>OBSERVAÇÃO INICIAL</label><textarea name="note" /></div><button className="button dark wide" disabled={busy}>Abrir mesa</button></form></div>}
     {customProduct && <div className="checkout-overlay"><form className="waiter-modal form product-customizer" onSubmit={addCustomized}><button type="button" className="checkout-close" onClick={() => setCustomProduct(null)}>×</button><small>PERSONALIZAR ITEM</small><h2>{customProduct.name}</h2>{(customProduct.product_variations || []).filter(value => value.active).length > 0 && <div className="field"><label>VARIAÇÃO</label><select name="variation"><option value="">Padrão</option>{customProduct.product_variations?.filter(value => value.active).map(value => <option key={value.id} value={value.id}>{value.name} {value.price_delta_cents ? `+ ${money(value.price_delta_cents)}` : ""}</option>)}</select></div>}{addonsFor(customProduct).length > 0 && <div className="field"><label>ADICIONAIS</label><div className="addon-options">{addonsFor(customProduct).map(addon => <label key={addon.id}><input type="checkbox" name="addons" value={addon.id} /> {addon.name} · {money(addon.price_cents)}</label>)}</div></div>}<div className="field"><label>RETIRAR INGREDIENTES</label><input name="removed" placeholder="Ex.: cebola, tomate" /></div><div className="field"><label>OBSERVAÇÃO</label><textarea name="notes" placeholder="Ex.: ponto da carne" /></div><div className="field"><label>QUANTIDADE</label><input name="quantity" type="number" min="1" max="99" defaultValue="1" /></div><button className="button dark wide">Adicionar ao pedido</button></form></div>}
     {paymentOpen && selectedSession && selectedTable && <div className="checkout-overlay"><section className="waiter-modal payment-modal"><button className="checkout-close" onClick={() => setPaymentOpen(false)}>×</button><small>PAGAMENTO · MESA {selectedTable.table_number}</small><h2>{money(selectedSession.total_cents)}</h2><div className="account-values"><span>Subtotal <b>{money(selectedSession.subtotal_cents)}</b></span><span>Taxa de serviço <b>{money(selectedSession.service_fee_cents)}</b></span><span>Desconto <b>- {money(selectedSession.discount_cents)}</b></span></div>
-      {selectedSession.status === "awaiting_payment" && <>{!pix ? <div className="payment-methods"><button className="button dark" disabled={busy} onClick={generatePix}>Gerar Pix oficial</button><button className="button outline" onClick={() => confirmPayment("cash")}>Dinheiro recebido</button><button className="button outline" onClick={() => confirmPayment("credit_card")}>Crédito presencial</button><button className="button outline" onClick={() => confirmPayment("debit_card")}>Débito presencial</button></div> : <div className="pix-payment"><img src={pix.qr} alt="QR Code Pix" /><h3>{pix.receiver_name}</h3><p>{pix.receiver_document_masked} {pix.institution_name && `· ${pix.institution_name}`}</p><div className="security-warning">Confira no aplicativo do banco se o destinatário é: <b>{pix.receiver_name}</b>.</div><textarea readOnly value={pix.payload} /><button className="button outline wide" onClick={() => navigator.clipboard.writeText(pix.payload)}>Copiar Pix Copia e Cola</button><button className="button dark wide" disabled={busy} onClick={() => confirmPayment("pix")}>Confirmar pagamento recebido</button><small>Gerar o QR Code não confirma o pagamento. Confira antes de continuar.</small></div>}</>}
+      {selectedSession.status === "awaiting_payment" && <>{!pix ? <div className="payment-methods">{serviceMode.accepted_payment_methods.includes("pix") && <button className="button dark" disabled={busy} onClick={generatePix}>Gerar Pix oficial</button>}{serviceMode.accepted_payment_methods.includes("cash") && <button className="button outline" onClick={registerCash}>Registrar dinheiro e troco</button>}{serviceMode.accepted_payment_methods.includes("credit_card") && <button className="button outline" onClick={() => setCardMethod("credit_card")}>Crédito presencial</button>}{serviceMode.accepted_payment_methods.includes("debit_card") && <button className="button outline" onClick={() => setCardMethod("debit_card")}>Débito presencial</button>}</div> : <div className="pix-payment"><img src={pix.qr} alt="QR Code Pix" /><h3>{pix.receiver_name}</h3><p>{pix.receiver_document_masked} {pix.institution_name && `· ${pix.institution_name}`}</p><div className="security-warning">Confira no aplicativo do banco se o destinatário é: <b>{pix.receiver_name}</b>.</div><textarea readOnly value={pix.payload} /><button className="button outline wide" onClick={() => navigator.clipboard.writeText(pix.payload)}>Copiar Pix Copia e Cola</button><button className="button dark wide" disabled={busy} onClick={() => registerPayment("pix")}>Confirmar pagamento recebido</button><small>Gerar o QR Code não confirma o pagamento. Confira antes de continuar.</small></div>}</>}
       {selectedSession.status === "paid" && <div className="receipt-box"><b>Pagamento confirmado</b><p>Conta paga e bloqueada para novos lançamentos.</p><button className="button outline wide" onClick={downloadReceipt}>Baixar comprovante</button><button className="button outline wide" onClick={() => window.print()}>Imprimir</button><button className="button dark wide" onClick={releaseTable}>Fechar e liberar mesa</button></div>}
     </section></div>}
+    {cardMethod && selectedSession && <div className="checkout-overlay"><form className="waiter-modal form card-payment-form" onSubmit={registerCard}><button type="button" className="checkout-close" onClick={() => setCardMethod(null)}>×</button><span className="kicker">PAGAMENTO PRESENCIAL</span><h2>{cardMethod === "credit_card" ? "Cartão de crédito" : "Cartão de débito"}</h2><div className="security-warning"><b>Atenção:</b> envie apenas a foto do comprovante da maquininha. Nunca fotografe o cartão do cliente.</div><label className="photo-picker card-proof-picker"><input name="proof" type="file" accept="image/jpeg,image/png,image/webp" required={serviceMode.card_proof_required} /><span className="photo-picker-icon">▣</span><span><b>Foto do comprovante da maquininha</b><small>{serviceMode.card_proof_required ? "Obrigatório neste estabelecimento" : "Opcional"} · até 5 MB</small></span></label><div className="field"><label>MÁQUINA UTILIZADA (OPCIONAL)</label><input name="machine" placeholder="Ex.: Stone 02" /></div><div className="field"><label>REFERÊNCIA DA TRANSAÇÃO (OPCIONAL)</label><input name="reference" maxLength={80} /></div><div className="field"><label>OBSERVAÇÃO</label><textarea name="notes" /></div><button className="button dark wide" disabled={busy}>{busy ? "Registrando..." : `Confirmar ${money(selectedSession.total_cents)}`}</button></form></div>}
     {message && <div className={message.includes("enviado") ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
   </div>;
 }

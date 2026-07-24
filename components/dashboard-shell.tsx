@@ -4,6 +4,8 @@ import { Brand } from "@/components/ui";
 export function DashboardShell({ children, active = "overview", storeSlug, role }: { children: React.ReactNode; active?: string; storeSlug?: string; role?: string }) {
   const allLinks = [
     ["overview", "/painel", "Visão geral"],
+    ["attendance", "/painel/atendimento", "Atendimento"],
+    ["waiters", "/painel/garcons", "Garçons"],
     ["waiter", "/painel/garcom", "Garçom"],
     ["kitchen", "/cozinha", "Cozinha"],
     ["orders", "/painel/pedidos", "Pedidos"],

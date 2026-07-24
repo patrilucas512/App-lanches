@@ -20,9 +20,15 @@ async function getMenu(slug: string): Promise<PublicMenu | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return null;
-  const response = await fetch(`${url}/rest/v1/rpc/get_public_menu`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ requested_slug: slug }), next: { revalidate: 30 } });
-  if (!response.ok) return null;
-  return response.json();
+  const headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+  const [menuResponse, modeResponse] = await Promise.all([
+    fetch(`${url}/rest/v1/rpc/get_public_menu`, { method: "POST", headers, body: JSON.stringify({ requested_slug: slug }), next: { revalidate: 30 } }),
+    fetch(`${url}/rest/v1/rpc/get_public_service_mode`, { method: "POST", headers, body: JSON.stringify({ requested_slug: slug }), next: { revalidate: 30 } }),
+  ]);
+  if (!menuResponse.ok) return null;
+  const menu = await menuResponse.json() as PublicMenu;
+  if (modeResponse.ok) menu.service_mode = await modeResponse.json();
+  return menu;
 }
 
 export default async function PublicMenuPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ mesa?: string; origem?: string }> }) {
