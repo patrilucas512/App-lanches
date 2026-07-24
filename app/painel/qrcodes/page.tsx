@@ -1,9 +1,11 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { QrCodeManager } from "@/components/qr-code-manager";
 import { getDashboardContext } from "@/lib/dashboard";
+import { redirect } from "next/navigation";
 
 export default async function QrCodesPage() {
-  const { supabase, establishment } = await getDashboardContext();
+  const { supabase, establishment, member } = await getDashboardContext();
+  if (!["owner", "manager"].includes(member.role)) redirect("/painel/garcom");
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const [{ data: tables }, { data: settings }, { data: store }, { data: scans }, { data: qrOrders }, { data: finishedEvents }, { data: operation }] = await Promise.all([
     supabase.from("restaurant_tables").select("*").eq("establishment_id", establishment.id).order("table_number"),

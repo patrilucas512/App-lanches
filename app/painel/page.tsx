@@ -1,10 +1,12 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { getDashboardContext } from "@/lib/dashboard";
+import { redirect } from "next/navigation";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default async function DashboardPage() {
-  const { supabase, establishment } = await getDashboardContext();
+  const { supabase, establishment, member } = await getDashboardContext();
+  if (member.role === "attendant") redirect("/painel/garcom");
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const [{ data: orders }, { count: products }, { data: subscription }, { data: events }] = await Promise.all([
     supabase.from("orders").select("id, order_number, customer_name, total_cents, status, created_at").eq("establishment_id", establishment.id).gte("created_at", today.toISOString()).order("created_at", { ascending: false }).limit(6),

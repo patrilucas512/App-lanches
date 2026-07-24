@@ -1,9 +1,11 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { CatalogManager } from "@/components/catalog-manager";
 import { getDashboardContext } from "@/lib/dashboard";
+import { redirect } from "next/navigation";
 
 export default async function CatalogPage() {
-  const { supabase, establishment } = await getDashboardContext();
+  const { supabase, establishment, member } = await getDashboardContext();
+  if (!["owner", "manager", "catalog_editor"].includes(member.role)) redirect("/painel/garcom");
   let { data: category } = await supabase.from("categories").select("id").eq("establishment_id", establishment.id).order("sort_order").limit(1).maybeSingle();
   if (!category) {
     const result = await supabase.from("categories").insert({ establishment_id: establishment.id, name: "Destaques", sort_order: 0 }).select("id").single();
