@@ -166,6 +166,16 @@ footer nav { display:flex; gap:24px; }
 .table { border-collapse:collapse; font-size:10px; width:100%; }
 .table th,.table td { border-bottom:1px solid var(--line); padding:12px 8px; text-align:left; }
 .table th { color:var(--muted); font-size:8px; letter-spacing:.08em; }
+.product-thumb { border-radius:7px; display:block; height:46px; object-fit:cover; width:46px; }
+.empty-thumb { align-items:center; background:#eee9df; color:var(--muted); display:flex; justify-content:center; }
+.photo-picker { align-items:center; background:#fffdf8; border:1px dashed rgba(109,38,39,.35); border-radius:10px; cursor:pointer; display:flex; gap:14px; min-height:92px; padding:13px; }
+.photo-picker:hover { border-color:var(--wine); }
+.photo-picker input { height:1px; opacity:0; overflow:hidden; position:absolute; width:1px; }
+.photo-picker > img,.photo-picker-icon { border-radius:8px; flex:0 0 64px; height:64px; object-fit:cover; width:64px; }
+.photo-picker-icon { align-items:center; background:#eee7dc; color:var(--wine); display:flex; font-size:25px; justify-content:center; }
+.photo-picker > span:last-child { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.photo-picker b { font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.photo-picker small { color:var(--muted); font-size:8px; line-height:1.5; }
 
 .menu-page { background:#f4f0e7; min-height:100vh; }
 .menu-cover { background:linear-gradient(120deg,var(--wine-dark),var(--wine)); color:white; padding:45px clamp(20px,7vw,110px); }
