@@ -447,7 +447,6 @@ button.table-qr-card { color:inherit; }
 .invite-ready-actions { align-items:center; display:flex; flex-wrap:wrap; gap:13px; }
 .invite-ready-actions > small,.invite-phone-warning { color:var(--muted); font-size:8px; }
 .invite-phone-warning { background:#fff4db; border-radius:7px; color:#74541f; padding:10px; }
-.button.email-invite { background:var(--wine); color:white; }
 .waiter-report td:first-child b,.waiter-report td:first-child small { display:block; }
 .waiter-report td:first-child small { color:var(--muted); font-size:7px; margin-top:3px; }
 .proof-link { color:var(--wine); display:block; font-size:7px; font-weight:800; margin-top:4px; text-decoration:underline; }

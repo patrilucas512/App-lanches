@@ -11,13 +11,13 @@ type Mode = {
   manager_approval_for_cancellation: boolean; audit_enabled: boolean;
 };
 type Waiter = {
-  id: string; user_id?: string | null; name: string; phone?: string | null; email?: string | null;
+  id: string; user_id?: string | null; name: string; phone?: string | null;
   status: string; sector?: string | null; active_now: boolean; shift_start?: string | null; shift_end?: string | null;
   permissions: Record<string, boolean>;
 };
 type Metric = { waiterId: string; orders: number; salesCents: number; payments: number; tables: number };
 type WaiterInvite = {
-  waiterId: string; waiterName: string; phone: string; email: string; link: string; expiresAt: string;
+  waiterId: string; waiterName: string; phone: string; link: string; expiresAt: string;
 };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels: Record<string, string> = { active: "Ativo", inactive: "Inativo", serving: "Em atendimento", paused: "Pausado", blocked: "Bloqueado" };
@@ -58,7 +58,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     setBusy(true); setMessage("");
     const data = new FormData(form);
     const values = {
-      name: String(data.get("name")), phone: String(data.get("phone") || ""), email: String(data.get("email") || ""),
+      name: String(data.get("name")), phone: String(data.get("phone") || ""), email: "",
       sector: String(data.get("sector") || ""), status: String(data.get("status") || "inactive"),
       active_now: data.get("active_now") === "on", shift_start: String(data.get("shift_start") || ""),
       shift_end: String(data.get("shift_end") || ""),
@@ -80,7 +80,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         if (!editingWaiter) {
           const invitation = await generateInvite(waiter);
           setMessage(invitation
-            ? "Garçom cadastrado. Escolha WhatsApp, e-mail ou copiar link no cartão dele."
+            ? "Garçom cadastrado. Envie o acesso pelo WhatsApp no cartão dele."
             : "Garçom cadastrado, mas não foi possível gerar o convite. Use “Gerar convite” na lista.");
         } else {
           setMessage("Alterações do garçom salvas.");
@@ -97,7 +97,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   async function changeStatus(waiter: Waiter, status: string, activeNow: boolean) {
     const { data, error } = await supabase.rpc("manage_waiter", {
       requested_establishment_id: establishmentId, requested_waiter_id: waiter.id,
-      requested_values: { name: waiter.name, phone: waiter.phone || "", email: waiter.email || "", sector: waiter.sector || "", status, active_now: activeNow, shift_start: waiter.shift_start || "", shift_end: waiter.shift_end || "", permissions: waiter.permissions },
+      requested_values: { name: waiter.name, phone: waiter.phone || "", email: "", sector: waiter.sector || "", status, active_now: activeNow, shift_start: waiter.shift_start || "", shift_end: waiter.shift_end || "", permissions: waiter.permissions },
     });
     if (error) setMessage(error.message);
     else setWaiters(current => current.map(item => item.id === waiter.id ? data as Waiter : item));
@@ -112,7 +112,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       }
       const link = `${window.location.origin}/convite-garcom/${data.token}`;
       const invitation = {
-        waiterId: waiter.id, waiterName: waiter.name, phone: waiter.phone || "", email: waiter.email || "",
+        waiterId: waiter.id, waiterName: waiter.name, phone: waiter.phone || "",
         link, expiresAt: data.expires_at,
       };
       setInviteReady(invitation);
@@ -174,7 +174,6 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         <div className="form-grid">
           <div className="field"><label>NOME</label><input name="name" required defaultValue={editing?.name || ""} key={`name-${editing?.id}`} /></div>
           <div className="field"><label>TELEFONE</label><input name="phone" type="tel" inputMode="tel" placeholder="(21) 98139-2823" defaultValue={editing?.phone || ""} key={`phone-${editing?.id}`} /></div>
-          <div className="field"><label>E-MAIL DE ACESSO</label><input name="email" type="email" defaultValue={editing?.email || ""} key={`email-${editing?.id}`} /></div>
           <div className="field"><label>SETOR</label><input name="sector" placeholder="Salão, varanda..." defaultValue={editing?.sector || ""} key={`sector-${editing?.id}`} /></div>
           <div className="field"><label>STATUS</label><select name="status" defaultValue={editing?.status || "inactive"} key={`status-${editing?.id}`}>{Object.entries(statusLabels).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></div>
           <div className="field"><label>TURNO</label><div className="shift-fields"><input name="shift_start" type="time" defaultValue={editing?.shift_start?.slice(0,5) || ""} /><input name="shift_end" type="time" defaultValue={editing?.shift_end?.slice(0,5) || ""} /></div></div>
@@ -207,9 +206,6 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
               {whatsappNumber(currentInvite.phone)
                 ? <a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${whatsappNumber(currentInvite.phone)}?text=${encodeURIComponent(inviteMessage(currentInvite))}`}>Enviar pelo WhatsApp</a>
                 : <span className="invite-phone-warning">Cadastre um telefone para usar o WhatsApp.</span>}
-              {currentInvite.email
-                ? <a className="button email-invite" href={`mailto:${currentInvite.email}?subject=${encodeURIComponent("Seu acesso ao cardápio e pedidos")}&body=${encodeURIComponent(inviteMessage(currentInvite))}`}>Enviar por e-mail</a>
-                : <span className="invite-phone-warning">Cadastre um e-mail para enviar por e-mail.</span>}
               <small>Válido até {new Date(currentInvite.expiresAt).toLocaleString("pt-BR")}.</small>
             </div>
           </div>}
