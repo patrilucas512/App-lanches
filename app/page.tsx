@@ -44,6 +44,20 @@ export default function Home() {
 
       <section className="logo-strip"><span>FEITO PARA QUEM SERVE BEM</span><b>Hamburguerias</b><b>Pizzarias</b><b>Cafeterias</b><b>Restaurantes</b></section>
 
+      <section className="table-digital-section">
+        <div className="table-digital-copy">
+          <span className="kicker">DO QR CODE AO PAGAMENTO</span>
+          <h2>Transforme qualquer mesa<br />em um <em>ponto de pedido digital.</em></h2>
+          <p>O cliente escaneia o QR Code, acessa o cardápio na hora e o garçom pode lançar pedidos direto para a cozinha, fechar a conta e gerar o Pix oficial do estabelecimento com mais segurança, sem depender de chave digitada manualmente.</p>
+          <Link className="button dark" href="/cadastro">Digitalizar minhas mesas →</Link>
+        </div>
+        <div className="table-digital-flow" aria-label="Fluxo do pedido digital por mesa">
+          <article><span>01</span><div><small>CLIENTE</small><h3>Escaneia o QR Code</h3><p>Cardápio aberto no celular, identificado pela mesa.</p></div></article>
+          <article><span>02</span><div><small>GARÇOM</small><h3>Envia para a cozinha</h3><p>Itens, adicionais e observações chegam em tempo real.</p></div></article>
+          <article><span>03</span><div><small>ESTABELECIMENTO</small><h3>Fecha com Pix oficial</h3><p>Valor exato e chave protegida, cadastrada pelo responsável.</p></div></article>
+        </div>
+      </section>
+
       <section className="section" id="recursos">
         <div className="section-title">
           <span className="kicker">SIMPLES POR FORA. PODEROSO POR DENTRO.</span>
