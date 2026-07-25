@@ -29,6 +29,7 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
   const [qrTable, setQrTable] = useState<QrTable | null>(null);
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [waiterMessage, setWaiterMessage] = useState("");
+  const [fulfillment, setFulfillment] = useState(tableNumber ? "dine_in" : "");
   const service = menu.service_mode ?? {
     mode: "mixed", waiter_mode_enabled: true, table_service_enabled: true,
     counter_pickup_enabled: menu.settings.pickup_enabled, delivery_enabled: menu.settings.delivery_enabled,
@@ -36,6 +37,8 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     accepted_payment_methods: menu.settings.payment_methods || [], active_waiters: 0,
   };
   const tableContext = service.table_service_enabled ? qrTable : null;
+  const selectedFulfillment = fulfillment
+    || (service.table_service_enabled ? "dine_in" : service.counter_pickup_enabled ? "pickup" : "delivery");
   const items = Object.values(cart);
   const total = useMemo(() => items.reduce((sum, item) => sum + item.product.price_cents * item.quantity, 0), [items]);
   const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -63,13 +66,13 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     setCart(current => ({ ...current, [product.id]: { product, quantity: (current[product.id]?.quantity ?? 0) + 1 } }));
   }
   function openCheckout() { record("checkout_started", undefined, undefined, total); setCheckout(true); }
-  function whatsappMessage(orderNumber: number, buyerName: string, fulfillment: string, notes: string) {
+  function whatsappMessage(orderNumber: number, buyerName: string, fulfillmentType: string, tableLabel: string, notes: string) {
     const lines = [
       `Olá! Quero confirmar o pedido #${orderNumber} no ${menu.establishment.name}.`,
-      tableContext ? `Mesa: ${tableContext.table_number}` : "",
+      fulfillmentType === "dine_in" ? `Mesa: ${tableLabel}` : "",
       "", ...items.map(item => `${item.quantity}x ${item.product.name} — ${money(item.product.price_cents * item.quantity)}`),
       "", `Total: ${money(total)}`, `Cliente: ${buyerName}`,
-      `Recebimento: ${fulfillment === "delivery" ? "Entrega" : fulfillment === "dine_in" ? "Consumir no local" : "Retirada"}`,
+      `Recebimento: ${fulfillmentType === "delivery" ? "Entrega" : fulfillmentType === "dine_in" ? "Consumir no local" : "Retirada"}`,
     ].filter(Boolean);
     if (notes) lines.push(`Observações: ${notes}`);
     return lines.join("\n");
@@ -81,17 +84,24 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     const data = new FormData(event.currentTarget);
     const buyerName = String(data.get("name"));
     const fulfillment = String(data.get("fulfillment"));
+    const tableLabel = String(data.get("table_label") || "").trim();
     const notes = String(data.get("notes") || "");
+    if (fulfillment === "dine_in" && buyerName.trim().split(/\s+/).length < 2) {
+      return setMessage("Informe seu nome e sobrenome para identificar a mesa.");
+    }
+    if (fulfillment === "dine_in" && !tableLabel) {
+      return setMessage("Informe o número ou nome da mesa onde você está.");
+    }
     const { data: result, error } = await supabase.rpc("place_public_order", {
       requested_slug: menu.establishment.slug, buyer_name: buyerName,
       buyer_phone: String(data.get("phone")), requested_fulfillment: fulfillment,
       requested_items: items.map(item => ({ product_id: item.product.id, quantity: item.quantity })),
-      order_notes: notes, requested_table_number: tableContext?.table_number ?? null,
+      order_notes: notes, requested_table_number: fulfillment === "dine_in" ? tableLabel : null,
       requested_source: source === "qr" || tableContext ? "qr" : "direct",
     });
     if (error) return setMessage(error.message);
     const number = String(menu.settings.whatsapp).replace(/\D/g, "");
-    const text = whatsappMessage(result.order_number, buyerName, fulfillment, notes);
+    const text = whatsappMessage(result.order_number, buyerName, fulfillment, tableLabel, notes);
     setCompleted({
       orderId: result.order_id, orderNumber: result.order_number, totalCents: result.total_cents,
       whatsappUrl: `https://wa.me/${number}?text=${encodeURIComponent(text)}`,
@@ -135,11 +145,11 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     </header>
     {tableContext && <section className="table-context"><div><span>VOCÊ ESTÁ NA</span><strong>Mesa {tableContext.table_number}</strong>{tableContext.table_name && <small>{tableContext.table_name}</small>}</div><div className="table-client-actions">{service.waiter_call_enabled && tableContext.waiter_calls_enabled && <button className="button light" onClick={() => setWaiterOpen(true)}>Chamar garçom</button>}{service.bill_closing_enabled && <button className="button light" onClick={requestBill}>Solicitar conta</button>}</div></section>}
     {waiterMessage && !waiterOpen && <div className="public-service-message">{waiterMessage}</div>}
-    <section className="service-mode-notice"><div><small>ESCOLHA COMO DESEJA CONTINUAR</small><strong>{service.mode === "counter" ? "Este estabelecimento trabalha com retirada no balcão." : service.mode === "delivery" ? "Este estabelecimento trabalha com entrega." : service.waiter_mode_enabled ? "Você pode pedir pelo celular ou chamar um garçom." : "Faça seu pedido pelo celular."}</strong></div><div>{service.customer_self_order_enabled && <span>Pedido pelo celular</span>}{service.counter_pickup_enabled && <span>Retirada no balcão</span>}{service.delivery_enabled && <span>Receber em casa</span>}{service.table_service_enabled && tableContext && <span>Mesa {tableContext.table_number}</span>}</div>{service.waiter_mode_enabled && service.active_waiters === 0 && <p>Não há garçom disponível no momento. Você pode fazer seu pedido pelo celular.</p>}</section>
+    <section className="service-mode-notice"><div><small>ESCOLHA COMO DESEJA CONTINUAR</small><strong>{service.mode === "counter" ? "Este estabelecimento trabalha com retirada no balcão." : service.mode === "delivery" ? "Este estabelecimento trabalha com entrega." : service.waiter_mode_enabled ? "Você pode pedir pelo celular ou chamar um garçom." : "Faça seu pedido pelo celular."}</strong></div><div>{service.customer_self_order_enabled && <span>Pedido pelo celular</span>}{service.counter_pickup_enabled && <span>Retirada no balcão</span>}{service.delivery_enabled && <span>Receber em casa</span>}{service.table_service_enabled && <span>Mesa informada no pedido</span>}</div>{service.waiter_mode_enabled && service.active_waiters === 0 && <p>Não há garçom disponível no momento. Você pode fazer seu pedido pelo celular.</p>}</section>
     {menu.banners?.length ? <section className="menu-banners">{menu.banners.map(banner => <a key={banner.id} href={banner.link_url || "#"} style={{ backgroundImage: `url(${banner.image_url})` }}><span>{banner.title}</span></a>)}</section> : null}
     <section className="menu-content">{menu.categories.map(category => <div className="menu-category" key={category.id}><h2>{category.name}</h2>{category.description && <p>{category.description}</p>}<div className="product-grid">{category.products.map(product => <article className="product-card" key={product.id}><div className="product-info"><h3>{product.name}</h3><p>{product.description}</p><strong>{money(product.price_cents)}</strong>{service.customer_self_order_enabled && <button className="add-button" onClick={() => add(product)}>Adicionar +</button>}</div><div className="product-image" style={product.image_url ? { backgroundImage: `url(${product.image_url})` } : undefined} /></article>)}</div></div>)}</section>
     {service.customer_self_order_enabled && items.length > 0 && <button className="cart-bar" onClick={openCheckout}><span>{items.reduce((sum, item) => sum + item.quantity, 0)} itens</span><b>Ver pedido · {money(total)}</b></button>}
-    {checkout && <div className="checkout-overlay" onClick={() => setCheckout(false)}><aside className="checkout-card" onClick={event => event.stopPropagation()}><button className="checkout-close" onClick={() => setCheckout(false)}>×</button><h2>Finalizar pedido</h2><div className="cart-lines">{items.map(item => <span key={item.product.id}>{item.quantity}× {item.product.name}<b>{money(item.product.price_cents * item.quantity)}</b></span>)}</div><form className="form" onSubmit={order}><div className="field"><label>SEU NOME</label><input name="name" required /></div><div className="field"><label>WHATSAPP</label><input name="phone" required type="tel" /></div><div className="field"><label>COMO DESEJA RECEBER SEU PEDIDO?</label><select name="fulfillment">{tableContext && <option value="dine_in">Consumir na mesa {tableContext.table_number}</option>}{service.counter_pickup_enabled && <option value="pickup">Retirar no balcão</option>}{service.delivery_enabled && <option value="delivery">Receber em casa</option>}</select></div><div className="field"><label>FORMA DE PAGAMENTO</label><select name="payment">{service.accepted_payment_methods.map(method => <option value={method} key={method}>{method === "pix" ? "Pix" : method === "cash" ? "Dinheiro" : method === "credit_card" ? "Cartão de crédito" : "Cartão de débito"}</option>)}</select></div><div className="field"><label>OBSERVAÇÕES</label><textarea name="notes" /></div>{message && <div className={completed ? "form-message form-success" : "form-message"}>{message}</div>}{completed ? <button type="button" className="button whatsapp wide" onClick={sendToWhatsApp}>Enviar pedido no WhatsApp →</button> : <button className="button dark wide">Preparar pedido · {money(total)}</button>}<small className="checkout-help">O pedido só será enviado após sua confirmação no WhatsApp.</small></form></aside></div>}
+    {checkout && <div className="checkout-overlay" onClick={() => setCheckout(false)}><aside className="checkout-card" onClick={event => event.stopPropagation()}><button className="checkout-close" onClick={() => setCheckout(false)}>×</button><h2>Finalizar pedido</h2><div className="cart-lines">{items.map(item => <span key={item.product.id}>{item.quantity}× {item.product.name}<b>{money(item.product.price_cents * item.quantity)}</b></span>)}</div><form className="form" onSubmit={order}><div className="field"><label>{selectedFulfillment === "dine_in" ? "NOME E SOBRENOME" : "SEU NOME"}</label><input name="name" required maxLength={120} autoComplete="name" placeholder={selectedFulfillment === "dine_in" ? "Ex.: Maria Oliveira" : undefined} /></div><div className="field"><label>WHATSAPP</label><input name="phone" required type="tel" /></div><div className="field"><label>COMO DESEJA RECEBER SEU PEDIDO?</label><select name="fulfillment" value={selectedFulfillment} onChange={event => setFulfillment(event.target.value)}>{service.table_service_enabled && <option value="dine_in">Consumir no local</option>}{service.counter_pickup_enabled && <option value="pickup">Retirar no balcão</option>}{service.delivery_enabled && <option value="delivery">Receber em casa</option>}</select></div>{selectedFulfillment === "dine_in" && <div className="field"><label>NÚMERO OU NOME DA MESA</label><input name="table_label" required maxLength={40} defaultValue={tableContext?.table_number || tableNumber || ""} placeholder="Ex.: 12, Varanda 3 ou Mesa Família" /><small>Não é necessário que o estabelecimento cadastre a mesa antes.</small></div>}<div className="field"><label>FORMA DE PAGAMENTO</label><select name="payment">{service.accepted_payment_methods.map(method => <option value={method} key={method}>{method === "pix" ? "Pix" : method === "cash" ? "Dinheiro" : method === "credit_card" ? "Cartão de crédito" : "Cartão de débito"}</option>)}</select></div><div className="field"><label>OBSERVAÇÕES</label><textarea name="notes" /></div>{message && <div className={completed ? "form-message form-success" : "form-message"}>{message}</div>}{completed ? <button type="button" className="button whatsapp wide" onClick={sendToWhatsApp}>Enviar pedido no WhatsApp →</button> : <button className="button dark wide">Preparar pedido · {money(total)}</button>}<small className="checkout-help">O pedido só será enviado após sua confirmação no WhatsApp.</small></form></aside></div>}
     {waiterOpen && <div className="checkout-overlay" onClick={() => setWaiterOpen(false)}><aside className="waiter-modal" onClick={event => event.stopPropagation()}><button className="checkout-close" onClick={() => setWaiterOpen(false)}>×</button><span className="kicker">MESA {qrTable?.table_number}</span><h2>Chamar garçom</h2><p>Envie uma observação opcional para a equipe.</p><form className="form" onSubmit={callWaiter}><div className="field"><label>OBSERVAÇÃO (OPCIONAL)</label><textarea name="note" maxLength={300} placeholder="Ex.: Preciso de mais guardanapos." /></div>{waiterMessage && <div className={waiterMessage.includes("chamado") ? "form-message form-success" : "form-message"}>{waiterMessage}</div>}<button className="button dark wide">Confirmar chamado</button></form></aside></div>}
   </main>;
 }

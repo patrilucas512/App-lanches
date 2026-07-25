@@ -78,20 +78,31 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
 
   function chooseTable(table: Table) {
     setMessage(""); setReceipt(null); setPix(null);
-    if (table.status === "free") setOpenTableId(table.id);
-    else if (table.status !== "blocked") setSelectedTableId(table.id);
+    if (table.status !== "blocked") setSelectedTableId(table.id);
   }
   async function openTable(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!openTableId) return; setBusy(true);
     const form = new FormData(event.currentTarget);
-    const { data, error } = await supabase.rpc("open_table_session", {
-      requested_table_id: openTableId,
-      requested_customer_name: String(form.get("customer") || "") || null,
+    const customerName = String(form.get("customer") || "").trim();
+    if (customerName.split(/\s+/).length < 2) {
+      setMessage("Informe o nome e sobrenome da pessoa responsável pela mesa.");
+      setBusy(false);
+      return;
+    }
+    const { data, error } = await supabase.rpc("open_table_session_by_label", {
+      requested_table_label: String(form.get("table_label") || ""),
+      requested_customer_name: customerName,
       requested_people_count: Number(form.get("people") || 1),
       requested_opening_note: String(form.get("note") || "") || null,
     });
     if (error) setMessage(error.message);
-    else { setSelectedTableId(openTableId); setOpenTableId(null); setSessions(current => [...current, data as Session]); await refresh(); }
+    else {
+      const session = data as Session;
+      setSelectedTableId(session.table_id);
+      setOpenTableId(null);
+      setSessions(current => [...current, session]);
+      await refresh();
+    }
     setBusy(false);
   }
   function addCustomized(event: FormEvent<HTMLFormElement>) {
@@ -186,6 +197,8 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
       if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) { setMessage("Envie uma imagem JPG, PNG ou WebP."); setBusy(false); return; }
       if (photo.size > 5 * 1024 * 1024) { setMessage("A imagem deve ter no máximo 5 MB."); setBusy(false); return; }
       const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+      // Timestamp is generated only after the user submits a payment proof.
+      // eslint-disable-next-line react-hooks/purity
       path = `${establishmentId}/${selectedSession.id}/${userId}/${Date.now()}.${extension}`;
       const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(path, photo, { contentType: photo.type, upsert: false });
       if (uploadError) { setMessage(uploadError.message); setBusy(false); return; }
@@ -213,11 +226,20 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
     (category === "all" || product.category_id === category) &&
     product.name.toLowerCase().includes(search.toLowerCase())
   );
+  const operationalTables = tables.filter(table =>
+    sessions.some(session => session.table_id === table.id)
+  );
+  // This live operational timer is recalculated on realtime updates and user actions.
+  // eslint-disable-next-line react-hooks/purity
   const openedFor = selectedSession ? Math.max(0, Math.floor((Date.now() - new Date(selectedSession.opened_at).getTime()) / 60000)) : 0;
 
   return <div className="waiter-console">
+    <section className="panel-title-row waiter-operation-heading">
+      <div><h2>Atendimentos em andamento</h2><p>Informe a pessoa responsável e o número ou nome da mesa somente ao abrir a conta.</p></div>
+      <button className="button dark" onClick={() => setOpenTableId("new")}>Abrir atendimento</button>
+    </section>
     <section className="table-operations-grid">
-      {tables.map(table => {
+      {operationalTables.map(table => {
         const session = sessions.find(value => value.table_id === table.id);
         return <button key={table.id} className={`operation-table status-${table.status} ${selectedTableId === table.id ? "selected" : ""}`} onClick={() => chooseTable(table)}>
           <small>{table.sector || "MESA"}</small><strong>{table.table_number}</strong><span>{labels[table.status] || table.status}</span>
@@ -225,7 +247,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
         </button>;
       })}
     </section>
-    {!tables.length && <div className="empty"><b>Nenhuma mesa ativa.</b><span>O proprietário pode cadastrar mesas em QR Codes.</span></div>}
+    {!operationalTables.length && <div className="empty"><b>Nenhum atendimento aberto.</b><span>Clique em “Abrir atendimento” quando uma pessoa ocupar uma mesa.</span></div>}
 
     {selectedTable && selectedSession && <div className="waiter-workspace">
       <section className="panel table-account-head">
@@ -252,7 +274,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
       {["awaiting_payment", "paid"].includes(selectedSession.status) && <button className="button dark wide payment-launch" onClick={() => setPaymentOpen(true)}>{selectedSession.status === "paid" ? "Ver comprovante e liberar mesa" : "Abrir pagamento"}</button>}
     </div>}
 
-    {openTableId && <div className="checkout-overlay"><form className="waiter-modal form" onSubmit={openTable}><button type="button" className="checkout-close" onClick={() => setOpenTableId(null)}>×</button><small>ABRIR MESA</small><h2>Mesa {tables.find(value => value.id === openTableId)?.table_number}</h2><div className="field"><label>NOME DO CLIENTE (OPCIONAL)</label><input name="customer" /></div><div className="field"><label>QUANTIDADE DE PESSOAS</label><input name="people" type="number" min="1" max="99" defaultValue="1" /></div><div className="field"><label>OBSERVAÇÃO INICIAL</label><textarea name="note" /></div><button className="button dark wide" disabled={busy}>Abrir mesa</button></form></div>}
+    {openTableId && <div className="checkout-overlay"><form className="waiter-modal form" onSubmit={openTable}><button type="button" className="checkout-close" onClick={() => setOpenTableId(null)}>×</button><small>NOVO ATENDIMENTO</small><h2>Identificar a mesa</h2><p>Não é necessário cadastrar a mesa antes.</p><div className="field"><label>NÚMERO OU NOME DA MESA</label><input name="table_label" required maxLength={40} placeholder="Ex.: 12, Varanda 3 ou Mesa Família" /></div><div className="field"><label>NOME E SOBRENOME DO CLIENTE</label><input name="customer" required maxLength={120} autoComplete="name" placeholder="Ex.: Maria Oliveira" /></div><div className="field"><label>QUANTIDADE DE PESSOAS</label><input name="people" type="number" min="1" max="99" defaultValue="1" /></div><div className="field"><label>OBSERVAÇÃO INICIAL</label><textarea name="note" /></div><button className="button dark wide" disabled={busy}>{busy ? "Abrindo..." : "Abrir atendimento"}</button></form></div>}
     {customProduct && <div className="checkout-overlay"><form className="waiter-modal form product-customizer" onSubmit={addCustomized}><button type="button" className="checkout-close" onClick={() => setCustomProduct(null)}>×</button><small>PERSONALIZAR ITEM</small><h2>{customProduct.name}</h2>{(customProduct.product_variations || []).filter(value => value.active).length > 0 && <div className="field"><label>VARIAÇÃO</label><select name="variation"><option value="">Padrão</option>{customProduct.product_variations?.filter(value => value.active).map(value => <option key={value.id} value={value.id}>{value.name} {value.price_delta_cents ? `+ ${money(value.price_delta_cents)}` : ""}</option>)}</select></div>}{addonsFor(customProduct).length > 0 && <div className="field"><label>ADICIONAIS</label><div className="addon-options">{addonsFor(customProduct).map(addon => <label key={addon.id}><input type="checkbox" name="addons" value={addon.id} /> {addon.name} · {money(addon.price_cents)}</label>)}</div></div>}<div className="field"><label>RETIRAR INGREDIENTES</label><input name="removed" placeholder="Ex.: cebola, tomate" /></div><div className="field"><label>OBSERVAÇÃO</label><textarea name="notes" placeholder="Ex.: ponto da carne" /></div><div className="field"><label>QUANTIDADE</label><input name="quantity" type="number" min="1" max="99" defaultValue="1" /></div><button className="button dark wide">Adicionar ao pedido</button></form></div>}
     {paymentOpen && selectedSession && selectedTable && <div className="checkout-overlay"><section className="waiter-modal payment-modal"><button className="checkout-close" onClick={() => setPaymentOpen(false)}>×</button><small>PAGAMENTO · MESA {selectedTable.table_number}</small><h2>{money(selectedSession.total_cents)}</h2><div className="account-values"><span>Subtotal <b>{money(selectedSession.subtotal_cents)}</b></span><span>Taxa de serviço <b>{money(selectedSession.service_fee_cents)}</b></span><span>Desconto <b>- {money(selectedSession.discount_cents)}</b></span></div>
       {selectedSession.status === "awaiting_payment" && <>{!pix ? <div className="payment-methods">{serviceMode.accepted_payment_methods.includes("pix") && <button className="button dark" disabled={busy} onClick={generatePix}>Gerar Pix oficial</button>}{serviceMode.accepted_payment_methods.includes("cash") && <button className="button outline" onClick={registerCash}>Registrar dinheiro e troco</button>}{serviceMode.accepted_payment_methods.includes("credit_card") && <button className="button outline" onClick={() => setCardMethod("credit_card")}>Crédito presencial</button>}{serviceMode.accepted_payment_methods.includes("debit_card") && <button className="button outline" onClick={() => setCardMethod("debit_card")}>Débito presencial</button>}</div> : <div className="pix-payment"><img src={pix.qr} alt="QR Code Pix" /><h3>{pix.receiver_name}</h3><p>{pix.receiver_document_masked} {pix.institution_name && `· ${pix.institution_name}`}</p><div className="security-warning">Confira no aplicativo do banco se o destinatário é: <b>{pix.receiver_name}</b>.</div><textarea readOnly value={pix.payload} /><button className="button outline wide" onClick={() => navigator.clipboard.writeText(pix.payload)}>Copiar Pix Copia e Cola</button><button className="button dark wide" disabled={busy} onClick={() => registerPayment("pix")}>Confirmar pagamento recebido</button><small>Gerar o QR Code não confirma o pagamento. Confira antes de continuar.</small></div>}</>}

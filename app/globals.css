@@ -243,7 +243,12 @@ footer nav { display:flex; gap:24px; }
 .waiter-modal > p { color:var(--muted); font-size:10px; }
 
 .qr-manager { display:flex; flex-direction:column; gap:16px; }
-.qr-metrics { grid-template-columns:repeat(5,1fr); }
+.qr-metrics { grid-template-columns:repeat(4,1fr); }
+.general-qr-explanation { align-items:center; display:flex; justify-content:space-between; margin:16px 0; }
+.general-qr-explanation small { color:var(--wine); font-size:8px; font-weight:800; letter-spacing:.12em; }
+.general-qr-explanation h2 { margin:7px 0; }
+.general-qr-explanation p { color:var(--muted); font-size:9px; line-height:1.6; margin:0; max-width:650px; }
+.general-qr-explanation > span { background:#dfeee4; border-radius:999px; color:#285d3f; flex:0 0 auto; font-size:8px; font-weight:800; padding:10px 13px; }
 .qr-layout { display:grid; gap:16px; grid-template-columns:1.15fr .85fr; }
 .qr-preview-panel { display:flex; flex-direction:column; gap:16px; }
 .qr-preview-card { align-items:center; background:#fffdf8; border:1px solid var(--line); border-radius:16px; display:flex; flex-direction:column; min-height:650px; padding:35px; text-align:center; }
@@ -299,6 +304,9 @@ button.table-qr-card { color:inherit; }
 .security-badge { background:#dfeee4; border-radius:99px; color:#285d3f; font-size:8px; font-weight:800; padding:8px 11px; }
 .waiter-console { display:flex; flex-direction:column; gap:16px; }
 .table-operations-grid { display:grid; gap:10px; grid-template-columns:repeat(5,minmax(130px,1fr)); }
+.waiter-operation-heading { background:#fffdf8; border:1px solid var(--line); border-radius:10px; margin-bottom:14px; padding:18px 20px; }
+.waiter-operation-heading h2 { font-family:var(--font-display),serif; font-size:24px; margin:0 0 4px; }
+.waiter-operation-heading p { color:var(--muted); font-size:9px; margin:0; }
 .operation-table { background:#fffdf8; border:1px solid var(--line); border-left:5px solid #7e8c83; border-radius:12px; color:var(--ink); display:flex; flex-direction:column; min-height:165px; padding:17px; text-align:left; }
 .operation-table:hover,.operation-table.selected { box-shadow:0 9px 28px rgba(31,24,20,.09); transform:translateY(-2px); }
 .operation-table small { color:var(--muted); font-size:7px; font-weight:800; letter-spacing:.14em; }
@@ -523,6 +531,7 @@ button.table-qr-card { color:inherit; }
   .form-grid,.choice-list { grid-template-columns:1fr; }
   .qr-metrics,.table-card-grid,.table-create-form { grid-template-columns:1fr; }
   .panel-title-row,.table-context { align-items:flex-start; flex-direction:column; gap:12px; }
+  .general-qr-explanation { align-items:flex-start; flex-direction:column; gap:14px; }
   .qr-preview-card { min-height:520px; padding:22px; }
   .waiter-call { grid-template-columns:60px 1fr; padding:13px; }
   .waiter-actions { flex-direction:column; }
