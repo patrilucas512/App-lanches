@@ -13,11 +13,13 @@ type Mode = {
 type Waiter = {
   id: string; user_id?: string | null; name: string; phone?: string | null;
   status: string; sector?: string | null; active_now: boolean; shift_start?: string | null; shift_end?: string | null;
+  employment_type?: "fixed" | "daily"; work_date?: string | null;
   permissions: Record<string, boolean>;
 };
 type Metric = { waiterId: string; orders: number; salesCents: number; payments: number; tables: number };
 type WaiterInvite = {
   waiterId: string; waiterName: string; phone: string; link: string; expiresAt: string;
+  employmentType: "fixed" | "daily"; workDate?: string | null;
 };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels: Record<string, string> = { active: "Ativo", inactive: "Inativo", serving: "Em atendimento", paused: "Pausado", blocked: "Bloqueado" };
@@ -25,8 +27,18 @@ const whatsappNumber = (phone: string) => {
   const digits = phone.replace(/\D/g, "");
   return digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
 };
-const inviteMessage = (invite: WaiterInvite) =>
-  `Olá, ${invite.waiterName}! Você recebeu acesso ao cardápio e aos pedidos do estabelecimento. Crie sua senha neste link: ${invite.link}\n\nEste convite é individual e não deve ser compartilhado.`;
+const localDate = () => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+};
+const formatWorkDate = (value?: string | null) =>
+  value ? new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR") : "";
+const inviteMessage = (invite: WaiterInvite) => invite.employmentType === "daily"
+  ? `Olá, ${invite.waiterName}! Seu acesso de diarista está liberado para ${formatWorkDate(invite.workDate)}. Crie sua senha neste link: ${invite.link}\n\nO acesso aos pedidos funcionará somente na data informada.`
+  : `Olá, ${invite.waiterName}! Seu cadastro de funcionário está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois disso, use seu WhatsApp e sua senha para entrar sempre que estiver trabalhando.`;
 
 export function AttendanceManager({ establishmentId, slug, initialMode, initialWaiters, metrics }: {
   establishmentId: string; slug: string; initialMode: Mode; initialWaiters: Waiter[]; metrics: Metric[];
@@ -35,11 +47,16 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   const [mode, setMode] = useState(initialMode);
   const [waiters, setWaiters] = useState(initialWaiters);
   const [editing, setEditing] = useState<Waiter | null>(null);
+  const [employmentType, setEmploymentType] = useState<"fixed" | "daily">("fixed");
   const [inviteReady, setInviteReady] = useState<WaiterInvite | null>(null);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const activeCount = mode.manual_active_waiters ?? waiters.filter(waiter => waiter.active_now && ["active", "serving"].includes(waiter.status)).length;
+  const activeCount = mode.manual_active_waiters ?? waiters.filter(waiter =>
+    waiter.active_now
+    && ["active", "serving"].includes(waiter.status)
+    && (waiter.employment_type !== "daily" || waiter.work_date === localDate())
+  ).length;
   const patch = <K extends keyof Mode>(key: K, value: Mode[K]) => setMode(current => ({ ...current, [key]: value }));
 
   async function saveMode() {
@@ -62,6 +79,8 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       sector: String(data.get("sector") || ""), status: String(data.get("status") || "inactive"),
       active_now: data.get("active_now") === "on", shift_start: String(data.get("shift_start") || ""),
       shift_end: String(data.get("shift_end") || ""),
+      employment_type: String(data.get("employment_type") || "fixed"),
+      work_date: employmentType === "daily" ? String(data.get("work_date") || "") : "",
       permissions: {
         open_tables: data.get("open_tables") === "on", create_orders: data.get("create_orders") === "on",
         close_bills: data.get("close_bills") === "on", register_payments: data.get("register_payments") === "on",
@@ -76,6 +95,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         const waiter = saved as Waiter;
         setWaiters(current => editingWaiter ? current.map(item => item.id === waiter.id ? waiter : item) : [...current, waiter]);
         setEditing(null);
+        setEmploymentType("fixed");
         form.reset();
         if (!editingWaiter) {
           const invitation = await generateInvite(waiter);
@@ -97,7 +117,12 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   async function changeStatus(waiter: Waiter, status: string, activeNow: boolean) {
     const { data, error } = await supabase.rpc("manage_waiter", {
       requested_establishment_id: establishmentId, requested_waiter_id: waiter.id,
-      requested_values: { name: waiter.name, phone: waiter.phone || "", email: "", sector: waiter.sector || "", status, active_now: activeNow, shift_start: waiter.shift_start || "", shift_end: waiter.shift_end || "", permissions: waiter.permissions },
+      requested_values: {
+        name: waiter.name, phone: waiter.phone || "", email: "", sector: waiter.sector || "",
+        status, active_now: activeNow, shift_start: waiter.shift_start || "", shift_end: waiter.shift_end || "",
+        employment_type: waiter.employment_type || "fixed", work_date: waiter.work_date || "",
+        permissions: waiter.permissions,
+      },
     });
     if (error) setMessage(error.message);
     else setWaiters(current => current.map(item => item.id === waiter.id ? data as Waiter : item));
@@ -114,6 +139,8 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       const invitation = {
         waiterId: waiter.id, waiterName: waiter.name, phone: waiter.phone || "",
         link, expiresAt: data.expires_at,
+        employmentType: (data.employment_type || waiter.employment_type || "fixed") as "fixed" | "daily",
+        workDate: data.work_date || waiter.work_date,
       };
       setInviteReady(invitation);
       return invitation;
@@ -176,22 +203,24 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
           <div className="field"><label>TELEFONE</label><input name="phone" type="tel" inputMode="tel" placeholder="(21) 98139-2823" defaultValue={editing?.phone || ""} key={`phone-${editing?.id}`} /></div>
           <div className="field"><label>SETOR</label><input name="sector" placeholder="Salão, varanda..." defaultValue={editing?.sector || ""} key={`sector-${editing?.id}`} /></div>
           <div className="field"><label>STATUS</label><select name="status" defaultValue={editing?.status || "inactive"} key={`status-${editing?.id}`}>{Object.entries(statusLabels).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></div>
+          <div className="field"><label>TIPO DE CONTRATAÇÃO</label><select name="employment_type" value={employmentType} onChange={event => setEmploymentType(event.target.value as "fixed" | "daily")}><option value="fixed">Funcionário fixo</option><option value="daily">Diarista</option></select></div>
+          {employmentType === "daily" && <div className="field"><label>DATA DA DIÁRIA</label><input name="work_date" type="date" min={localDate()} required defaultValue={editing?.work_date || localDate()} key={`work-date-${editing?.id}`} /><small>O acesso funcionará somente neste dia.</small></div>}
           <div className="field"><label>TURNO</label><div className="shift-fields"><input name="shift_start" type="time" defaultValue={editing?.shift_start?.slice(0,5) || ""} /><input name="shift_end" type="time" defaultValue={editing?.shift_end?.slice(0,5) || ""} /></div></div>
         </div>
         <label className="choice-card"><input name="active_now" type="checkbox" defaultChecked={editing?.active_now} key={`active-${editing?.id}`} /><span><b>Ativo no momento</b><small>Permite operar mesas e pagamentos agora.</small></span></label>
         <div className="permission-grid">{[["open_tables","Abrir mesas"],["create_orders","Lançar pedidos"],["close_bills","Fechar contas"],["register_payments","Registrar pagamentos"],["apply_discount","Aplicar desconto"],["cancel_items","Cancelar itens"]].map(([key,label]) => <label key={key}><input type="checkbox" name={key} defaultChecked={editing ? editing.permissions?.[key] : !["apply_discount","cancel_items"].includes(key)} /> {label}</label>)}</div>
-        <div className="form-actions"><button type="button" className="button outline" onClick={() => setEditing(null)}>Limpar</button><button className="button dark" disabled={busy}>{editing ? "Salvar alterações" : "Cadastrar garçom"}</button></div>
+        <div className="form-actions"><button type="button" className="button outline" onClick={() => { setEditing(null); setEmploymentType("fixed"); }}>Limpar</button><button className="button dark" disabled={busy}>{editing ? "Salvar alterações" : "Cadastrar garçom"}</button></div>
       </form>
       <div className="waiter-admin-list">{waiters.map(waiter => {
         const metric = metrics.find(value => value.waiterId === waiter.id);
         const currentInvite = inviteReady?.waiterId === waiter.id ? inviteReady : null;
         return <article key={waiter.id}>
           <div className="waiter-avatar">{waiter.name.slice(0,2).toUpperCase()}</div>
-          <div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando convite"}</p></div>
+          <div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.employment_type === "daily" ? `Diarista em ${formatWorkDate(waiter.work_date)}` : "Funcionário fixo"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando senha"}</p></div>
           <div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div>
           <div className="waiter-row-actions">
-            <button type="button" onClick={() => setEditing(waiter)}>Editar</button>
-            <button type="button" disabled={invitingId === waiter.id} onClick={() => invite(waiter)}>{invitingId === waiter.id ? "Gerando..." : waiter.user_id ? "Renovar acesso" : "Gerar convite"}</button>
+            <button type="button" onClick={() => { setEditing(waiter); setEmploymentType(waiter.employment_type || "fixed"); }}>Editar</button>
+            <button type="button" disabled={invitingId === waiter.id} onClick={() => invite(waiter)}>{invitingId === waiter.id ? "Gerando..." : waiter.user_id ? "Redefinir senha" : "Enviar acesso"}</button>
             {waiter.status === "blocked" ? <button type="button" onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button type="button" onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}
             {waiter.active_now ? <button type="button" onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button type="button" onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}
           </div>
@@ -200,7 +229,9 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
               <div><small>ACESSO PRONTO</small><h3>Enviar convite de {currentInvite.waiterName}</h3></div>
               <button type="button" aria-label="Fechar convite" onClick={() => setInviteReady(null)}>×</button>
             </div>
-            <p>Escolha uma forma de envio. O garçom abrirá o link, criará a senha e poderá trabalhar conforme as permissões marcadas.</p>
+            <p>{currentInvite.employmentType === "daily"
+              ? `Este acesso funcionará somente em ${formatWorkDate(currentInvite.workDate)}. Envie o link para o diarista criar a senha.`
+              : "Funcionário fixo: após criar a senha uma vez, ele entra sempre com WhatsApp e senha enquanto o cadastro estiver ativo."}</p>
             <div className="invite-link-box"><span>{currentInvite.link}</span><button type="button" onClick={copyInvite}>Copiar link</button></div>
             <div className="invite-ready-actions">
               {whatsappNumber(currentInvite.phone)

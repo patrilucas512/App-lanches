@@ -6,9 +6,56 @@ import { createClient } from "@/lib/supabase/client";
 
 function normalizeBrazilianPhone(value: string) {
   const digits = value.replace(/\D/g, "");
-  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return `+${digits}`;
-  return value.startsWith("+") ? `+${digits}` : digits;
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return digits;
+  return digits;
+}
+
+function loginEmailForPhone(value: string) {
+  return `w.${normalizeBrazilianPhone(value)}@garcom.mesaviva.app`;
+}
+
+function saoPauloDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value || "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function PasswordInput({
+  name,
+  autoComplete,
+  minLength,
+}: {
+  name: string;
+  autoComplete: string;
+  minLength?: number;
+}) {
+  const [visible, setVisible] = useState(false);
+  return <div className="password-input-wrap">
+    <input
+      name={name}
+      type={visible ? "text" : "password"}
+      minLength={minLength}
+      required
+      autoComplete={autoComplete}
+    />
+    <button
+      type="button"
+      className="password-visibility"
+      aria-label={visible ? "Ocultar senha" : "Visualizar senha"}
+      aria-pressed={visible}
+      title={visible ? "Ocultar senha" : "Visualizar senha"}
+      onClick={() => setVisible((current) => !current)}
+    >
+      {visible ? "◉" : "👁"}
+    </button>
+  </div>;
 }
 
 export function WaiterLoginForm({ establishment }: { establishment?: string }) {
@@ -16,22 +63,44 @@ export function WaiterLoginForm({ establishment }: { establishment?: string }) {
   const [busy, setBusy] = useState(false);
 
   async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setMessage("");
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
     const form = new FormData(event.currentTarget);
+    const phone = String(form.get("phone"));
+    const normalizedPhone = normalizeBrazilianPhone(phone);
+    if (normalizedPhone.length < 12) {
+      setMessage("Informe um WhatsApp válido com DDD.");
+      setBusy(false);
+      return;
+    }
+
     const supabase = createClient();
-    const phone = normalizeBrazilianPhone(String(form.get("phone")));
     const { error } = await supabase.auth.signInWithPassword({
-      phone,
+      email: loginEmailForPhone(phone),
       password: String(form.get("password")),
     });
     if (error) {
       setMessage("WhatsApp ou senha inválidos.");
     } else {
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { data: waiter } = await supabase.from("waiters").select("status,active_now").eq("user_id", userId).maybeSingle();
-      if (!waiter || ["inactive","paused","blocked"].includes(waiter.status) || !waiter.active_now) {
+      const { data: waiter } = await supabase
+        .from("waiters")
+        .select("status,active_now,employment_type,work_date")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const outsideDailyDate = waiter?.employment_type === "daily"
+        && waiter.work_date !== saoPauloDate();
+      if (
+        !waiter
+        || ["inactive", "paused", "blocked"].includes(waiter.status)
+        || !waiter.active_now
+        || outsideDailyDate
+      ) {
         await supabase.auth.signOut();
-        setMessage("Seu acesso está inativo. Fale com o administrador.");
+        setMessage(outsideDailyDate
+          ? "Este acesso de diarista só funciona na data liberada pelo administrador."
+          : "Seu acesso está inativo. Fale com o administrador.");
       } else {
         window.location.assign("/garcom/app");
       }
@@ -40,12 +109,37 @@ export function WaiterLoginForm({ establishment }: { establishment?: string }) {
   }
 
   return <form className="form" onSubmit={login}>
-    <div className="field"><label>ESTABELECIMENTO</label><input value={establishment || ""} readOnly={Boolean(establishment)} name="establishment" placeholder="Nome ou link do estabelecimento" /></div>
-    <div className="field"><label>SEU WHATSAPP</label><input name="phone" type="tel" inputMode="tel" required autoComplete="tel" placeholder="(21) 98139-2823" /></div>
-    <div className="field"><label>SENHA</label><input name="password" type="password" required autoComplete="current-password" /></div>
+    <div className="field">
+      <label>ESTABELECIMENTO</label>
+      <input
+        value={establishment || ""}
+        readOnly={Boolean(establishment)}
+        name="establishment"
+        placeholder="Nome ou link do estabelecimento"
+      />
+    </div>
+    <div className="field">
+      <label>SEU WHATSAPP</label>
+      <input
+        name="phone"
+        type="tel"
+        inputMode="tel"
+        required
+        autoComplete="tel"
+        placeholder="(21) 98139-2823"
+      />
+    </div>
+    <div className="field">
+      <label>SENHA</label>
+      <PasswordInput name="password" autoComplete="current-password" />
+    </div>
     {message && <div className="form-message">{message}</div>}
-    <button className="button dark wide" disabled={busy}>{busy ? "Entrando..." : "Entrar para trabalhar →"}</button>
-    <p className="auth-switch">Primeiro acesso? Abra o link recebido no WhatsApp e crie sua senha.</p>
+    <button className="button dark wide" disabled={busy}>
+      {busy ? "Entrando..." : "Entrar para trabalhar →"}
+    </button>
+    <p className="auth-switch">
+      Primeiro acesso? Abra o link recebido no WhatsApp e crie sua senha.
+    </p>
   </form>;
 }
 
@@ -54,33 +148,47 @@ export function WaiterInviteClaim({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
 
   async function activate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setMessage("");
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
     const form = new FormData(event.currentTarget);
     const password = String(form.get("password"));
     const confirmation = String(form.get("password_confirmation"));
     if (password.length < 8) {
-      setMessage("A senha precisa ter pelo menos 8 caracteres."); setBusy(false); return;
+      setMessage("A senha precisa ter pelo menos 8 caracteres.");
+      setBusy(false);
+      return;
     }
     if (password !== confirmation) {
-      setMessage("As duas senhas precisam ser iguais."); setBusy(false); return;
+      setMessage("As duas senhas precisam ser iguais.");
+      setBusy(false);
+      return;
     }
 
     const supabase = createClient();
     const { data, error } = await supabase.functions.invoke("activate-waiter-access", {
       body: { token, password },
     });
-    if (error || !data?.phone) {
-      setMessage(data?.error || "Não foi possível ativar o acesso. Peça um novo convite ao administrador.");
+    if (error || !data?.login_email) {
+      setMessage(data?.error || "Não foi possível ativar este acesso.");
       setBusy(false);
       return;
     }
 
     const { error: loginError } = await supabase.auth.signInWithPassword({
-      phone: data.phone,
+      email: data.login_email,
       password,
     });
     if (loginError) {
-      setMessage("Senha criada. Entre novamente usando seu WhatsApp.");
+      setMessage("Senha criada. Entre usando seu WhatsApp e essa senha.");
+      setBusy(false);
+      return;
+    }
+
+    if (data.employment_type === "daily" && data.work_date !== saoPauloDate()) {
+      await supabase.auth.signOut();
+      const formattedDate = new Date(`${data.work_date}T12:00:00`).toLocaleDateString("pt-BR");
+      setMessage(`Senha criada. Seu acesso de diarista estará liberado em ${formattedDate}.`);
       setBusy(false);
       return;
     }
@@ -90,15 +198,27 @@ export function WaiterInviteClaim({ token }: { token: string }) {
   }
 
   return <div className="auth-card waiter-invite-card">
-    <span className="kicker">CONVITE DA EQUIPE</span>
+    <span className="kicker">ACESSO DA EQUIPE</span>
     <h1>Crie sua senha.</h1>
-    <p>Seu WhatsApp já foi cadastrado pelo administrador. Escolha uma senha e comece a trabalhar.</p>
+    <p>Seu WhatsApp já foi cadastrado. Escolha uma senha para acessar sua área de trabalho.</p>
     <form className="form" onSubmit={activate}>
-      <div className="field"><label>CRIE UMA SENHA</label><input name="password" type="password" minLength={8} required autoComplete="new-password" /></div>
-      <div className="field"><label>CONFIRME A SENHA</label><input name="password_confirmation" type="password" minLength={8} required autoComplete="new-password" /></div>
-      <button className="button dark wide" disabled={busy}>{busy ? "Liberando acesso..." : "Criar senha e começar →"}</button>
-      <p className="auth-switch">Já criou sua senha? <Link href="/garcom/login">Entrar com WhatsApp</Link></p>
+      <div className="field">
+        <label>CRIE UMA SENHA</label>
+        <PasswordInput name="password" minLength={8} autoComplete="new-password" />
+      </div>
+      <div className="field">
+        <label>CONFIRME A SENHA</label>
+        <PasswordInput name="password_confirmation" minLength={8} autoComplete="new-password" />
+      </div>
+      <button className="button dark wide" disabled={busy}>
+        {busy ? "Liberando acesso..." : "Criar senha e começar →"}
+      </button>
+      <p className="auth-switch">
+        Já criou sua senha? <Link href="/garcom/login">Entrar com WhatsApp</Link>
+      </p>
     </form>
-    {message && <div className={message.includes("ativado") ? "form-message form-success" : "form-message"}>{message}</div>}
+    {message && <div className={message.includes("ativado") || message.includes("Senha criada")
+      ? "form-message form-success"
+      : "form-message"}>{message}</div>}
   </div>;
 }
