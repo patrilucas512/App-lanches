@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/client";
 import { createPixPayload } from "@/lib/pix";
@@ -53,10 +53,13 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
   const [category, setCategory] = useState("all");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [focusMenuAfterOpening, setFocusMenuAfterOpening] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [pix, setPix] = useState<(PixData & { payload: string; qr: string }) | null>(null);
   const [receipt, setReceipt] = useState<{ method: string; amount: number; date: string } | null>(null);
   const [cardMethod, setCardMethod] = useState<"credit_card" | "debit_card" | null>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const productSearchRef = useRef<HTMLInputElement>(null);
   const selectedTable = tables.find(table => table.id === selectedTableId);
   const selectedSession = sessions.find(session => session.table_id === selectedTableId);
 
@@ -75,6 +78,15 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [establishmentId, supabase]);
+  useEffect(() => {
+    if (!focusMenuAfterOpening || !selectedTable || selectedSession?.status !== "open") return;
+    const timer = window.setTimeout(() => {
+      workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      productSearchRef.current?.focus({ preventScroll: true });
+      setFocusMenuAfterOpening(false);
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [focusMenuAfterOpening, selectedSession?.status, selectedTable]);
 
   function chooseTable(table: Table) {
     setMessage(""); setReceipt(null); setPix(null);
@@ -102,6 +114,10 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
       setOpenTableId(null);
       setSessions(current => [...current, session]);
       await refresh();
+      setSearch("");
+      setCategory("all");
+      setMessage("Atendimento aberto. Escolha os itens do cardápio e envie para a cozinha.");
+      setFocusMenuAfterOpening(true);
     }
     setBusy(false);
   }
@@ -249,14 +265,14 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, role
     </section>
     {!operationalTables.length && <div className="empty"><b>Nenhum atendimento aberto.</b><span>Clique em “Abrir atendimento” quando uma pessoa ocupar uma mesa.</span></div>}
 
-    {selectedTable && selectedSession && <div className="waiter-workspace">
+    {selectedTable && selectedSession && <div className="waiter-workspace" ref={workspaceRef}>
       <section className="panel table-account-head">
         <div><small>MESA {selectedTable.table_number}</small><h2>{selectedSession.customer_name || "Cliente não informado"}</h2><p>Aberta há {openedFor} min · {selectedSession.people_count} pessoa(s) · {labels[selectedTable.status]}</p></div>
         <div><small>PARCIAL</small><strong>{money(selectedSession.total_cents || selectedSession.subtotal_cents)}</strong><button className="button outline" onClick={() => setSelectedTableId(null)}>Trocar mesa</button></div>
       </section>
       {selectedSession.status === "open" && <div className="waiter-order-layout">
         <section className="panel internal-menu">
-          <div className="menu-tools"><input placeholder="Buscar produto..." value={search} onChange={event => setSearch(event.target.value)} /><div><button className={category === "all" ? "active" : ""} onClick={() => setCategory("all")}>Todos</button>{categories.map(value => <button key={value.id} className={category === value.id ? "active" : ""} onClick={() => setCategory(value.id)}>{value.name}</button>)}</div></div>
+          <div className="menu-tools"><input ref={productSearchRef} placeholder="Buscar produto..." value={search} onChange={event => setSearch(event.target.value)} /><div><button className={category === "all" ? "active" : ""} onClick={() => setCategory("all")}>Todos</button>{categories.map(value => <button key={value.id} className={category === value.id ? "active" : ""} onClick={() => setCategory(value.id)}>{value.name}</button>)}</div></div>
           <div className="internal-product-grid">{visibleProducts.map(product => <article key={product.id}>
             {product.image_url ? <img src={product.image_url} alt="" /> : <div className="product-placeholder">MV</div>}
             <div><h3>{product.name}</h3><p>{product.description}</p><strong>{money(product.price_cents)}</strong></div>
