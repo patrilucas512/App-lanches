@@ -12,6 +12,7 @@ type Ticket = {
   started_at?: string | null;
   ready_at?: string | null;
   delivered_at?: string | null;
+  delivered_by_name?: string | null;
 };
 type Order = { id: string; table_session_id: string; order_number: number; created_at: string };
 type Session = { id: string; table_id: string };
@@ -142,6 +143,7 @@ export function WaiterOrderTracker({ establishmentId, initial }: {
                 {ticket.status === "ready" && <button disabled={busyTicket === ticket.id} onClick={() => collect(ticket)}>
                   {busyTicket === ticket.id ? "Registrando..." : "Retirar pedido"}
                 </button>}
+                {ticket.status === "delivered" && <div className="delivery-owner"><small>RETIRADO E ENTREGUE POR</small><b>{ticket.delivered_by_name || "Equipe"}</b></div>}
               </article>;
             })}
             {!tickets.length && <div className="empty-stage">Nenhum pedido.</div>}

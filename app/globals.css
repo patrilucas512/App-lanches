@@ -374,6 +374,12 @@ button.table-qr-card { color:inherit; }
 .cash-change span { color:#285d3f; font-size:8px; font-weight:800; letter-spacing:.08em; }
 .cash-change strong { color:#1f5938; font-family:var(--font-display),serif; font-size:36px; }
 .cash-change small { color:#49705a; font-size:8px; }
+.cash-received-field input { border:2px solid var(--wine); font-size:22px; font-weight:800; min-height:58px; }
+.cash-received-field small { color:var(--muted); font-size:8px; line-height:1.5; }
+.payment-operator { background:#edf4ee; border-radius:9px; display:flex; flex-direction:column; gap:4px; padding:12px; }
+.payment-operator small { color:var(--muted); font-size:7px; }
+.payment-operator strong { color:#285d3f; font-size:11px; }
+.payment-operator span { color:#49705a; font-size:8px; }
 .pix-payment { align-items:center; display:flex; flex-direction:column; gap:9px; text-align:center; }
 .pix-payment > img { background:white; border-radius:12px; max-width:320px; padding:10px; width:100%; }
 .pix-payment h3 { font-size:15px; margin:2px 0; }
@@ -417,6 +423,9 @@ button.table-qr-card { color:inherit; }
 .kitchen-waiter-pickup { background:#def1e8; border:1px solid #a7d5bf; border-radius:8px; display:flex; flex-direction:column; gap:3px; padding:11px; }
 .kitchen-waiter-pickup b { color:#246047; font-size:9px; text-transform:uppercase; }
 .kitchen-waiter-pickup span { color:#47705d; font-size:8px; }
+.kitchen-delivery-owner { background:#edf1ef; border-radius:8px; display:flex; flex-direction:column; gap:3px; padding:10px; }
+.kitchen-delivery-owner small { color:#708078; font-size:6px; }
+.kitchen-delivery-owner b { color:#405249; font-size:9px; }
 
 .waiter-tracker { background:#fffdf8; border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; gap:14px; margin-bottom:20px; padding:20px; }
 .waiter-tracker > header { align-items:flex-start; display:flex; justify-content:space-between; }
@@ -450,6 +459,9 @@ button.table-qr-card { color:inherit; }
 .waiter-stage-list time b { color:var(--wine); }
 .waiter-stage-list article button { background:#1f6f5d; border:0; border-radius:7px; color:white; font-size:8px; font-weight:800; grid-column:1/-1; padding:10px; }
 .waiter-stage-list article button:disabled { opacity:.55; }
+.delivery-owner { background:#edf1ef; border-radius:6px; grid-column:1/-1; padding:8px; }
+.delivery-owner small { margin-bottom:3px; }
+.delivery-owner b { color:#405249; font-size:8px; }
 .empty-stage { color:var(--muted); font-size:7px; padding:13px 4px; text-align:center; }
 .tracker-message { background:#f0e6dc; border-radius:8px; color:var(--wine); font-size:8px; padding:10px; }
 .tracker-message.ready { background:#dff3e9; color:#155e4c; font-weight:800; }
