@@ -713,6 +713,8 @@ button.table-qr-card { color:inherit; }
 .tracking-ready-alert { background:#dff4e9; color:#075c3e; max-width:290px; }
 .tracking-ready-alert b { font-size:22px; }
 .tracking-ready-alert span { font-size:12px; margin-top:5px; }
+.kitchen-notification-button { background:#fff; border:1px solid #4b4b45; border-radius:999px; color:#171714; cursor:pointer; font:700 11px/1 inherit; padding:9px 13px; }
+.kitchen-notification-button.active { background:#dff4e9; border-color:#5fa98c; color:#075c3e; }
 .tracking-steps { display:grid; grid-template-columns:repeat(4,1fr); margin:28px 0; position:relative; }
 .tracking-steps::before { background:#ddd6ca; content:""; height:3px; left:10%; position:absolute; right:10%; top:17px; }
 .tracking-steps > div { align-items:center; color:#898278; display:flex; flex-direction:column; gap:7px; position:relative; z-index:1; }

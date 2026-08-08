@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { subscribeToPush, supportsPushNotifications } from "@/lib/push-notifications";
 
 type Ticket = { id: string; table_order_id?: string | null; public_order_id?: string | null; status: string; created_at: string; delivered_by_name?: string | null };
 type TableOrder = { id: string; table_session_id: string; order_number: number; notes?: string | null };
@@ -18,6 +19,15 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, in
   const [now, setNow] = useState(() => Date.now());
   const [message, setMessage] = useState("");
   const [printingId, setPrintingId] = useState<string | null>(null);
+  const [pushStatus, setPushStatus] = useState<"unsupported" | "idle" | "active">("idle");
+
+  async function enablePushNotifications(askPermission = true) {
+    if (!supportsPushNotifications()) { setPushStatus("unsupported"); return; }
+    const subscription = await subscribeToPush(askPermission).catch(() => null);
+    if (!subscription) { setPushStatus("idle"); return; }
+    const { error } = await supabase.rpc("register_kitchen_push_subscription", { requested_establishment_id: establishmentId, requested_subscription: subscription });
+    if (error) setMessage(error.message); else setPushStatus("active");
+  }
 
   async function refresh(withAlert = false, insertedId?: string) {
     const [{ data: tickets }, { data: tableOrders }, { data: publicOrders }, { data: sessions }, { data: tables }, { data: tableItems }, { data: publicItems }] = await Promise.all([
@@ -49,6 +59,13 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, in
   }
 
   useEffect(() => {
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      void subscribeToPush(false).then(async subscription => {
+        if (!subscription) return;
+        const { error } = await supabase.rpc("register_kitchen_push_subscription", { requested_establishment_id: establishmentId, requested_subscription: subscription });
+        if (error) setMessage(error.message); else setPushStatus("active");
+      }).catch(() => undefined);
+    }
     const timer = window.setInterval(() => setNow(Date.now()), 30000);
     const clearPrint = () => setPrintingId(null);
     window.addEventListener("afterprint", clearPrint);
@@ -87,7 +104,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, in
   }
 
   return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`}>
-    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span><Link href="/painel/garcom">Área do garçom</Link></div></header>
+    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span>{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}<Link href="/painel/garcom">Área do garçom</Link></div></header>
     <section className="kitchen-columns">{columns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
       <header><h2>{title}</h2><b>{data.tickets.filter(value => value.status === status).length}</b></header>
       <div>{data.tickets.filter(value => value.status === status).map(ticket => {

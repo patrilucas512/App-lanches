@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { subscribeToPush } from "@/lib/push-notifications";
 
 type Addon = { name: string; price_cents: number };
 export type MenuProduct = { id: string; name: string; description?: string; image_url?: string; price_cents: number; featured?: boolean; ingredients?: string[]; addon_options?: Addon[] };
@@ -118,10 +119,13 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     const data = new FormData(event.currentTarget); const buyerName = String(data.get("name") || "").trim(); const chosenFulfillment = String(data.get("fulfillment")); const tableLabel = String(data.get("table_label") || "").trim();
     if (buyerName.split(/\s+/).length < 2) return setMessage("Informe seu nome e sobrenome para identificar o pedido.");
     if (chosenFulfillment === "dine_in" && !tableLabel) return setMessage("Informe o número ou nome da mesa onde você está.");
+    const pushSubscription = subscribeToPush(true).catch(() => null);
     const { data: result, error } = await supabase.rpc("place_public_order", { requested_slug: menu.establishment.slug, buyer_name: buyerName, buyer_phone: String(data.get("phone") || ""), requested_fulfillment: chosenFulfillment, requested_items: cart.map(item => ({ product_id: item.product.id, quantity: item.quantity, addons: item.addons.map(addon => ({ name: addon.name })), removed_ingredients: item.removedIngredients })), order_notes: null, requested_table_number: chosenFulfillment === "dine_in" ? tableLabel : null, requested_source: source === "qr" || qrTable ? "qr" : "direct", requested_payment: String(data.get("payment") || "") });
     if (error) return setMessage(error.message);
     record("order_whatsapp", undefined, result.order_id, result.total_cents);
     const token = String(result.tracking_token); window.localStorage.setItem(`mesa-viva:${menu.establishment.slug}:pedido`, token); setTrackingToken(token); setCheckout(false); setCart([]); cartStarted.current = false; setMessage("");
+    const subscription = await pushSubscription;
+    if (subscription) void supabase.rpc("register_customer_push_subscription", { requested_tracking_token: token, requested_subscription: subscription });
   }
 
   async function callWaiter(event: FormEvent<HTMLFormElement>) {
@@ -161,7 +165,7 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
       <div className="tracking-heading">
         <div><small>ACOMPANHE SEU PEDIDO</small><h2>Pedido #{tracking.order_number}</h2></div>
         {currentStatus === "preparing" && <div className="tracking-clock"><span>⏱</span><b>{minutesLabel}</b><small>tempo estimado</small></div>}
-        {currentStatus === "ready" && <div className="tracking-ready-alert"><b>PRONTO!</b><span>{tracking.fulfillment_type === "dine_in" ? `A equipe levará até ${tracking.table_number ? `a mesa ${tracking.table_number}` : "sua mesa"}.` : "Retire seu pedido no balcão."}</span></div>}
+        {currentStatus === "ready" && <div className="tracking-ready-alert"><b>PRONTO!</b><span>{tracking.fulfillment_type === "dine_in" && service.waiter_mode_enabled ? `A equipe levará até ${tracking.table_number ? `a mesa ${tracking.table_number}` : "sua mesa"}.` : "Retirar seu pedido no balcão, obrigado."}</span></div>}
         {currentStatus === "delivered" && <div className="tracking-ready-alert"><b>FINALIZADO</b><span>Pedido entregue com sucesso.</span></div>}
       </div>
       <div className="tracking-steps">
