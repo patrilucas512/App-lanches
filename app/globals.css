@@ -109,6 +109,7 @@ footer nav { display:flex; gap:24px; }
 .auth-switch { color:var(--muted); font-size:10px; margin-top:20px; text-align:center; }
 .auth-switch a { color:var(--wine); font-weight:800; }
 .auth-text-button { background:transparent; border:0; color:var(--wine); display:block; font-size:10px; font-weight:800; margin:14px auto 0; text-decoration:underline; }
+.auth-recovery-link { align-self:flex-end; color:var(--wine); font-size:10px; font-weight:800; margin-top:-7px; text-decoration:underline; }
 .resend-form { border-top:1px solid var(--line); display:flex; flex-direction:column; gap:12px; margin-top:20px; padding-top:20px; }
 .onboarding-page { grid-template-columns:minmax(320px,.72fr) minmax(620px,1.28fr); }
 .onboarding-page .auth-main { align-items:flex-start; padding:55px clamp(28px,5vw,76px); }

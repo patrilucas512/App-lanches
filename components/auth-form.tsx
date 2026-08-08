@@ -56,6 +56,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     <div className="field"><label>{mode === "signup" ? "SEU E-MAIL DE ACESSO" : "E-MAIL"}</label><input name="email" type="email" autoComplete="email" required placeholder="seunome@gmail.com" /></div>
     {mode === "signup" && <div className="field"><label>CONFIRME O E-MAIL</label><input name="email_confirmation" type="email" autoComplete="email" required placeholder="Digite novamente o mesmo e-mail" /><small>Use um endereço que você consegue abrir agora.</small></div>}
     <div className="field"><label>SENHA</label><input name="password" type="password" minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} required placeholder="Mínimo de 8 caracteres" /></div>
+    {mode === "login" && <Link className="auth-recovery-link" href="/recuperar-senha">Esqueci minha senha</Link>}
     {message && <div className={`form-message ${message.startsWith("Enviamos") ? "form-success" : ""}`}>{message}</div>}
     <button type="submit" className="button dark wide" disabled={loading}>{loading ? "Aguarde..." : mode === "signup" ? "Criar conta grátis →" : "Entrar no painel →"}</button>
     <p className="auth-switch">{mode === "signup" ? <>Já tem uma conta? <Link href="/login">Entrar</Link></> : <>Ainda não usa o Mesa Viva? <Link href="/cadastro">Começar grátis</Link></>}</p>
