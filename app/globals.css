@@ -673,3 +673,45 @@ button.table-qr-card { color:inherit; }
   .printing-one .print-target { border:1px dashed #111; box-shadow:none; display:block!important; margin:0; max-width:80mm; opacity:1!important; }
   .printing-one .print-target footer { display:none; }
 }
+
+/* Public ordering, live tracking and branding uploads */
+.brand-logo-preview { background:#fff; border:1px solid var(--line); border-radius:12px; height:88px; margin-top:8px; object-fit:contain; padding:8px; width:120px; }
+.product-ingredients { color:var(--muted); font-size:13px; line-height:1.55; }
+.cart-line-custom { align-items:stretch; display:flex; flex-wrap:wrap; gap:10px; padding:15px 0; }
+.cart-line-heading { align-items:flex-start; display:flex; justify-content:space-between; width:100%; }
+.cart-line-heading > div { display:flex; flex-direction:column; gap:4px; }
+.cart-line-heading small { color:var(--muted); line-height:1.4; }
+.customize-toggle { background:#f3eee5; border:0; border-radius:999px; color:var(--wine); cursor:pointer; font-size:11px; font-weight:800; padding:10px 14px; text-align:left; width:100%; }
+.inline-customizer { background:#faf7f0; border:1px solid var(--line); border-radius:12px; display:grid; gap:14px; padding:14px; width:100%; }
+.inline-customizer fieldset { border:0; display:grid; gap:8px; margin:0; padding:0; }
+.inline-customizer legend { font-size:11px; font-weight:900; margin-bottom:8px; text-transform:uppercase; }
+.inline-customizer label { align-items:center; background:#fff; border-radius:8px; cursor:pointer; display:flex; gap:9px; padding:10px; }
+.inline-customizer label input { accent-color:var(--wine); height:18px; width:18px; }
+.inline-customizer label b { margin-left:auto; }
+.cart-removed-highlight,.ticket-removed-alert { background:#fff0d9; border:2px solid #c53b20; border-radius:8px; color:#9c1f0e; display:block; font-size:16px; font-weight:950; letter-spacing:.02em; padding:9px 11px; text-transform:uppercase; width:100%; }
+.optional-contact small,.checkout-help { color:var(--muted); line-height:1.5; }
+.order-tracking { background:#fffdf8; border:2px solid var(--accent); border-radius:22px; box-shadow:0 18px 55px rgba(34,28,20,.12); margin:28px auto; max-width:980px; padding:26px; }
+.tracking-heading { align-items:center; display:flex; gap:20px; justify-content:space-between; }
+.tracking-heading h2 { margin:5px 0 0; }
+.tracking-clock,.tracking-ready-alert { align-items:center; background:#f4eee4; border-radius:14px; display:flex; flex-direction:column; min-width:145px; padding:13px; text-align:center; }
+.tracking-clock b { font-size:24px; }
+.tracking-ready-alert { background:#dff4e9; color:#075c3e; max-width:290px; }
+.tracking-ready-alert b { font-size:22px; }
+.tracking-ready-alert span { font-size:12px; margin-top:5px; }
+.tracking-steps { display:grid; grid-template-columns:repeat(4,1fr); margin:28px 0; position:relative; }
+.tracking-steps::before { background:#ddd6ca; content:""; height:3px; left:10%; position:absolute; right:10%; top:17px; }
+.tracking-steps > div { align-items:center; color:#898278; display:flex; flex-direction:column; gap:7px; position:relative; z-index:1; }
+.tracking-steps i { align-items:center; background:#e4ddd2; border-radius:50%; display:flex; font-style:normal; font-weight:900; height:36px; justify-content:center; width:36px; }
+.tracking-steps .active { color:var(--wine); font-weight:800; }
+.tracking-steps .active i { background:var(--wine); color:#fff; }
+.tracking-items { border-top:1px solid var(--line); padding-top:18px; }
+.tracking-items > div { border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:4px; padding:10px 0; }
+.tracking-items strong { color:#a22616; font-size:16px; text-transform:uppercase; }
+.ticket-items .ticket-removed-alert { font-size:19px; margin-top:9px; }
+@media (max-width:640px) {
+  .order-tracking { border-radius:0; margin:18px -18px; padding:20px 18px; }
+  .tracking-heading { align-items:stretch; flex-direction:column; }
+  .tracking-clock,.tracking-ready-alert { width:100%; }
+  .tracking-steps span { font-size:10px; }
+  .cart-line-heading { gap:12px; }
+}

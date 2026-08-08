@@ -21,7 +21,7 @@ export default async function SettingsPage() {
       state: details?.state ?? "", accentColor: details?.accent_color ?? "#6d2627",
       secondaryColor: details?.secondary_color ?? "#f5efe5",
       estimatedMinutes: settings?.estimated_minutes ?? 45,
-      minimumOrderCents: settings?.minimum_order_cents ?? 0,
+      logoUrl: details?.logo_url ?? "",
     }} />
     <PixSettingsForm establishmentId={establishment.id} initial={pix} />
   </DashboardShell>;

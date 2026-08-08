@@ -114,6 +114,7 @@ export function QrCodeManager({
   const supabase = useMemo(() => createClient(), []);
   const [origin, setOrigin] = useState("");
   const [settings, setSettings] = useState(initialSettings);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -126,15 +127,28 @@ export function QrCodeManager({
     event.preventDefault();
     setBusy(true);
     setMessage("");
+    let logoUrl = settings.logoUrl;
+    if (logoFile) {
+      if (!logoFile.type.startsWith("image/") || logoFile.size > 8 * 1024 * 1024) {
+        setMessage("Escolha uma imagem de até 8 MB."); setBusy(false); return;
+      }
+      const extension = logoFile.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+      const path = `${establishmentId}/branding/qr-logo-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("product-images").upload(path, logoFile, { contentType: logoFile.type, cacheControl: "3600" });
+      if (uploadError) { setMessage(uploadError.message); setBusy(false); return; }
+      logoUrl = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+      setSettings(current => ({ ...current, logoUrl }));
+    }
     const { error } = await supabase.from("qr_code_settings").upsert({
       establishment_id: establishmentId,
       title: settings.title,
       subtitle: settings.subtitle,
       footer_text: settings.footerText,
       primary_color: settings.primaryColor,
-      logo_url: settings.logoUrl || null,
+      logo_url: logoUrl || null,
       print_template: settings.template,
     }, { onConflict: "establishment_id" });
+    if (!error) setLogoFile(null);
     setMessage(error?.message || "Personalização salva.");
     setBusy(false);
   }
@@ -196,7 +210,15 @@ export function QrCodeManager({
           <div className="field"><label>SUBTÍTULO</label><input value={settings.subtitle} onChange={event => setSettings({ ...settings, subtitle: event.target.value })} /></div>
           <div className="field"><label>TEXTO INFERIOR</label><input value={settings.footerText} onChange={event => setSettings({ ...settings, footerText: event.target.value })} /></div>
           <div className="form-grid"><div className="field"><label>COR PRINCIPAL</label><input type="color" value={settings.primaryColor} onChange={event => setSettings({ ...settings, primaryColor: event.target.value })} /></div><div className="field"><label>MODELO</label><select value={settings.template} onChange={event => setSettings({ ...settings, template: event.target.value as QrSettings["template"] })}><option value="simple">Simples</option><option value="premium">Premium</option><option value="counter">Balcão</option></select></div></div>
-          <div className="field"><label>URL DO LOGOTIPO</label><input type="url" value={settings.logoUrl} onChange={event => setSettings({ ...settings, logoUrl: event.target.value })} placeholder="https://..." /></div>
+          <div className="field">
+            <label>LOGOTIPO</label>
+            <label className="photo-picker">
+              <input type="file" accept="image/*" onChange={event => setLogoFile(event.target.files?.[0] || null)} />
+              <span>{logoFile ? logoFile.name : "Escolher imagem da galeria"}</span>
+            </label>
+            {settings.logoUrl && <img className="brand-logo-preview" src={settings.logoUrl} alt="Logotipo atual" />}
+            <small>JPG, PNG ou WebP de até 8 MB.</small>
+          </div>
           <button className="button dark wide" disabled={busy}>Salvar personalização</button>
         </form>
       </section>
