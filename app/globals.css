@@ -531,6 +531,9 @@ button.table-qr-card { color:inherit; }
 
 @media(max-width:900px) {
   .marketing-header nav > a:not(.button) { display:none; }
+  .marketing-header { padding-left:14px; padding-right:14px; }
+  .marketing-header nav { gap:8px; }
+  .marketing-header nav .button.small { padding:10px 13px; }
   .saas-hero { grid-template-columns:1fr; padding-top:70px; }
   .hero-product { margin-top:30px; }
   .logo-strip b:nth-last-child(-n+2) { display:none; }
