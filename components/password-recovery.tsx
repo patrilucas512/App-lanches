@@ -28,7 +28,7 @@ export function RequestPasswordRecovery({ initialEmail = "" }: { initialEmail?: 
       const supabase = createClient();
       const redirectOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${redirectOrigin}/auth/callback?next=/nova-senha`,
+        redirectTo: `${redirectOrigin}/nova-senha`,
       });
       if (error) throw error;
       setMessage(`Enviamos um link de recuperação para ${email}. Confira também a pasta de spam.`);
@@ -54,14 +54,49 @@ export function UpdatePassword() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+    let active = true;
+    let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    async function recoverSession() {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        if (!error && active) {
+          window.history.replaceState({}, "", window.location.pathname);
+          setReady(true);
+          setMessage("");
+          return;
+        }
+      }
+
+      const { data } = await supabase.auth.getSession();
+      if (data.session && active) {
         setReady(true);
         setMessage("");
-      } else {
-        setMessage("Este link expirou ou já foi usado. Solicite um novo link.");
+        return;
+      }
+
+      expiryTimer = setTimeout(() => {
+        if (active) setMessage("Este link expirou ou já foi usado. Solicite um novo link.");
+      }, 5000);
+    }
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session && active) {
+        if (expiryTimer) clearTimeout(expiryTimer);
+        setReady(true);
+        setMessage("");
       }
     });
+    void recoverSession();
+
+    return () => {
+      active = false;
+      if (expiryTimer) clearTimeout(expiryTimer);
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
