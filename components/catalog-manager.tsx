@@ -9,10 +9,8 @@ type Product = { id: string; category_id?: string | null; name: string; descript
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const parseLines = (value: string) => value.split(/\n|,/).map(item => item.trim()).filter(Boolean);
-const parseAddons = (value: string): Addon[] => value.split("\n").map(line => {
-  const [name, rawPrice = "0"] = line.split("|");
-  return { name: name.trim(), price_cents: Math.round(Number(rawPrice.trim().replace(",", ".")) * 100) };
-}).filter(item => item.name && Number.isFinite(item.price_cents) && item.price_cents >= 0);
+type AddonDraft = { id: string; name: string; price: string };
+const emptyAddon = (): AddonDraft => ({ id: crypto.randomUUID(), name: "", price: "" });
 
 export function CatalogManager({ establishmentId, initialCategories, initialProducts }: { establishmentId: string; initialCategories: Category[]; initialProducts: Product[] }) {
   const supabase = useMemo(() => createClient(), []);
@@ -24,6 +22,7 @@ export function CatalogManager({ establishmentId, initialCategories, initialProd
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
+  const [addonDrafts, setAddonDrafts] = useState<AddonDraft[]>([emptyAddon()]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   function choosePhoto(file?: File) {
@@ -50,6 +49,9 @@ export function CatalogManager({ establishmentId, initialCategories, initialProd
     const form = event.currentTarget; const data = new FormData(form);
     const price = Number(String(data.get("price")).replace(",", "."));
     if (!Number.isFinite(price) || price < 0) return setMessage("Informe um preço válido.");
+    const parsedAddons = addonDrafts.map(addon => ({ name: addon.name.trim(), rawPrice: addon.price.trim(), price_cents: Math.round(Number(addon.price.replace(",", ".")) * 100) }));
+    if (parsedAddons.some(addon => (addon.name && (!Number.isFinite(addon.price_cents) || addon.price_cents < 0)) || (!addon.name && addon.rawPrice))) return setMessage("Preencha o nome e um preço válido para cada adicional.");
+    const addonOptions = parsedAddons.filter(addon => addon.name).map(({ name, price_cents }) => ({ name, price_cents }));
     setLoading(true); setMessage(photo ? "Enviando a foto..." : "Salvando o produto...");
     let imageUrl: string | null | undefined = editing?.image_url ?? null; let uploadedPath: string | null = null;
     if (photo) {
@@ -59,13 +61,13 @@ export function CatalogManager({ establishmentId, initialCategories, initialProd
       if (error) { setLoading(false); return setMessage(`Não foi possível enviar a foto: ${error.message}`); }
       imageUrl = supabase.storage.from("product-images").getPublicUrl(uploadedPath).data.publicUrl;
     }
-    const values = { establishment_id: establishmentId, category_id: String(data.get("category_id")), name: String(data.get("name")).trim(), description: String(data.get("description") || ""), price_cents: Math.round(price * 100), image_url: imageUrl, ingredients: parseLines(String(data.get("ingredients") || "")), addon_options: parseAddons(String(data.get("addons") || "")) };
+    const values = { establishment_id: establishmentId, category_id: String(data.get("category_id")), name: String(data.get("name")).trim(), description: String(data.get("description") || ""), price_cents: Math.round(price * 100), image_url: imageUrl, ingredients: parseLines(String(data.get("ingredients") || "")), addon_options: addonOptions };
     const query = editing ? supabase.from("products").update(values).eq("id", editing.id) : supabase.from("products").insert(values);
     const { data: product, error } = await query.select("id,category_id,name,description,price_cents,active,image_url,ingredients,addon_options").single();
     if (error) { if (uploadedPath) await supabase.storage.from("product-images").remove([uploadedPath]); setLoading(false); return setMessage(error.message); }
     setProducts(current => editing ? current.map(item => item.id === product.id ? product : item) : [product, ...current]);
     setMessage(editing ? "Produto atualizado." : "Produto e foto salvos com sucesso.");
-    setEditing(null); form.reset(); choosePhoto(); setLoading(false);
+    setEditing(null); setAddonDrafts([emptyAddon()]); form.reset(); choosePhoto(); setLoading(false);
   }
 
   async function toggleProduct(product: Product) {
@@ -74,7 +76,15 @@ export function CatalogManager({ establishmentId, initialCategories, initialProd
     setProducts(current => current.map(item => item.id === product.id ? { ...item, active: !item.active } : item));
   }
 
-  function startEdit(product: Product) { setEditing(product); setSelectedCategory(product.category_id || categories[0]?.id || ""); choosePhoto(); document.getElementById("product-form")?.scrollIntoView({ behavior: "smooth" }); }
+  function startEdit(product: Product) {
+    setEditing(product); setSelectedCategory(product.category_id || categories[0]?.id || ""); choosePhoto();
+    setAddonDrafts(product.addon_options?.length ? product.addon_options.map(addon => ({ id: crypto.randomUUID(), name: addon.name, price: (addon.price_cents / 100).toFixed(2).replace(".", ",") })) : [emptyAddon()]);
+    document.getElementById("product-form")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function updateAddon(id: string, field: "name" | "price", value: string) {
+    setAddonDrafts(current => current.map(addon => addon.id === id ? { ...addon, [field]: value } : addon));
+  }
 
   return <div className="catalog-admin-stack">
     <section className="panel category-admin"><div><small>ORGANIZAÇÃO DO CARDÁPIO</small><h2>Categorias personalizáveis</h2><p>Use categorias como Lanches, Pratos, Cervejas ou Refrigerantes. Você decide o que combina com seu restaurante, bar ou lanchonete.</p></div><form className="category-form" onSubmit={addCategory}><input name="category_name" required placeholder="Nome da nova categoria" /><input name="category_description" placeholder="Descrição (opcional)" /><button className="button dark">Criar categoria</button></form></section>
@@ -87,10 +97,10 @@ export function CatalogManager({ establishmentId, initialCategories, initialProd
         <div className="field"><label>DESCRIÇÃO</label><textarea name="description" defaultValue={editing?.description || ""} /></div>
         <div className="field"><label>PREÇO</label><input name="price" inputMode="decimal" required placeholder="29,90" defaultValue={editing ? (editing.price_cents / 100).toFixed(2).replace(".", ",") : ""} /></div>
         <div className="field"><label>INGREDIENTES QUE O CLIENTE PODE RETIRAR</label><textarea name="ingredients" placeholder="Pão, cebola, tomate, molho" defaultValue={editing?.ingredients?.join(", ") || ""} /><small>Separe por vírgulas. O cliente poderá marcar “sem cebola”, por exemplo.</small></div>
-        <div className="field"><label>ADICIONAIS</label><textarea name="addons" placeholder={"Queijo extra | 3,00\nBacon | 5,00"} defaultValue={editing?.addon_options?.map(addon => `${addon.name} | ${(addon.price_cents / 100).toFixed(2).replace(".", ",")}`).join("\n") || ""} /><small>Um por linha: nome | preço.</small></div>
+        <div className="field addon-admin-field"><label>ADICIONAIS DISPONÍVEIS PARA ESTE PRODUTO</label><small>Cadastre cada opção e o valor que será somado automaticamente ao pedido.</small><div className="addon-admin-list">{addonDrafts.map((addon, index) => <div className="addon-admin-row" key={addon.id}><input aria-label={`Nome do adicional ${index + 1}`} value={addon.name} onChange={event => updateAddon(addon.id, "name", event.target.value)} placeholder="Ex.: Bacon extra" /><input aria-label={`Preço do adicional ${index + 1}`} value={addon.price} onChange={event => updateAddon(addon.id, "price", event.target.value)} inputMode="decimal" placeholder="R$ 5,00" /><button type="button" aria-label={`Remover adicional ${index + 1}`} onClick={() => setAddonDrafts(current => current.length === 1 ? [emptyAddon()] : current.filter(item => item.id !== addon.id))}>×</button></div>)}</div><button type="button" className="add-addon-admin" onClick={() => setAddonDrafts(current => [...current, emptyAddon()])}>+ Acrescentar outro adicional</button></div>
         <div className="field"><label>FOTO DO PRODUTO OU BEBIDA</label><label className="photo-picker"><input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={event => choosePhoto(event.target.files?.[0])} />{preview ? <img src={preview} alt="Prévia" /> : editing?.image_url ? <img src={editing.image_url} alt="Foto atual" /> : <span className="photo-picker-icon">＋</span>}<span><b>{photo ? photo.name : "Escolher foto da galeria"}</b><small>Abre a galeria do celular ou os arquivos do computador. Máximo 8 MB.</small></span></label></div>
         {message && <div className={`form-message ${/salv|criada|atualizado|sucesso/i.test(message) ? "form-success" : ""}`}>{message}</div>}
-        <div className="form-actions">{editing && <button type="button" className="button outline" onClick={() => { setEditing(null); choosePhoto(); }}>Cancelar edição</button>}<button className="button dark" disabled={loading}>{loading ? "Salvando..." : editing ? "Salvar alterações" : "Adicionar produto"}</button></div>
+        <div className="form-actions">{editing && <button type="button" className="button outline" onClick={() => { setEditing(null); setAddonDrafts([emptyAddon()]); choosePhoto(); }}>Cancelar edição</button>}<button className="button dark" disabled={loading}>{loading ? "Salvando..." : editing ? "Salvar alterações" : "Adicionar produto"}</button></div>
       </form></article>
     </div>
   </div>;
