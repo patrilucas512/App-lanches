@@ -11,7 +11,6 @@ export function DashboardShell({ children, active = "overview", storeSlug, role 
     ["kitchen", "/cozinha", "Cozinha"],
     ["orders", "/painel/pedidos", "Pedidos"],
     ["catalog", "/painel/cardapio", "Cardápio"],
-    ["qrcodes", "/painel/qrcodes", "QR Codes"],
     ["calls", "/painel/chamados", "Chamados"],
     ["team", "/painel/equipe", "Equipe"],
     ["settings", "/painel/configuracoes", "Configurações"],

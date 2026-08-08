@@ -170,7 +170,7 @@ export function QrCodeManager({
       <article className="dash-card"><small>LEITURAS (30 DIAS)</small><strong>{metrics.scans}</strong></article>
       <article className="dash-card"><small>HORÁRIO DE PICO</small><strong>{metrics.peakHour}</strong></article>
       <article className="dash-card"><small>PEDIDOS VIA QR</small><strong>{metrics.startedOrders}</strong></article>
-      <article className="dash-card"><small>ENVIADOS AO WHATSAPP</small><strong>{metrics.finishedOrders}</strong></article>
+      <article className="dash-card"><small>ENVIADOS À COZINHA</small><strong>{metrics.finishedOrders}</strong></article>
     </div>
     <section className="panel general-qr-explanation">
       <div><small>QR CODE ÚNICO</small><h2>Um código funciona em todas as mesas.</h2><p>Imprima o mesmo QR Code onde precisar. Ao finalizar o pedido, o cliente informa o nome e sobrenome e o número ou nome da mesa.</p></div>
