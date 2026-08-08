@@ -34,9 +34,10 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
   const [waiterMessage, setWaiterMessage] = useState("");
   const [trackingToken, setTrackingToken] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem(`mesa-viva:${menu.establishment.slug}:pedido`) || "");
   const [tracking, setTracking] = useState<OrderTracking | null>(null);
+  const [trackingMessage, setTrackingMessage] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const service = menu.service_mode ?? { mode: "mixed", waiter_mode_enabled: true, table_service_enabled: true, counter_pickup_enabled: menu.settings.pickup_enabled, delivery_enabled: menu.settings.delivery_enabled, customer_self_order_enabled: true, waiter_call_enabled: true, bill_closing_enabled: true, accepted_payment_methods: menu.settings.payment_methods || [], active_waiters: 0 };
-  const travelEnabled = service.counter_pickup_enabled || service.delivery_enabled;
+  const travelEnabled = service.counter_pickup_enabled;
   const defaultFulfillment = service.table_service_enabled ? "dine_in" : "pickup";
   const [fulfillment, setFulfillment] = useState(tableNumber && service.table_service_enabled ? "dine_in" : defaultFulfillment);
   const total = useMemo(() => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [cart]);
@@ -71,6 +72,10 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
       const { data } = await supabase.rpc("get_public_order_status", { requested_tracking_token: trackingToken });
       if (!active || !data) return;
       const next = data as OrderTracking; setTracking(next);
+      if (next.kitchen_status === "delivered" || next.status === "completed") {
+        window.localStorage.removeItem(`mesa-viva:${menu.establishment.slug}:pedido`);
+        setTrackingToken("");
+      }
       if ((next.kitchen_status === "ready" || next.status === "ready") && !alertedReady.current) readyAlert();
     };
     void refresh(); const poll = window.setInterval(refresh, 3000); const clock = window.setInterval(() => setNow(Date.now()), 1000);
@@ -106,6 +111,23 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     setWaiterMessage(error ? error.message : result?.duplicate ? "Seu chamado já está aguardando atendimento." : `Garçom chamado para a mesa ${label}!`);
   }
 
+  function startNewOrder() {
+    window.localStorage.removeItem(`mesa-viva:${menu.establishment.slug}:pedido`);
+    setTrackingToken(""); setTracking(null); setTrackingMessage(""); alertedReady.current = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function confirmReceived() {
+    if (!trackingToken || currentStatus !== "ready") return;
+    setTrackingMessage("Confirmando a retirada...");
+    const { error } = await supabase.rpc("confirm_public_order_received", { requested_tracking_token: trackingToken });
+    if (error) { setTrackingMessage(error.message); return; }
+    const { data } = await supabase.rpc("get_public_order_status", { requested_tracking_token: trackingToken });
+    if (data) setTracking(data as OrderTracking);
+    window.localStorage.removeItem(`mesa-viva:${menu.establishment.slug}:pedido`);
+    setTrackingToken(""); setTrackingMessage("Pedido finalizado. Obrigado!");
+  }
+
   const currentStatus = tracking?.kitchen_status || (tracking?.status === "completed" ? "delivered" : tracking?.status) || "received";
   const stageIndex = Math.max(0, statusOrder.indexOf(currentStatus));
   const countdownStart = tracking?.started_at || tracking?.created_at;
@@ -116,7 +138,21 @@ export function PublicMenuView({ menu, tableNumber, source }: { menu: PublicMenu
     <header className="menu-cover" style={menu.establishment.cover_url ? { backgroundImage: `linear-gradient(120deg,rgba(28,14,13,.84),rgba(109,38,39,.72)),url(${menu.establishment.cover_url})` } : undefined}>{menu.establishment.logo_url && <img className="menu-logo" src={menu.establishment.logo_url} alt="" />}<span className="kicker">CARDÁPIO DIGITAL</span><h1>{menu.establishment.name}</h1><p>{menu.establishment.description || "Escolha seus itens e envie o pedido direto para a cozinha."}</p>{menu.settings.estimated_minutes && <small>Tempo estimado: {menu.settings.estimated_minutes} min</small>}</header>
     {(service.waiter_call_enabled && service.waiter_mode_enabled && service.active_waiters > 0) && <button className="floating-waiter-button" onClick={() => setWaiterOpen(true)}>🔔 Chamar garçom</button>}
 
-    {tracking && <section className={`order-tracking tracking-${currentStatus}`} aria-live="polite"><div className="tracking-heading"><div><small>ACOMPANHE SEU PEDIDO</small><h2>Pedido #{tracking.order_number}</h2></div>{currentStatus === "preparing" && <div className="tracking-clock"><span>⏱</span><b>{minutesLabel}</b><small>tempo estimado</small></div>}{currentStatus === "ready" && <div className="tracking-ready-alert"><b>PRONTO!</b><span>{tracking.fulfillment_type === "dine_in" ? `A equipe levará até ${tracking.table_number ? `a mesa ${tracking.table_number}` : "sua mesa"}.` : "Retire seu pedido no balcão."}</span></div>}</div><div className="tracking-steps">{[["received","Recebido"],["preparing","Em preparo"],["ready","Pronto"],["delivered","Entregue"]].map(([status,label], index) => <div className={index <= stageIndex ? "active" : ""} key={status}><i>{index < stageIndex ? "✓" : index + 1}</i><span>{label}</span></div>)}</div><div className="tracking-items"><h3>Seu pedido</h3>{tracking.items.map(item => <div key={item.id}><b>{item.quantity}× {item.product_name}</b>{item.addons?.length > 0 && <small>+ {item.addons.map(addon => addon.name).join(", ")}</small>}{item.removed_ingredients?.length > 0 && <strong>SEM {item.removed_ingredients.join(", ")}</strong>}</div>)}</div></section>}
+    {tracking && <section className={`order-tracking tracking-${currentStatus}`} aria-live="polite">
+      <div className="tracking-heading">
+        <div><small>ACOMPANHE SEU PEDIDO</small><h2>Pedido #{tracking.order_number}</h2></div>
+        {currentStatus === "preparing" && <div className="tracking-clock"><span>⏱</span><b>{minutesLabel}</b><small>tempo estimado</small></div>}
+        {currentStatus === "ready" && <div className="tracking-ready-alert"><b>PRONTO!</b><span>{tracking.fulfillment_type === "dine_in" ? `A equipe levará até ${tracking.table_number ? `a mesa ${tracking.table_number}` : "sua mesa"}.` : "Retire seu pedido no balcão."}</span></div>}
+        {currentStatus === "delivered" && <div className="tracking-ready-alert"><b>FINALIZADO</b><span>Pedido entregue com sucesso.</span></div>}
+      </div>
+      <div className="tracking-steps">
+        {[["received","Recebido"],["preparing","Em preparo"],["ready","Pronto"]].map(([status,label], index) => <div className={index <= stageIndex ? "active" : ""} key={status}><i>{index < stageIndex ? "✓" : index + 1}</i><span>{label}</span></div>)}
+        <button type="button" className={`tracking-confirm-step ${currentStatus === "delivered" ? "active" : ""}`} disabled={currentStatus !== "ready"} onClick={() => void confirmReceived()}><i>{currentStatus === "delivered" ? "✓" : 4}</i><span>{currentStatus === "ready" ? "Confirmar retirada" : currentStatus === "delivered" ? "Entregue" : "Aguardando"}</span></button>
+      </div>
+      {trackingMessage && <div className="tracking-message">{trackingMessage}</div>}
+      <div className="tracking-items"><h3>Seu pedido</h3>{tracking.items.map(item => <div key={item.id}><b>{item.quantity}× {item.product_name}</b>{item.addons?.length > 0 && <small>+ {item.addons.map(addon => addon.name).join(", ")}</small>}{item.removed_ingredients?.length > 0 && <strong>SEM {item.removed_ingredients.join(", ")}</strong>}</div>)}</div>
+      <button type="button" className="new-order-button" onClick={startNewOrder}>{currentStatus === "delivered" ? "Fazer novo pedido" : "Fazer outro pedido"}</button>
+    </section>}
 
     {menu.banners?.length ? <section className="menu-banners">{menu.banners.map(banner => <a key={banner.id} href={banner.link_url || "#"} style={{ backgroundImage: `url(${banner.image_url})` }}><span>{banner.title}</span></a>)}</section> : null}
     <section className="menu-content">{menu.categories.filter(category => category.products.length).map(category => <div className="menu-category" key={category.id}><div className="menu-category-title"><h2>{category.name}</h2>{category.description && <p>{category.description}</p>}</div><div className="product-grid">{category.products.map(product => <article className="product-card" key={product.id}><div className="product-info"><h3>{product.name}</h3>{product.ingredients?.length ? <p className="product-ingredients"><b>Leva:</b> {product.ingredients.join(", ")}</p> : <p>{product.description}</p>}<strong>{money(product.price_cents)}</strong>{service.customer_self_order_enabled && <button className="add-button" onClick={() => add(product)}>Adicionar +</button>}</div><div className="product-image" style={product.image_url ? { backgroundImage: `url(${product.image_url})` } : undefined} /></article>)}</div></div>)}</section>
