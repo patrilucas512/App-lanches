@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Connection = "usb" | "bluetooth" | "network";
-type Initial = { connection: Connection; name: string; paperWidth: 58 | 80; networkAddress: string; autoPrint: boolean; completed: boolean };
+type ConnectorStatus = { configured: boolean; online: boolean; printer_name?: string | null; last_seen_at?: string | null };
+type Initial = { connection: Connection; name: string; paperWidth: 58 | 80; networkAddress: string; autoPrint: boolean; completed: boolean; connector: ConnectorStatus };
 const connections: { id: Connection; title: string; description: string }[] = [
   { id: "usb", title: "USB", description: "Ideal para a impressora ligada ao computador do caixa ou da cozinha." },
   { id: "bluetooth", title: "Bluetooth", description: "Para impressoras pareadas com celular, tablet ou computador." },
@@ -22,11 +23,19 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [showPrintPreview, setShowPrintPreview] = useState(false);
-  const instructions = connection === "usb"
-    ? ["Ligue a impressora e conecte o cabo USB.", "No computador, confirme que ela aparece em Impressoras e scanners.", "Clique em Imprimir teste e escolha a impressora instalada."]
-    : connection === "bluetooth"
-      ? ["Ative o Bluetooth no aparelho usado pela cozinha.", "Pareie a impressora nas configurações do celular, tablet ou computador.", "Clique em Imprimir teste e selecione a impressora pareada."]
-      : ["Conecte a impressora à mesma rede do aparelho da cozinha.", "Adicione a impressora pelo IP nas configurações do computador ou tablet.", "Informe o IP abaixo e faça a impressão de teste."];
+  const [connector, setConnector] = useState<ConnectorStatus>(initial.connector);
+  const [installingConnector, setInstallingConnector] = useState(false);
+  const [testingConnector, setTestingConnector] = useState(false);
+  useEffect(() => {
+    if (step !== 3) return;
+    async function refreshStatus() {
+      const { data } = await supabase.rpc("get_printer_connector_status", { requested_establishment_id: establishmentId });
+      if (data && typeof data === "object") setConnector(data as ConnectorStatus);
+    }
+    void refreshStatus();
+    const timer = window.setInterval(() => void refreshStatus(), 4000);
+    return () => window.clearInterval(timer);
+  }, [establishmentId, step, supabase]);
 
   async function save() {
     setSaving(true); setMessage("Salvando configuração...");
@@ -39,6 +48,50 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
   function printTest() {
     setShowPrintPreview(true);
     setMessage("");
+  }
+
+  async function activateDirectPrinting() {
+    setInstallingConnector(true);
+    setMessage("Preparando o instalador individual deste estabelecimento...");
+    const { data, error } = await supabase.rpc("register_printer_connector", {
+      requested_establishment_id: establishmentId,
+      requested_name: "Computador da cozinha",
+      requested_printer_name: "Impressora do Windows",
+    });
+    if (error || !data || typeof data !== "object" || !("token" in data)) {
+      setInstallingConnector(false);
+      setMessage(error?.message || "Não foi possível gerar o instalador.");
+      return;
+    }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    if (!supabaseUrl || !anonKey) {
+      setInstallingConnector(false);
+      setMessage("Configuração pública do sistema indisponível.");
+      return;
+    }
+    const siteBaseUrl = window.location.origin;
+    const token = String((data as { token: string }).token);
+    const command = `@echo off\r\ntitle Instalador Mesa Viva\r\necho Ativando a impressao direta da cozinha...\r\nset "MV_INSTALLER=%TEMP%\\MesaVivaInstaller.ps1"\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -UseBasicParsing -Uri '${siteBaseUrl}/mesa-viva-installer.ps1' -OutFile '%MV_INSTALLER%'"\r\nif errorlevel 1 goto erro\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%MV_INSTALLER%" -SupabaseUrl "${supabaseUrl}" -AnonKey "${anonKey}" -DeviceToken "${token}" -SiteBaseUrl "${siteBaseUrl}"\r\nif errorlevel 1 goto erro\r\ndel "%MV_INSTALLER%" >nul 2>&1\r\necho.\r\necho Concluido. Volte ao painel Mesa Viva.\r\npause\r\ndel "%~f0"\r\nexit /b 0\r\n:erro\r\necho.\r\necho Nao foi possivel concluir. Instale a impressora no Windows e tente novamente.\r\npause\r\nexit /b 1\r\n`;
+    const download = document.createElement("a");
+    download.href = URL.createObjectURL(new Blob([command], { type: "application/octet-stream" }));
+    download.download = "Ativar-Impressao-Mesa-Viva.cmd";
+    document.body.appendChild(download);
+    download.click();
+    URL.revokeObjectURL(download.href);
+    download.remove();
+    setConnector({ configured: true, online: false });
+    setInstallingConnector(false);
+    setMessage("Arquivo baixado. Abra-o uma única vez; o painel ficará verde quando concluir.");
+  }
+
+  async function printDirectTest() {
+    setTestingConnector(true);
+    setMessage("Enviando teste para a impressora...");
+    const receipt = `${establishmentName}\n\nTESTE DA IMPRESSORA\n------------------------------\nCONEXAO DIRETA: ATIVA\nPAPEL: ${paperWidth} mm\nDATA: ${new Date().toLocaleString("pt-BR")}\n------------------------------\nCONFIGURACAO CONCLUIDA\nMesa Viva`;
+    const { error } = await supabase.rpc("queue_printer_test", { requested_establishment_id: establishmentId, requested_text: receipt });
+    setTestingConnector(false);
+    setMessage(error ? error.message : "Teste enviado diretamente para a impressora.");
   }
 
   function printReceipt() {
@@ -65,7 +118,7 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
     <div className="printer-progress" aria-label={`Etapa ${step} de 3`}>{[1,2,3].map(value => <i className={value <= step ? "active" : ""} key={value}>{value}</i>)}</div>
     {step === 1 && <div className="printer-step"><h3>1. Como a impressora será conectada?</h3><div className="printer-connection-grid">{connections.map(option => <button type="button" className={connection === option.id ? "selected" : ""} onClick={() => setConnection(option.id)} key={option.id}><b>{option.title}</b><span>{option.description}</span></button>)}</div><button type="button" className="button dark" onClick={() => setStep(2)}>Continuar</button></div>}
     {step === 2 && <div className="printer-step"><h3>2. Ajuste sua impressora</h3><div className="printer-form-grid"><div className="field"><label>NOME PARA IDENTIFICAÇÃO</label><input value={printerName} onChange={event => setPrinterName(event.target.value)} maxLength={120} placeholder="Ex.: Impressora da cozinha" /></div><div className="field"><label>LARGURA DO PAPEL</label><select value={paperWidth} onChange={event => setPaperWidth(Number(event.target.value) as 58 | 80)}><option value={58}>58 mm — compacta</option><option value={80}>80 mm — profissional</option></select></div>{connection === "network" && <div className="field field-wide"><label>ENDEREÇO IP OU NOME NA REDE</label><input value={networkAddress} onChange={event => setNetworkAddress(event.target.value)} maxLength={160} placeholder="Ex.: 192.168.0.50" /></div>}<label className="printer-auto-print field-wide"><input type="checkbox" checked={autoPrint} onChange={event => setAutoPrint(event.target.checked)} /><span><b>Abrir impressão automaticamente</b><small>Quando chegar um pedido novo, a cozinha abrirá a impressão da notinha. O navegador poderá pedir confirmação.</small></span></label></div><div className="printer-actions"><button type="button" className="button outline" onClick={() => setStep(1)}>Voltar</button><button type="button" className="button dark" disabled={saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar e continuar"}</button></div></div>}
-    {step === 3 && <div className="printer-step printer-finish"><div><span className="printer-ready">CONFIGURAÇÃO ATIVA</span><h3>3. Conecte e faça o teste</h3><ol>{instructions.map(instruction => <li key={instruction}>{instruction}</li>)}</ol><div className="printer-summary"><span><small>CONEXÃO</small><b>{connection === "usb" ? "USB" : connection === "bluetooth" ? "Bluetooth" : "Wi-Fi / rede"}</b></span><span><small>PAPEL</small><b>{paperWidth} mm</b></span><span><small>AUTOMÁTICA</small><b>{autoPrint ? "Ativada" : "Desativada"}</b></span></div></div><div className="printer-test-card"><b>Teste antes de começar</b><p>Uma notinha será aberta no tamanho correto. Selecione a impressora e confirme.</p><button type="button" className="button dark wide" onClick={printTest}>Imprimir página de teste</button><button type="button" className="printer-edit-button" onClick={() => setStep(1)}>Alterar configuração</button></div></div>}
+    {step === 3 && <div className="printer-step printer-finish"><div><span className="printer-ready">CONFIGURAÇÃO SALVA</span><h3>3. Ative a impressão direta</h3><ol><li>Instale e conecte a impressora normalmente no Windows.</li><li>Clique em <b>Ativar impressão direta</b> e abra o arquivo baixado.</li><li>Faça isso somente uma vez. Depois, a tela da cozinha imprimirá com um clique.</li></ol><div className="printer-summary"><span><small>CONEXÃO</small><b>{connection === "usb" ? "USB" : connection === "bluetooth" ? "Bluetooth" : "Wi-Fi / rede"}</b></span><span><small>PAPEL</small><b>{paperWidth} mm</b></span><span><small>COZINHA</small><b>{connector.online ? "Conectada" : "Aguardando"}</b></span></div></div><div className={`printer-test-card ${connector.online ? "connector-online" : ""}`}><span className="connector-status-dot" aria-hidden="true" /><b>{connector.online ? "Impressão direta ativa" : connector.configured ? "Conclua no computador" : "Ative neste computador"}</b><p>{connector.online ? `${connector.printer_name || "Impressora"} conectada. A cozinha já imprime sem abrir outra tela.` : "O instalador encontra automaticamente a impressora instalada no Windows e mantém a conexão ativa."}</p>{connector.online ? <button type="button" className="button dark wide" disabled={testingConnector} onClick={() => void printDirectTest()}>{testingConnector ? "Enviando..." : "Imprimir teste direto"}</button> : <button type="button" className="button dark wide" disabled={installingConnector} onClick={() => void activateDirectPrinting()}>{installingConnector ? "Preparando..." : "Ativar impressão direta"}</button>}<button type="button" className="printer-edit-button" onClick={() => setStep(1)}>Alterar configuração</button>{connector.online && <button type="button" className="printer-edit-button" onClick={() => void activateDirectPrinting()}>Instalar em outro computador</button>}<button type="button" className="printer-browser-fallback" onClick={printTest}>Usar impressão do navegador</button></div></div>}
     {message && <div className={message.includes("sucesso") || message.includes("Escolha") ? "form-message form-success" : "form-message"}>{message}</div>}
     {showPrintPreview && <div className="printer-preview-overlay" role="dialog" aria-modal="true" aria-label="Teste da impressora">
       <div className="printer-preview-modal">

@@ -772,6 +772,10 @@ button.table-qr-card { color:inherit; }
 .printer-test-card > b { font-family:var(--font-display),serif; font-size:21px; }
 .printer-test-card p { color:rgba(255,255,255,.72); font-size:8px; line-height:1.6; }
 .printer-test-card .button { background:white; color:var(--wine); }
+.printer-test-card.connector-online { background:#174f39; }
+.connector-status-dot { background:#e0b75f; border-radius:50%; display:inline-block; height:9px; margin:0 8px 2px 0; width:9px; }
+.connector-online .connector-status-dot { background:#63dc9c; box-shadow:0 0 0 5px rgba(99,220,156,.15); }
+.printer-browser-fallback { background:transparent; border:0; color:rgba(255,255,255,.72); cursor:pointer; display:block; font-size:8px; margin:12px auto 0; text-decoration:underline; }
 .printer-edit-button { background:transparent; border:0; color:white; cursor:pointer; font-size:8px; margin-top:12px; text-decoration:underline; width:100%; }
 .printer-preview-overlay { align-items:center; background:rgba(20,18,15,.72); display:flex; inset:0; justify-content:center; padding:18px; position:fixed; z-index:1000; }
 .printer-preview-modal { align-items:center; background:#f5f1e9; border-radius:18px; box-shadow:0 24px 80px rgba(0,0,0,.28); display:flex; flex-direction:column; max-height:94vh; max-width:430px; overflow:auto; padding:44px 24px 24px; position:relative; width:100%; }
