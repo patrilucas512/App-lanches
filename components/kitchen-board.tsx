@@ -14,7 +14,7 @@ type Initial = { tickets: Ticket[]; tableOrders: TableOrder[]; publicOrders: Pub
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
 
-export function KitchenBoard({ establishmentId, establishmentName, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
+export function KitchenBoard({ establishmentId, establishmentName, operatorName, canPrint, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
   const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
@@ -52,7 +52,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
         oscillator.start(); oscillator.stop(context.currentTime + .22);
       } catch {}
     }
-    if (autoPrint && insertedId) {
+    if (autoPrint && canPrint && insertedId) {
       const inserted = tickets?.find(ticket => ticket.id === insertedId);
       if (inserted?.status === "received") await supabase.rpc("update_kitchen_ticket", { requested_ticket_id: insertedId, requested_status: "preparing" });
       if (inserted && nextData) printReceipt(inserted, nextData);
@@ -75,7 +75,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "kitchen_tickets", filter: `establishment_id=eq.${establishmentId}` }, () => { void refresh(); })
       .subscribe();
     return () => { clearInterval(timer); window.removeEventListener("afterprint", clearPrint); void supabase.removeChannel(channel); };
-  }, [establishmentId, supabase, autoPrint]);
+  }, [establishmentId, supabase, autoPrint, canPrint]);
 
   async function advance(ticket: Ticket, status: string) {
     const { error } = await supabase.rpc("update_kitchen_ticket", { requested_ticket_id: ticket.id, requested_status: status });
@@ -124,7 +124,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
   }
 
   return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`} style={{ "--ticket-width": `${paperWidth}mm` } as React.CSSProperties}>
-    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span>{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}<Link href="/painel/garcom">Área do garçom</Link></div></header>
+    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span>{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}<Link href="/cozinha/login">Trocar operador</Link></div></header>
     <section className="kitchen-columns">{columns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
       <header><h2>{title}</h2><b>{data.tickets.filter(value => value.status === status).length}</b></header>
       <div>{data.tickets.filter(value => value.status === status).map(ticket => {
@@ -142,11 +142,11 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
           {detail.notes && <p><b>Observação:</b> {detail.notes}</p>}
           {detail.payment && <small>PAGAMENTO: {detail.payment}</small>}
           <footer>
-            {status === "received" && <button onClick={() => advance(ticket, "preparing")}>Iniciar preparo</button>}
+            {status === "received" && (canPrint ? <button onClick={() => void printOne(ticket)}>Aceitar e imprimir</button> : <button onClick={() => advance(ticket, "preparing")}>Aceitar pedido</button>)}
             {status === "preparing" && <button onClick={() => advance(ticket, "ready")}>Marcar como pronto</button>}
             {status === "ready" && <div className="kitchen-waiter-pickup"><b>Pronto</b><span>Aguardando retirada do garçom.</span></div>}
             {status === "delivered" && <div className="kitchen-delivery-owner"><small>RETIRADO POR</small><b>{ticket.delivered_by_name || "Equipe"}</b></div>}
-            <button className="print-ticket" onClick={() => void printOne(ticket)}>Imprimir</button>
+            {canPrint && status !== "received" && <button className="print-ticket" onClick={() => void printOne(ticket)}>Reimprimir</button>}
           </footer>
         </article>;
       })}</div>

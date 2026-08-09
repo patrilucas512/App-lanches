@@ -732,6 +732,18 @@ button.table-qr-card { color:inherit; }
 .printer-connection-grid b { font-size:12px; margin-bottom:9px; }
 .printer-connection-grid span { color:var(--muted); font-size:8px; line-height:1.55; }
 .printer-form-grid { display:grid; gap:12px; grid-template-columns:1fr 1fr; }
+
+.kitchen-access-admin { margin-top:24px; }
+.section-heading { align-items:flex-start; display:flex; gap:20px; justify-content:space-between; margin-bottom:22px; }
+.section-heading h2 { font-size:25px; margin:4px 0 7px; }
+.section-heading p { color:var(--muted); font-size:10px; line-height:1.6; margin:0; }
+.kitchen-access-layout { display:grid; gap:24px; grid-template-columns:minmax(280px,.9fr) minmax(340px,1.1fr); }
+.kitchen-operator-form { background:#f3eee5; border-radius:14px; padding:20px; }
+.kitchen-operator-list { display:flex; flex-direction:column; gap:10px; }
+.kitchen-operator-list > article { align-items:center; border:1px solid var(--line); border-radius:12px; display:flex; gap:16px; justify-content:space-between; padding:16px; }
+.kitchen-operator-list h3 { font-size:15px; margin:5px 0; }
+.kitchen-operator-list p,.kitchen-operator-list small { color:var(--muted); font-size:8px; margin:0; }
+.kitchen-head p { color:rgba(255,255,255,.7); font-size:9px; margin:3px 0 0; }
 .printer-auto-print { align-items:flex-start; background:#f3eee5; border-radius:10px; display:flex; gap:12px; padding:15px; }
 .printer-auto-print input { accent-color:var(--wine); height:20px; margin-top:1px; width:20px; }
 .printer-auto-print span,.printer-auto-print small { display:block; }
@@ -787,6 +799,9 @@ button.table-qr-card { color:inherit; }
 .tracking-items strong { color:#a22616; font-size:16px; text-transform:uppercase; }
 .ticket-items .ticket-removed-alert { font-size:19px; margin-top:9px; }
 @media (max-width:640px) {
+  .section-heading { flex-direction:column; }
+  .kitchen-access-layout { grid-template-columns:1fr; }
+  .kitchen-operator-list > article { align-items:flex-start; flex-direction:column; }
   .printer-wizard-head { flex-direction:column; }
   .printer-connection-grid,.printer-form-grid,.printer-finish,.printer-summary { grid-template-columns:1fr; }
   .printer-actions { flex-direction:column-reverse; }
