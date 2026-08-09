@@ -24,10 +24,6 @@ function normalizeBrazilianPhone(value: string) {
   return digits;
 }
 
-function loginEmailForPhone(value: string) {
-  return `k.${normalizeBrazilianPhone(value)}@cozinha.mesaviva.app`;
-}
-
 function localDate() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 }
@@ -58,25 +54,34 @@ export function KitchenLoginForm() {
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
     const form = new FormData(event.currentTarget);
-    const phone = String(form.get("phone"));
-    if (normalizeBrazilianPhone(phone).length < 12) { setMessage("Informe um WhatsApp válido com DDD."); setBusy(false); return; }
+    const name = String(form.get("name")).trim().replace(/\s+/g, " ");
+    if (name.split(" ").length < 2) { setMessage("Informe seu nome e sobrenome."); setBusy(false); return; }
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmailForPhone(phone), password: String(form.get("password")) });
-    if (error) { setMessage("WhatsApp ou senha inválidos."); setBusy(false); return; }
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-    const { data: operator } = await supabase.from("kitchen_operators").select("status,access_type,work_date").eq("user_id", userId).maybeSingle();
-    const unavailable = !operator || operator.status !== "active" || (operator.access_type === "daily" && operator.work_date !== localDate());
-    if (unavailable) { await supabase.auth.signOut(); setMessage("Este acesso está inativo ou fora da data liberada pelo administrador."); }
-    else window.location.assign("/cozinha");
-    setBusy(false);
+    const rememberedEstablishment = typeof window !== "undefined" ? window.localStorage.getItem("mesa_viva_kitchen_slug") : null;
+    let response = await supabase.functions.invoke("employee-login", {
+      body: { kind: "kitchen", name, password: String(form.get("password")), establishment: rememberedEstablishment },
+    });
+    if (rememberedEstablishment && (!response.data?.access_token || !response.data?.refresh_token)) {
+      response = await supabase.functions.invoke("employee-login", {
+        body: { kind: "kitchen", name, password: String(form.get("password")), establishment: null },
+      });
+    }
+    const { data, error } = response;
+    if (error || !data?.access_token || !data?.refresh_token) {
+      setMessage(data?.error || await functionErrorMessage(error, "Nome ou senha inválidos.")); setBusy(false); return;
+    }
+    const { error: sessionError } = await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    if (sessionError) { setMessage("Não foi possível abrir seu acesso agora."); setBusy(false); return; }
+    if (data.establishment_slug) window.localStorage.setItem("mesa_viva_kitchen_slug", data.establishment_slug);
+    window.location.assign("/cozinha");
   }
   return <form className="form" onSubmit={login}>
-    <div className="field"><label>WHATSAPP DO OPERADOR</label><input name="phone" type="tel" inputMode="tel" required autoComplete="tel" placeholder="(21) 98139-2823" /></div>
+    <div className="field"><label>NOME E SOBRENOME</label><input name="name" type="text" required autoComplete="name" placeholder="Ex.: João da Silva" /></div>
     <PasswordInput name="password" label="SENHA" autoComplete="current-password" />
-    {message && <div className="form-message">{message}</div>}
+    {message && <div className={`form-message ${message.includes("excluído") ? "form-success" : ""}`}>{message}</div>}
     <button className="button dark wide" disabled={busy}>{busy ? "Entrando..." : "Abrir tela da cozinha →"}</button>
     <button type="button" className="auth-recovery-link auth-recovery-button" onClick={() => setMessage("Peça ao administrador para abrir Equipe da cozinha, tocar em Redefinir senha e enviar um novo link pelo WhatsApp.")}>Esqueci minha senha</button>
-    <p className="auth-switch">Primeiro acesso? Abra o link enviado pelo administrador.</p>
+    <p className="auth-switch">Primeiro acesso? Abra o link enviado pelo administrador. Depois, entre somente com seu nome e senha.</p>
   </form>;
 }
 
@@ -96,16 +101,17 @@ export function KitchenInviteClaim({ token }: { token: string }) {
       return;
     }
     const { error: loginError } = await supabase.auth.signInWithPassword({ email: data.login_email, password });
-    if (loginError) { setMessage("Senha criada. Entre com seu WhatsApp e essa senha."); setBusy(false); return; }
+    if (loginError) { setMessage("Senha criada. Entre com seu nome completo e essa senha."); setBusy(false); return; }
+    if (data.establishment_slug) window.localStorage.setItem("mesa_viva_kitchen_slug", data.establishment_slug);
     setMessage("Acesso ativado. Abrindo a cozinha...");
     window.setTimeout(() => window.location.replace("/cozinha"), 350);
   }
-  return <div className="auth-card waiter-invite-card"><span className="kicker">ACESSO DA COZINHA</span><h1>Crie sua senha.</h1><p>Seu WhatsApp já foi autorizado. Esta conta abrirá somente a operação da cozinha.</p>
+  return <div className="auth-card waiter-invite-card"><span className="kicker">ACESSO DA COZINHA</span><h1>Crie sua senha.</h1><p>Seu cadastro já foi autorizado. Esta conta abrirá somente a operação da cozinha.</p>
     <form className="form" onSubmit={activate}>
       <PasswordInput name="password" label="CRIE UMA SENHA" autoComplete="new-password" />
       <PasswordInput name="confirmation" label="CONFIRME A SENHA" autoComplete="new-password" />
       <button className="button dark wide" disabled={busy}>{busy ? "Liberando..." : "Criar senha e abrir cozinha →"}</button>
-      <p className="auth-switch">Já criou sua senha? <Link href="/cozinha/login">Entrar na cozinha</Link></p>
+      <p className="auth-switch">Já criou sua senha? <Link href="/cozinha/login">Entrar com nome e senha</Link></p>
     </form>{message && <div className="form-message">{message}</div>}
   </div>;
 }
@@ -155,14 +161,28 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
     if (error) setMessage(error.message); else setOperators(current => current.map(item => item.id === operator.id ? data as KitchenOperator : item));
   }
 
+  async function removeOperator(operator: KitchenOperator) {
+    if (!window.confirm(`Excluir o cadastro de ${operator.name}? O acesso à cozinha será removido imediatamente.`)) return;
+    setBusy(true); setMessage(""); setInvite(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("delete_kitchen_operator", { requested_operator_id: operator.id });
+    if (error) setMessage(error.message);
+    else {
+      setOperators(current => current.filter(item => item.id !== operator.id));
+      if (editing?.id === operator.id) { setEditing(null); setAccessType("fixed"); }
+      setMessage(`${operator.name} foi excluído da equipe da cozinha.`);
+    }
+    setBusy(false);
+  }
+
   function beginEdit(operator: KitchenOperator) { setEditing(operator); setAccessType(operator.access_type); setInvite(null); setMessage(""); }
   const whatsappMessage = invite
     ? invite.isReset
-      ? `Olá, ${invite.name}! Use este link para criar uma nova senha de acesso à cozinha do Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu WhatsApp e a nova senha.`
-      : `Olá, ${invite.name}! Seu acesso à cozinha está pronto. Crie sua senha neste link: ${invite.link}`
+      ? `Olá, ${invite.name}! Use este link para criar uma nova senha de acesso à cozinha do Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu nome completo e a nova senha.`
+      : `Olá, ${invite.name}! Seu acesso à cozinha está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois, entre usando seu nome completo e a senha.`
     : "";
   return <section className="panel kitchen-access-admin" id="equipe-cozinha">
-    <div className="section-heading"><div><small>ACESSO SEPARADO</small><h2>Equipe da cozinha</h2><p>O operador entra pelo próprio WhatsApp e vê apenas pedidos, preparo e impressão.</p></div><Link className="button dark" href="/cozinha" target="_blank">Abrir cozinha</Link></div>
+    <div className="section-heading"><div><small>ACESSO SEPARADO</small><h2>Equipe da cozinha</h2><p>O operador recebe o acesso pelo WhatsApp e depois entra somente com nome e senha.</p></div><Link className="button dark" href="/cozinha" target="_blank">Abrir cozinha</Link></div>
     <div className="kitchen-access-layout">
       <form className="form kitchen-operator-form" onSubmit={save} key={editing?.id || "new"}>
         <div className="field"><label>NOME DO OPERADOR</label><input name="name" required minLength={2} defaultValue={editing?.name || ""} placeholder="Ex.: João da cozinha" /></div>
@@ -175,9 +195,9 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
         <div className="permission-grid"><label><input type="checkbox" name="accept_orders" defaultChecked={editing?.permissions.accept_orders ?? true} /> Aceitar pedidos</label><label><input type="checkbox" name="print_orders" defaultChecked={editing?.permissions.print_orders ?? true} /> Imprimir comandas</label><label><input type="checkbox" name="mark_ready" defaultChecked={editing?.permissions.mark_ready ?? true} /> Marcar como pronto</label></div>
         <div className="form-actions"><button className="button dark" disabled={busy}>{busy ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar e gerar acesso"}</button>{editing && <button className="button outline" type="button" onClick={() => { setEditing(null); setAccessType("fixed"); setInvite(null); }}>Novo operador</button>}</div>
       </form>
-      <div className="kitchen-operator-list">{operators.length === 0 ? <div className="empty-state">Nenhum operador cadastrado.</div> : operators.map(operator => <article key={operator.id}><div><span className={`waiter-status status-${operator.status}`}>{operator.status === "active" ? "ATIVO" : operator.status === "blocked" ? "BLOQUEADO" : "INATIVO"}</span><h3>{operator.name}</h3><p>{operator.access_type === "daily" ? `Acesso em ${new Date(`${operator.work_date}T12:00:00`).toLocaleDateString("pt-BR")}` : "Funcionário fixo"} · Pagamento {operator.payment_cycle === "daily" ? "por diária" : operator.payment_cycle === "weekly" ? "semanal" : operator.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {operator.device_mode === "dedicated" ? "Tela exclusiva" : "Tela compartilhada"}</p><small>{operator.user_id ? "Senha criada" : "Aguardando criação da senha"}</small></div><div className="waiter-row-actions"><button type="button" onClick={() => beginEdit(operator)}>Editar</button><button type="button" onClick={() => void createInvite(operator)}>{operator.user_id ? "Redefinir senha" : "Gerar acesso"}</button><button type="button" onClick={() => void toggle(operator)}>{operator.status === "active" ? "Bloquear" : "Ativar"}</button></div></article>)}</div>
+      <div className="kitchen-operator-list">{operators.length === 0 ? <div className="empty-state">Nenhum operador cadastrado.</div> : operators.map(operator => <article key={operator.id}><div><span className={`waiter-status status-${operator.status}`}>{operator.status === "active" ? "ATIVO" : operator.status === "blocked" ? "BLOQUEADO" : "INATIVO"}</span><h3>{operator.name}</h3><p>{operator.access_type === "daily" ? `Acesso em ${new Date(`${operator.work_date}T12:00:00`).toLocaleDateString("pt-BR")}` : "Funcionário fixo"} · Pagamento {operator.payment_cycle === "daily" ? "por diária" : operator.payment_cycle === "weekly" ? "semanal" : operator.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {operator.device_mode === "dedicated" ? "Tela exclusiva" : "Tela compartilhada"}</p><small>{operator.user_id ? "Senha criada" : "Aguardando criação da senha"}</small></div><div className="waiter-row-actions"><button type="button" onClick={() => beginEdit(operator)}>Editar</button><button type="button" onClick={() => void createInvite(operator)}>{operator.user_id ? "Redefinir senha" : "Gerar acesso"}</button><button type="button" onClick={() => void toggle(operator)}>{operator.status === "active" ? "Bloquear" : "Ativar"}</button><button type="button" className="danger-action" disabled={busy} onClick={() => void removeOperator(operator)}>Excluir</button></div></article>)}</div>
     </div>
     {invite && <div className="waiter-invite-ready"><div><small>{invite.isReset ? "REDEFINIÇÃO PRONTA" : "LINK PRONTO"}</small><h3>Envie para {invite.name}</h3><p>{invite.isReset ? "Ao abrir, a pessoa cria uma nova senha e continua usando o mesmo WhatsApp." : "Ao abrir, a pessoa cria a senha e passa a entrar apenas na cozinha."}</p></div><div className="invite-actions"><a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${normalizeBrazilianPhone(invite.phone)}?text=${encodeURIComponent(whatsappMessage)}`}>Enviar pelo WhatsApp</a><button className="button outline" type="button" onClick={() => void navigator.clipboard.writeText(invite.link)}>Copiar link</button></div></div>}
-    {message && <div className="form-message">{message}</div>}
+    {message && <div className={`form-message ${message.includes("excluído") ? "form-success" : ""}`}>{message}</div>}
   </section>;
 }

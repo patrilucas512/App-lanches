@@ -525,7 +525,14 @@ button.table-qr-card { color:inherit; }
 .waiter-mini-metrics small { color:var(--muted); font-size:6px; font-weight:500; margin-top:3px; }
 .waiter-row-actions { display:flex; flex-wrap:wrap; gap:5px; justify-content:flex-end; max-width:210px; }
 .waiter-row-actions button { background:#eee9df; border:0; border-radius:6px; color:var(--wine); font-size:7px; font-weight:800; padding:7px; }
+.waiter-row-actions button.danger-action { background:#f6dddd; color:#8c2226; }
+.waiter-row-actions button.danger-action:hover { background:#8c2226; color:#fff; }
 .waiter-row-actions button:disabled { cursor:wait; opacity:.55; }
+.team-delete-wrap { align-items:flex-end; display:flex; flex-direction:column; gap:4px; }
+.team-delete-button { background:#f6dddd; border:0; border-radius:7px; color:#8c2226; cursor:pointer; font-size:7px; font-weight:800; padding:8px 10px; }
+.team-delete-button:hover { background:#8c2226; color:#fff; }
+.team-delete-button:disabled { cursor:wait; opacity:.55; }
+.team-delete-error { color:#8c2226; font-size:6px; max-width:180px; text-align:right; }
 .waiter-invite-ready { background:#eef5ef; border:1px solid #bfd9c7; border-radius:12px; display:flex; flex-direction:column; gap:13px; margin-bottom:22px; padding:20px; }
 .waiter-inline-invite { grid-column:1/-1; margin:4px 0 0; }
 .invite-ready-heading { align-items:flex-start; display:flex; justify-content:space-between; }

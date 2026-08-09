@@ -38,10 +38,10 @@ const localDate = () => {
 const formatWorkDate = (value?: string | null) =>
   value ? new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR") : "";
 const inviteMessage = (invite: WaiterInvite) => invite.isReset
-  ? `Olá, ${invite.waiterName}! Use este link para criar uma nova senha de acesso ao Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu WhatsApp e a nova senha.`
+  ? `Olá, ${invite.waiterName}! Use este link para criar uma nova senha de acesso ao Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu nome completo e a nova senha.`
   : invite.employmentType === "daily"
   ? `Olá, ${invite.waiterName}! Seu acesso de diarista está liberado para ${formatWorkDate(invite.workDate)}. Crie sua senha neste link: ${invite.link}\n\nO acesso aos pedidos funcionará somente na data informada.`
-  : `Olá, ${invite.waiterName}! Seu cadastro de funcionário está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois disso, use seu WhatsApp e sua senha para entrar sempre que estiver trabalhando.`;
+  : `Olá, ${invite.waiterName}! Seu cadastro de funcionário está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois disso, use seu nome completo e sua senha para entrar sempre que estiver trabalhando.`;
 
 export function AttendanceManager({ establishmentId, slug, initialMode, initialWaiters, metrics }: {
   establishmentId: string; slug: string; initialMode: Mode; initialWaiters: Waiter[]; metrics: Metric[];
@@ -161,6 +161,18 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     const invitation = await generateInvite(waiter);
     if (invitation) setMessage(`${invitation.isReset ? "Link de redefinição" : "Convite"} de ${waiter.name} gerado. Escolha abaixo como enviar.`);
   }
+  async function removeWaiter(waiter: Waiter) {
+    if (!window.confirm(`Excluir o cadastro de ${waiter.name}? O acesso aos pedidos será removido imediatamente.`)) return;
+    setBusy(true); setMessage(""); setInviteReady(null);
+    const { error } = await supabase.rpc("delete_waiter", { requested_waiter_id: waiter.id });
+    if (error) setMessage(error.message);
+    else {
+      setWaiters(current => current.filter(item => item.id !== waiter.id));
+      if (editing?.id === waiter.id) { setEditing(null); setEmploymentType("fixed"); }
+      setMessage(`${waiter.name} foi excluído da equipe.`);
+    }
+    setBusy(false);
+  }
   async function copyInvite() {
     if (!inviteReady) return;
     await navigator.clipboard.writeText(inviteReady.link);
@@ -230,6 +242,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
             <button type="button" disabled={invitingId === waiter.id} onClick={() => invite(waiter)}>{invitingId === waiter.id ? "Gerando..." : waiter.user_id ? "Redefinir senha" : "Enviar acesso"}</button>
             {waiter.status === "blocked" ? <button type="button" onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button type="button" onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}
             {waiter.active_now ? <button type="button" onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button type="button" onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}
+            <button type="button" className="danger-action" disabled={busy} onClick={() => void removeWaiter(waiter)}>Excluir</button>
           </div>
           {currentInvite && <div className="waiter-invite-ready waiter-inline-invite" role="status">
             <div className="invite-ready-heading">
@@ -237,10 +250,10 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
               <button type="button" aria-label="Fechar convite" onClick={() => setInviteReady(null)}>×</button>
             </div>
             <p>{currentInvite.isReset
-              ? "Este link permite criar uma nova senha. Depois, o funcionário entra normalmente com o WhatsApp cadastrado e a nova senha."
+              ? "Este link permite criar uma nova senha. Depois, o funcionário entra normalmente com nome e senha."
               : currentInvite.employmentType === "daily"
               ? `Este acesso funcionará somente em ${formatWorkDate(currentInvite.workDate)}. Envie o link para o diarista criar a senha.`
-              : "Funcionário fixo: após criar a senha uma vez, ele entra sempre com WhatsApp e senha enquanto o cadastro estiver ativo."}</p>
+              : "Funcionário fixo: após criar a senha uma vez, ele entra sempre com nome e senha enquanto o cadastro estiver ativo."}</p>
             <div className="invite-link-box"><span>{currentInvite.link}</span><button type="button" onClick={copyInvite}>Copiar link</button></div>
             <div className="invite-ready-actions">
               {whatsappNumber(currentInvite.phone)
@@ -252,6 +265,6 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         </article>;
       })}</div>
     </section>
-    {message && <div className={["salvo", "salvas", "copiado", "cadastrado", "gerado"].some(term => message.includes(term)) ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
+    {message && <div className={["salvo", "salvas", "copiado", "cadastrado", "gerado", "excluído"].some(term => message.includes(term)) ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
   </div>;
 }

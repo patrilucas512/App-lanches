@@ -4,17 +4,6 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-function normalizeBrazilianPhone(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return digits;
-  return digits;
-}
-
-function loginEmailForPhone(value: string) {
-  return `w.${normalizeBrazilianPhone(value)}@garcom.mesaviva.app`;
-}
-
 async function functionErrorMessage(error: unknown, fallback: string) {
   if (!error || typeof error !== "object" || !("context" in error)) return fallback;
   const response = (error as { context?: Response }).context;
@@ -79,66 +68,36 @@ export function WaiterLoginForm({ establishment }: { establishment?: string }) {
     setBusy(true);
     setMessage("");
     const form = new FormData(event.currentTarget);
-    const phone = String(form.get("phone"));
-    const normalizedPhone = normalizeBrazilianPhone(phone);
-    if (normalizedPhone.length < 12) {
-      setMessage("Informe um WhatsApp válido com DDD.");
+    const name = String(form.get("name")).trim().replace(/\s+/g, " ");
+    if (name.split(" ").length < 2) {
+      setMessage("Informe seu nome e sobrenome.");
       setBusy(false);
       return;
     }
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmailForPhone(phone),
-      password: String(form.get("password")),
+    const { data, error } = await supabase.functions.invoke("employee-login", {
+      body: { kind: "waiter", name, password: String(form.get("password")), establishment },
     });
-    if (error) {
-      setMessage("WhatsApp ou senha inválidos.");
-    } else {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { data: waiter } = await supabase
-        .from("waiters")
-        .select("status,active_now,employment_type,work_date")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const outsideDailyDate = waiter?.employment_type === "daily"
-        && waiter.work_date !== saoPauloDate();
-      if (
-        !waiter
-        || ["inactive", "paused", "blocked"].includes(waiter.status)
-        || !waiter.active_now
-        || outsideDailyDate
-      ) {
-        await supabase.auth.signOut();
-        setMessage(outsideDailyDate
-          ? "Este acesso de diarista só funciona na data liberada pelo administrador."
-          : "Seu acesso está inativo. Fale com o administrador.");
-      } else {
-        window.location.assign("/garcom/app");
-      }
+    if (error || !data?.access_token || !data?.refresh_token) {
+      setMessage(data?.error || await functionErrorMessage(error, "Nome ou senha inválidos."));
+      setBusy(false);
+      return;
     }
-    setBusy(false);
+    const { error: sessionError } = await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    if (sessionError) { setMessage("Não foi possível abrir seu acesso agora."); setBusy(false); return; }
+    window.location.assign("/garcom/app");
   }
 
   return <form className="form" onSubmit={login}>
     <div className="field">
-      <label>ESTABELECIMENTO</label>
+      <label>NOME E SOBRENOME</label>
       <input
-        value={establishment || ""}
-        readOnly={Boolean(establishment)}
-        name="establishment"
-        placeholder="Nome ou link do estabelecimento"
-      />
-    </div>
-    <div className="field">
-      <label>SEU WHATSAPP</label>
-      <input
-        name="phone"
-        type="tel"
-        inputMode="tel"
+        name="name"
+        type="text"
         required
-        autoComplete="tel"
-        placeholder="(21) 98139-2823"
+        autoComplete="name"
+        placeholder="Ex.: Jonathan Perrone"
       />
     </div>
     <div className="field">
@@ -151,7 +110,7 @@ export function WaiterLoginForm({ establishment }: { establishment?: string }) {
     </button>
     <button type="button" className="auth-recovery-link auth-recovery-button" onClick={() => setMessage("Peça ao administrador para abrir Equipe, tocar em Redefinir senha e enviar um novo link pelo WhatsApp.")}>Esqueci minha senha</button>
     <p className="auth-switch">
-      Primeiro acesso? Abra o link recebido no WhatsApp e crie sua senha.
+      Primeiro acesso? Abra o link recebido no WhatsApp e crie sua senha. Depois, entre somente com seu nome e senha.
     </p>
   </form>;
 }
@@ -193,7 +152,7 @@ export function WaiterInviteClaim({ token }: { token: string }) {
       password,
     });
     if (loginError) {
-      setMessage("Senha criada. Entre usando seu WhatsApp e essa senha.");
+      setMessage("Senha criada. Entre usando seu nome completo e essa senha.");
       setBusy(false);
       return;
     }
@@ -213,7 +172,7 @@ export function WaiterInviteClaim({ token }: { token: string }) {
   return <div className="auth-card waiter-invite-card">
     <span className="kicker">ACESSO DA EQUIPE</span>
     <h1>Crie sua senha.</h1>
-    <p>Seu WhatsApp já foi cadastrado. Escolha uma senha para acessar sua área de trabalho.</p>
+      <p>Seu cadastro já foi autorizado. Escolha uma senha para acessar sua área de trabalho.</p>
     <form className="form" onSubmit={activate}>
       <div className="field">
         <label>CRIE UMA SENHA</label>
@@ -227,7 +186,7 @@ export function WaiterInviteClaim({ token }: { token: string }) {
         {busy ? "Liberando acesso..." : "Criar senha e começar →"}
       </button>
       <p className="auth-switch">
-        Já criou sua senha? <Link href="/garcom/login">Entrar com WhatsApp</Link>
+        Já criou sua senha? <Link href="/garcom/login">Entrar com nome e senha</Link>
       </p>
     </form>
     {message && <div className={message.includes("ativado") || message.includes("Senha criada")

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { TeamDeleteButton } from "@/components/team-delete-button";
 import { getDashboardContext } from "@/lib/dashboard";
 
 type TeamRow = {
@@ -9,6 +10,7 @@ type TeamRow = {
   detail: string;
   payment?: string;
   active: boolean;
+  kind?: "waiter" | "kitchen";
 };
 
 const paymentLabels: Record<string, string> = {
@@ -36,6 +38,7 @@ function TeamGroup({ title, description, rows, href }: { title: string; descript
       {rows.length === 0 ? <div className="empty-state">Nenhuma pessoa cadastrada nesta função.</div> : rows.map(row => <div className="team-member-row" key={row.id}>
         <div className="team-member-main"><span className={`team-status ${row.active ? "active" : "inactive"}`}>{row.active ? "ATIVO" : "INATIVO"}</span><div><strong>{row.name}</strong><p>{row.detail}</p></div></div>
         {row.payment && <div className="team-payment"><small>FORMA DE PAGAMENTO</small><b>{row.payment}</b></div>}
+        {row.kind && <TeamDeleteButton id={row.id} name={row.name} kind={row.kind} />}
       </div>)}
     </div>
   </article>;
@@ -69,6 +72,7 @@ export default async function TeamPage() {
     active: Boolean(person.active_now) && ["active", "serving"].includes(person.status) && (person.employment_type === "fixed" || person.work_date === today),
     detail: [person.employment_type === "daily" ? `Diarista · ${person.work_date ? new Date(`${person.work_date}T12:00:00`).toLocaleDateString("pt-BR") : "data não informada"}` : "Funcionário fixo", person.sector || "Setor não informado"].join(" · "),
     payment: paymentLabels[person.payment_cycle] || "Mensal",
+    kind: "waiter",
   }));
   const kitchenRows: TeamRow[] = (kitchen || []).map(person => ({
     id: person.id,
@@ -76,6 +80,7 @@ export default async function TeamPage() {
     active: person.status === "active" && (person.access_type === "fixed" || person.work_date === today),
     detail: [person.access_type === "daily" ? `Diarista · ${person.work_date ? new Date(`${person.work_date}T12:00:00`).toLocaleDateString("pt-BR") : "data não informada"}` : "Funcionário fixo", person.device_mode === "dedicated" ? "Tela exclusiva" : "Tela compartilhada"].join(" · "),
     payment: paymentLabels[person.payment_cycle] || "Mensal",
+    kind: "kitchen",
   }));
   const adminMembers = (members || []).filter(person => ["owner", "manager", "catalog_editor"].includes(person.role));
   const adminRows: TeamRow[] = adminMembers.map(person => ({
