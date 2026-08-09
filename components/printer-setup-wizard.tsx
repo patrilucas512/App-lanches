@@ -39,8 +39,13 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
     const popup = window.open("", "mesa-viva-printer-test", "width=420,height=650");
     if (!popup) { setMessage("Permita a abertura da janela para imprimir o teste."); return; }
     const safeName = establishmentName.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
-    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Teste de impressão</title><style>@page{size:${paperWidth}mm auto;margin:3mm}body{font:12px monospace;margin:0;width:${paperWidth - 8}mm;color:#000}h1{font-size:16px;text-align:center}p{margin:7px 0}.line{border-top:1px dashed #000;margin:10px 0}.ok{font-size:15px;font-weight:700;text-align:center}</style></head><body><h1>${safeName}</h1><p>TESTE DA IMPRESSORA</p><div class="line"></div><p>Conexão: ${connection.toUpperCase()}</p><p>Papel: ${paperWidth} mm</p><p>Data: ${new Date().toLocaleString("pt-BR")}</p><div class="line"></div><p class="ok">CONFIGURAÇÃO CONCLUÍDA</p><p style="text-align:center">Mesa Viva</p><script>setTimeout(()=>window.print(),250)<\/script></body></html>`);
-    popup.document.close(); setMessage("Escolha sua impressora na janela que abriu.");
+    popup.document.open();
+    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Teste de impressão</title><style>@page{size:${paperWidth}mm auto;margin:3mm}body{font:12px monospace;margin:0;width:${paperWidth - 8}mm;color:#000}h1{font-size:16px;text-align:center}p{margin:7px 0}.line{border-top:1px dashed #000;margin:10px 0}.ok{font-size:15px;font-weight:700;text-align:center}.print-help{background:#f4eee4;border:1px solid #6d2627;border-radius:8px;margin:0 0 14px;padding:10px;text-align:center}.print-help button{background:#6d2627;border:0;border-radius:999px;color:#fff;cursor:pointer;font:bold 12px sans-serif;margin-top:7px;padding:10px 16px}@media print{.print-help{display:none}}</style></head><body><div class="print-help"><b>Escolha a impressora para continuar</b><br><button id="print-now" type="button">ABRIR IMPRESSÃO</button></div><h1>${safeName}</h1><p>TESTE DA IMPRESSORA</p><div class="line"></div><p>Conexão: ${connection.toUpperCase()}</p><p>Papel: ${paperWidth} mm</p><p>Data: ${new Date().toLocaleString("pt-BR")}</p><div class="line"></div><p class="ok">CONFIGURAÇÃO CONCLUÍDA</p><p style="text-align:center">Mesa Viva</p></body></html>`);
+    popup.document.close();
+    const requestPrint = () => { popup.focus(); popup.print(); };
+    popup.document.getElementById("print-now")?.addEventListener("click", requestPrint);
+    window.setTimeout(requestPrint, 500);
+    setMessage("A tela da impressora será aberta. Se necessário, clique em ABRIR IMPRESSÃO na notinha.");
   }
 
   return <section className="panel printer-wizard">
