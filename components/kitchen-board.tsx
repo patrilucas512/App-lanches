@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeToPush, supportsPushNotifications } from "@/lib/push-notifications";
+import { getCurrentOperatingWindow, isDateInOperatingWindow, type BusinessHour } from "@/lib/business-hours";
 
-type Ticket = { id: string; table_order_id?: string | null; public_order_id?: string | null; status: string; created_at: string; delivered_by_name?: string | null };
+type Ticket = { id: string; table_order_id?: string | null; public_order_id?: string | null; status: string; created_at: string; delivered_at?: string | null; delivered_by_name?: string | null };
 type TableOrder = { id: string; table_session_id: string; order_number: number; notes?: string | null };
 type PublicOrder = { id: string; order_number: number; notes?: string | null; customer_name: string; fulfillment_type: string; restaurant_table_id?: string | null; payment_method?: string | null };
 type TableItem = { id: string; table_order_id: string; product_name: string; quantity: number; notes?: string | null; addons: { name: string }[]; removed_ingredients: string[] };
@@ -15,7 +16,7 @@ type DirectPrinter = { configured: boolean; online: boolean; printer_name?: stri
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
 
-export function KitchenBoard({ establishmentId, establishmentName, operatorName, canReturnToAdmin, canPrint, autoPrint, paperWidth, directPrinter, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canReturnToAdmin: boolean; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; directPrinter: DirectPrinter; initial: Initial }) {
+export function KitchenBoard({ establishmentId, establishmentName, operatorName, canReturnToAdmin, canPrint, autoPrint, paperWidth, directPrinter, businessHours, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canReturnToAdmin: boolean; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; directPrinter: DirectPrinter; businessHours: BusinessHour[]; initial: Initial }) {
   const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
@@ -23,14 +24,19 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [pushStatus, setPushStatus] = useState<"unsupported" | "idle" | "active">("idle");
   const [printerStatus, setPrinterStatus] = useState<DirectPrinter>(directPrinter);
+  const [operatingHours, setOperatingHours] = useState<BusinessHour[]>(businessHours);
 
   useEffect(() => {
-    async function refreshPrinterStatus() {
-      const { data: status } = await supabase.rpc("get_printer_connector_status", { requested_establishment_id: establishmentId });
+    async function refreshOperationalSettings() {
+      const [{ data: status }, { data: hours }] = await Promise.all([
+        supabase.rpc("get_printer_connector_status", { requested_establishment_id: establishmentId }),
+        supabase.from("business_hours").select("weekday,opens_at,closes_at,closed").eq("establishment_id", establishmentId).order("weekday"),
+      ]);
       if (status && typeof status === "object") setPrinterStatus(status as DirectPrinter);
+      if (hours) setOperatingHours(hours);
     }
-    void refreshPrinterStatus();
-    const timer = window.setInterval(() => void refreshPrinterStatus(), 4000);
+    void refreshOperationalSettings();
+    const timer = window.setInterval(() => void refreshOperationalSettings(), 4000);
     return () => window.clearInterval(timer);
   }, [establishmentId, supabase]);
 
@@ -174,11 +180,15 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
     else printReceipt(ticket);
   }
 
+  const operatingWindow = getCurrentOperatingWindow(operatingHours, new Date(now));
+  const visibleTickets = data.tickets.filter(ticket => ticket.status !== "delivered" || isDateInOperatingWindow(ticket.delivered_at, operatingWindow));
+  const visibleColumns = columns.filter(([status]) => status !== "delivered" || !operatingWindow.configured || operatingWindow.isOpen);
+
   return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`} style={{ "--ticket-width": `${paperWidth}mm` } as React.CSSProperties}>
-    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p>{printerStatus.configured && <p className={`direct-printer-status ${printerStatus.online ? "online" : "offline"}`}><i /> {printerStatus.online ? `Impressora conectada: ${printerStatus.printer_name}` : "Impressora aguardando o computador"}</p>}</div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span><div className="kitchen-head-actions">{canReturnToAdmin && <Link className="kitchen-admin-return" href="/painel">← Voltar ao painel administrativo</Link>}{canReturnToAdmin && <Link className="kitchen-admin-return kitchen-register-return" href="/painel/configuracoes#equipe-cozinha">+ Cadastrar responsável</Link>}{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}</div><Link href="/cozinha/login">Trocar operador</Link></div></header>
-    <section className="kitchen-columns">{columns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
-      <header><h2>{title}</h2><b>{data.tickets.filter(value => value.status === status).length}</b></header>
-      <div>{data.tickets.filter(value => value.status === status).map(ticket => {
+    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p>{printerStatus.configured && <p className={`direct-printer-status ${printerStatus.online ? "online" : "offline"}`}><i /> {printerStatus.online ? `Impressora conectada: ${printerStatus.printer_name}` : "Impressora aguardando o computador"}</p>}{operatingWindow.configured && !operatingWindow.isOpen && <p className="kitchen-closed-note">Expediente encerrado · entregues arquivados em Pedidos semanais</p>}</div><div><span>{visibleTickets.filter(value => value.status !== "delivered").length} comandas ativas</span><div className="kitchen-head-actions">{canReturnToAdmin && <Link className="kitchen-admin-return" href="/painel">← Voltar ao painel administrativo</Link>}{canReturnToAdmin && <Link className="kitchen-admin-return kitchen-register-return" href="/painel/configuracoes#equipe-cozinha">+ Cadastrar responsável</Link>}{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}</div><Link href="/cozinha/login">Trocar operador</Link></div></header>
+    <section className={`kitchen-columns columns-${visibleColumns.length}`}>{visibleColumns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
+      <header><h2>{title}</h2><b>{visibleTickets.filter(value => value.status === status).length}</b></header>
+      <div>{visibleTickets.filter(value => value.status === status).map(ticket => {
         const detail = details(ticket);
         const minutes = Math.max(0, Math.floor((now - new Date(ticket.created_at).getTime()) / 60000));
         return <article className={`kitchen-ticket ${printingId === ticket.id ? "print-target" : ""}`} key={ticket.id}>

@@ -3,12 +3,14 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { WaiterConsole } from "@/components/waiter-console";
 import { WaiterOrderTracker } from "@/components/waiter-order-tracker";
 import { getDashboardContext } from "@/lib/dashboard";
+import { currentWeekDateKeys, saoPauloDateKey } from "@/lib/business-hours";
 
 export default async function OrdersPage() {
   const { supabase, establishment, member, userId } = await getDashboardContext();
   if (!["owner", "manager"].includes(member.role)) redirect("/painel/garcom");
 
-  const [{ data: tables }, { data: sessions }, { data: products }, { data: categories }, { data: serviceMode }, { data: tickets }, { data: tableOrders }, { data: publicOrders }, { data: profile }] = await Promise.all([
+  const recentDate = new Date(Date.now() - 9 * 86400000).toISOString();
+  const [{ data: tables }, { data: sessions }, { data: products }, { data: categories }, { data: serviceMode }, { data: tickets }, { data: tableOrders }, { data: publicOrders }, { data: profile }, { data: weeklyPublicOrders }, { data: weeklyTableOrders }] = await Promise.all([
     supabase.from("restaurant_tables").select("*").eq("establishment_id", establishment.id).eq("is_active", true).order("table_number"),
     supabase.from("table_sessions").select("*").eq("establishment_id", establishment.id).in("status", ["open", "awaiting_payment", "paid"]),
     supabase.from("products").select("id,name,description,image_url,price_cents,category_id,product_variations(id,name,price_delta_cents,active),product_addon_groups(addon_groups(id,name,addons(id,name,price_cents,active)))").eq("establishment_id", establishment.id).eq("active", true).order("sort_order"),
@@ -18,14 +20,35 @@ export default async function OrdersPage() {
     supabase.from("table_orders").select("id,table_session_id,order_number,created_at").eq("establishment_id", establishment.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("orders").select("id,restaurant_table_id,order_number,customer_name,fulfillment_type,total_cents,status,created_at,restaurant_tables(table_number)").eq("establishment_id", establishment.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+    supabase.from("orders").select("id,total_cents,status,created_at").eq("establishment_id", establishment.id).gte("created_at", recentDate),
+    supabase.from("table_orders").select("id,kitchen_status,created_at,table_order_items(total_cents)").eq("establishment_id", establishment.id).gte("created_at", recentDate),
   ]);
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  const weekKeys = currentWeekDateKeys();
+  const weekDayNames = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+  const weeklyStats = weekKeys.map((dateKey, index) => {
+    const publicDay = (weeklyPublicOrders || []).filter(order => order.status !== "canceled" && saoPauloDateKey(new Date(order.created_at)) === dateKey);
+    const tableDay = (weeklyTableOrders || []).filter(order => order.kitchen_status !== "canceled" && saoPauloDateKey(new Date(order.created_at)) === dateKey);
+    const publicTotal = publicDay.reduce((sum, order) => sum + order.total_cents, 0);
+    const tableTotal = tableDay.reduce((sum, order) => sum + (order.table_order_items || []).reduce((itemSum, item) => itemSum + item.total_cents, 0), 0);
+    return { dateKey, label: weekDayNames[index], publicCount: publicDay.length, tableCount: tableDay.length, count: publicDay.length + tableDay.length, total: publicTotal + tableTotal };
+  });
+  const weekCount = weeklyStats.reduce((sum, day) => sum + day.count, 0);
+  const weekTotal = weeklyStats.reduce((sum, day) => sum + day.total, 0);
+  const todayKey = saoPauloDateKey(new Date());
 
   return <DashboardShell active="orders" storeSlug={establishment.slug} role={member.role}>
     <header className="dashboard-head">
       <div><small>OPERAÇÃO CENTRALIZADA</small><h1>Pedidos e mesas.</h1><p>Controle o salão, os pedidos e os fechamentos em uma única área.</p></div>
       <span className="status-pill">Tempo real</span>
     </header>
+
+    <section className="panel weekly-orders" id="pedidos-semanais">
+      <header className="team-group-head"><div><small>HISTÓRICO ORGANIZADO</small><h2>Pedidos semanais</h2><p>Pedidos da cozinha contabilizados por dia, incluindo balcão, entrega e salão.</p></div><div className="weekly-orders-total"><span>{weekCount} pedidos</span><strong>{money.format(weekTotal / 100)}</strong></div></header>
+      <div className="weekly-orders-grid">{weeklyStats.map(day => <article className={day.dateKey === todayKey ? "is-today" : ""} key={day.dateKey}>
+        <small>{day.label}</small><b>{day.count}</b><span>{money.format(day.total / 100)}</span><p>{day.publicCount} diretos · {day.tableCount} salão</p>
+      </article>)}</div>
+    </section>
 
     <section id="mesas-e-pedidos">
       {serviceMode?.waiter_mode_enabled ? <WaiterOrderTracker establishmentId={establishment.id} initial={{
