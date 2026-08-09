@@ -11,10 +11,11 @@ type PublicOrder = { id: string; order_number: number; notes?: string | null; cu
 type TableItem = { id: string; table_order_id: string; product_name: string; quantity: number; notes?: string | null; addons: { name: string }[]; removed_ingredients: string[] };
 type PublicItem = { id: string; order_id: string; product_name: string; quantity: number; notes?: string | null; addons: { name: string }[]; removed_ingredients: string[] };
 type Initial = { tickets: Ticket[]; tableOrders: TableOrder[]; publicOrders: PublicOrder[]; sessions: { id: string; table_id: string; customer_name?: string | null }[]; tables: { id: string; table_number: string; table_name?: string | null }[]; tableItems: TableItem[]; publicItems: PublicItem[] };
+type DirectPrinter = { configured: boolean; online: boolean; printer_name?: string | null };
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
 
-export function KitchenBoard({ establishmentId, establishmentName, operatorName, canReturnToAdmin, canPrint, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canReturnToAdmin: boolean; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
+export function KitchenBoard({ establishmentId, establishmentName, operatorName, canReturnToAdmin, canPrint, autoPrint, paperWidth, directPrinter, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canReturnToAdmin: boolean; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; directPrinter: DirectPrinter; initial: Initial }) {
   const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
@@ -55,7 +56,10 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
     if (autoPrint && canPrint && insertedId) {
       const inserted = tickets?.find(ticket => ticket.id === insertedId);
       if (inserted?.status === "received") await supabase.rpc("update_kitchen_ticket", { requested_ticket_id: insertedId, requested_status: "preparing" });
-      if (inserted && nextData) printReceipt(inserted, nextData);
+      if (inserted && nextData) {
+        if (directPrinter.configured) await queueDirectPrint(inserted, nextData, false);
+        else printReceipt(inserted, nextData);
+      }
     }
   }
 
@@ -94,6 +98,40 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
     return { number: order?.order_number, notes: order?.notes, customer: session?.customer_name, table, payment: null, items: source.tableItems.filter(value => value.table_order_id === order?.id) };
   }
 
+  function receiptText(ticket: Ticket, source = data) {
+    const detail = details(ticket, source);
+    const width = paperWidth === 80 ? 48 : 32;
+    const line = "-".repeat(width);
+    const center = (value: string) => value.slice(0, width).padStart(Math.floor((width + value.slice(0, width).length) / 2)).padEnd(width);
+    const rows = [center(establishmentName.toUpperCase()), center(`PEDIDO #${detail.number ?? "-"}`), line];
+    rows.push(`ATENDIMENTO: ${detail.table?.table_number ? `MESA ${detail.table.table_number}` : "BALCAO"}`);
+    if (detail.customer) rows.push(`CLIENTE: ${detail.customer}`);
+    if (detail.table?.table_name) rows.push(`LOCAL: ${detail.table.table_name}`);
+    rows.push(line);
+    detail.items.forEach(item => {
+      rows.push(`${item.quantity}x ${item.product_name}`);
+      if (item.addons?.length) rows.push(`  + ${item.addons.map(addon => addon.name).join(", ")}`);
+      if (item.removed_ingredients?.length) rows.push(`*** SEM: ${item.removed_ingredients.join(", ").toUpperCase()} ***`);
+      if (item.notes) rows.push(`  OBS: ${item.notes}`);
+      rows.push(line);
+    });
+    if (detail.notes) rows.push(`OBSERVACAO: ${detail.notes}`, line);
+    if (detail.payment) rows.push(`PAGAMENTO: ${detail.payment.toUpperCase()}`);
+    rows.push(new Date(ticket.created_at).toLocaleString("pt-BR"), center("MESA VIVA"));
+    return rows.join("\r\n");
+  }
+
+  async function queueDirectPrint(ticket: Ticket, source = data, reprint = false) {
+    const { error } = await supabase.rpc("queue_kitchen_print", {
+      requested_ticket_id: ticket.id,
+      requested_text: receiptText(ticket, source),
+      requested_reprint: reprint,
+    });
+    if (error) { setMessage(error.message); return false; }
+    setMessage(directPrinter.online ? `Notinha enviada para ${directPrinter.printer_name || "a impressora"}.` : "Notinha salva na fila. Ela sairá quando o computador da impressora estiver ligado.");
+    return true;
+  }
+
   function printReceipt(ticket: Ticket, source = data) {
     const detail = details(ticket, source);
     const items = detail.items.map(item => `<div class="item"><b>${item.quantity}x ${escapeHtml(item.product_name)}</b>${item.addons?.length ? `<span>+ ${item.addons.map(addon => escapeHtml(addon.name)).join(", ")}</span>` : ""}${item.removed_ingredients?.length ? `<strong>SEM: ${item.removed_ingredients.map(escapeHtml).join(", ")}</strong>` : ""}${item.notes ? `<em>${escapeHtml(item.notes)}</em>` : ""}</div>`).join("");
@@ -115,16 +153,18 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
   }
 
   async function printOne(ticket: Ticket) {
+    const reprint = ticket.status !== "received";
     if (ticket.status === "received") {
       const { error } = await supabase.rpc("update_kitchen_ticket", { requested_ticket_id: ticket.id, requested_status: "preparing" });
       if (error) { setMessage(error.message); return; }
       await refresh();
     }
-    printReceipt(ticket);
+    if (directPrinter.configured) await queueDirectPrint(ticket, data, reprint);
+    else printReceipt(ticket);
   }
 
   return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`} style={{ "--ticket-width": `${paperWidth}mm` } as React.CSSProperties}>
-    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span><div className="kitchen-head-actions">{canReturnToAdmin && <Link className="kitchen-admin-return" href="/painel">← Voltar ao painel administrativo</Link>}{canReturnToAdmin && <Link className="kitchen-admin-return kitchen-register-return" href="/painel/configuracoes#equipe-cozinha">+ Cadastrar responsável</Link>}{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}</div><Link href="/cozinha/login">Trocar operador</Link></div></header>
+    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p>{directPrinter.configured && <p className={`direct-printer-status ${directPrinter.online ? "online" : "offline"}`}><i /> {directPrinter.online ? `Impressora conectada: ${directPrinter.printer_name}` : "Impressora aguardando o computador"}</p>}</div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span><div className="kitchen-head-actions">{canReturnToAdmin && <Link className="kitchen-admin-return" href="/painel">← Voltar ao painel administrativo</Link>}{canReturnToAdmin && <Link className="kitchen-admin-return kitchen-register-return" href="/painel/configuracoes#equipe-cozinha">+ Cadastrar responsável</Link>}{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}</div><Link href="/cozinha/login">Trocar operador</Link></div></header>
     <section className="kitchen-columns">{columns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
       <header><h2>{title}</h2><b>{data.tickets.filter(value => value.status === status).length}</b></header>
       <div>{data.tickets.filter(value => value.status === status).map(ticket => {
@@ -142,7 +182,7 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
           {detail.notes && <p><b>Observação:</b> {detail.notes}</p>}
           {detail.payment && <small>PAGAMENTO: {detail.payment}</small>}
           <footer>
-            {status === "received" && (canPrint ? <button onClick={() => void printOne(ticket)}>Aceitar e imprimir</button> : <button onClick={() => advance(ticket, "preparing")}>Aceitar pedido</button>)}
+            {status === "received" && (canPrint ? <button onClick={() => void printOne(ticket)}>{directPrinter.configured ? "Aceitar e imprimir direto" : "Aceitar e imprimir"}</button> : <button onClick={() => advance(ticket, "preparing")}>Aceitar pedido</button>)}
             {status === "preparing" && <button onClick={() => advance(ticket, "ready")}>Marcar como pronto</button>}
             {status === "ready" && <div className="kitchen-waiter-pickup"><b>Pronto</b><span>Aguardando retirada do garçom.</span></div>}
             {status === "delivered" && <div className="kitchen-delivery-owner"><small>RETIRADO POR</small><b>{ticket.delivered_by_name || "Equipe"}</b></div>}
