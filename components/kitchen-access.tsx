@@ -32,6 +32,18 @@ function localDate() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 }
 
+async function functionErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object" || !("context" in error)) return fallback;
+  const response = (error as { context?: Response }).context;
+  if (!response || typeof response.clone !== "function") return fallback;
+  try {
+    const body = await response.clone().json() as { error?: string };
+    return body.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function PasswordInput({ name, label, autoComplete }: { name: string; label: string; autoComplete: string }) {
   const [visible, setVisible] = useState(false);
   return <div className="field"><label>{label}</label><div className="password-input-wrap">
@@ -77,11 +89,15 @@ export function KitchenInviteClaim({ token }: { token: string }) {
     if (password !== String(form.get("confirmation"))) { setMessage("As duas senhas precisam ser iguais."); setBusy(false); return; }
     const supabase = createClient();
     const { data, error } = await supabase.functions.invoke("activate-kitchen-access", { body: { token, password } });
-    if (error || !data?.login_email) { setMessage(data?.error || "Não foi possível ativar este acesso."); setBusy(false); return; }
+    if (error || !data?.login_email) {
+      setMessage(data?.error || await functionErrorMessage(error, "Não foi possível ativar este acesso. Peça um novo link ao administrador."));
+      setBusy(false);
+      return;
+    }
     const { error: loginError } = await supabase.auth.signInWithPassword({ email: data.login_email, password });
     if (loginError) { setMessage("Senha criada. Entre com seu WhatsApp e essa senha."); setBusy(false); return; }
     setMessage("Acesso ativado. Abrindo a cozinha...");
-    window.setTimeout(() => window.location.assign("/cozinha"), 500);
+    window.setTimeout(() => window.location.replace("/cozinha"), 350);
   }
   return <div className="auth-card waiter-invite-card"><span className="kicker">ACESSO DA COZINHA</span><h1>Crie sua senha.</h1><p>Seu WhatsApp já foi autorizado. Esta conta abrirá somente a operação da cozinha.</p>
     <form className="form" onSubmit={activate}>
