@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AttendanceManager } from "@/components/attendance-manager";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { TeamDeleteButton } from "@/components/team-delete-button";
 import { getDashboardContext } from "@/lib/dashboard";
@@ -48,15 +49,16 @@ export default async function TeamPage() {
   const { supabase, establishment, member, userId } = await getDashboardContext();
   if (!['owner', 'manager'].includes(member.role)) redirect("/painel/garcom");
 
-  const [{ data: members }, { data: waiters }, { data: kitchen }, { data: ownProfile }, { data: sessions }, { data: tableOrders }, { data: payments }, { data: proofs }] = await Promise.all([
+  const [{ data: members }, { data: waiters }, { data: kitchen }, { data: ownProfile }, { data: sessions }, { data: tableOrders }, { data: payments }, { data: proofs }, { data: serviceMode }] = await Promise.all([
     supabase.from("establishment_members").select("id,user_id,role,created_at").eq("establishment_id", establishment.id).order("created_at"),
-    supabase.from("waiters").select("id,user_id,name,status,active_now,sector,employment_type,work_date,payment_cycle").eq("establishment_id", establishment.id).order("name"),
+    supabase.from("waiters").select("id,user_id,name,phone,status,active_now,sector,employment_type,work_date,payment_cycle,permissions,shift_start,shift_end").eq("establishment_id", establishment.id).order("name"),
     supabase.from("kitchen_operators").select("id,user_id,name,status,access_type,work_date,device_mode,payment_cycle").eq("establishment_id", establishment.id).order("name"),
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
     supabase.from("table_sessions").select("id,waiter_id").eq("establishment_id", establishment.id),
     supabase.from("table_orders").select("id,waiter_id").eq("establishment_id", establishment.id),
     supabase.from("table_payments").select("id,waiter_id,payment_method,amount_cents").eq("establishment_id", establishment.id),
     supabase.from("payment_proofs").select("id,waiter_id,image_path").eq("establishment_id", establishment.id),
+    supabase.from("service_modes").select("*").eq("establishment_id", establishment.id).single(),
   ]);
 
   const proofLinks = new Map<string, string>();
@@ -90,12 +92,19 @@ export default async function TeamPage() {
     detail: `${roleLabels[person.role] || person.role} · Desde ${new Date(person.created_at).toLocaleDateString("pt-BR")}`,
   }));
   const allRows = [...adminRows, ...waiterRows, ...kitchenRows];
+  const waiterMetrics = (waiters || []).map(waiter => ({
+    waiterId: waiter.id,
+    orders: (tableOrders || []).filter(order => order.waiter_id === waiter.user_id).length,
+    tables: (sessions || []).filter(session => session.waiter_id === waiter.user_id).length,
+    salesCents: (payments || []).filter(payment => payment.waiter_id === waiter.id).reduce((sum, payment) => sum + payment.amount_cents, 0),
+    payments: (payments || []).filter(payment => payment.waiter_id === waiter.id).length,
+  }));
 
   return <DashboardShell active="team" storeSlug={establishment.slug} role={member.role}>
     <header className="dashboard-head"><div><small>PESSOAS E ACESSOS</small><h1>Sua equipe.</h1><p>Funcionários separados por função, vínculo e forma de pagamento.</p></div><span className="status-pill">{allRows.filter(row => row.active).length} ativos agora</span></header>
     <section className="team-summary"><article><small>PESSOAS CADASTRADAS</small><strong>{allRows.length}</strong></article><article><small>GARÇONS ATIVOS</small><strong>{waiterRows.filter(row => row.active).length}</strong></article><article><small>COZINHA ATIVA</small><strong>{kitchenRows.filter(row => row.active).length}</strong></article></section>
     <section className="team-groups">
-      <TeamGroup title="Garçons" description="Equipe que abre mesas, lança pedidos e fecha contas." rows={waiterRows} href="/painel/atendimento#equipe-garcons" />
+      <AttendanceManager establishmentId={establishment.id} slug={establishment.slug} initialMode={serviceMode as never} initialWaiters={(waiters || []) as never[]} metrics={waiterMetrics} section="team" />
       <article className="panel team-group" id="relatorio-garcons">
         <header className="team-group-head">
           <div><small>DESEMPENHO E RESPONSABILIDADE</small><h2>Relatório dos garçons</h2><p>Mesas, pedidos, vendas e pagamentos de cada integrante da equipe.</p></div>
@@ -121,7 +130,7 @@ export default async function TeamPage() {
             })}</tbody>
           </table>
         </div>
-        {!waiters?.length && <div className="empty"><b>Nenhum garçom cadastrado.</b><span>Cadastre a equipe na área de Atendimento.</span></div>}
+        {!waiters?.length && <div className="empty"><b>Nenhum garçom cadastrado.</b><span>Cadastre a equipe no formulário acima.</span></div>}
       </article>
       <TeamGroup title="Cozinha" description="Responsáveis por aceitar, imprimir, preparar e liberar pedidos." rows={kitchenRows} href="/painel/configuracoes#equipe-cozinha" />
       <TeamGroup title="Administração" description="Proprietários, gerentes e responsáveis pelo catálogo." rows={adminRows} href="/painel/configuracoes" />

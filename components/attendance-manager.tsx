@@ -43,8 +43,9 @@ const inviteMessage = (invite: WaiterInvite) => invite.isReset
   ? `Olá, ${invite.waiterName}! Seu acesso de diarista está liberado para ${formatWorkDate(invite.workDate)}. Crie sua senha neste link: ${invite.link}\n\nO acesso aos pedidos funcionará somente na data informada.`
   : `Olá, ${invite.waiterName}! Seu cadastro de funcionário está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois disso, use seu nome completo e sua senha para entrar sempre que estiver trabalhando.`;
 
-export function AttendanceManager({ establishmentId, slug, initialMode, initialWaiters, metrics }: {
+export function AttendanceManager({ establishmentId, slug, initialMode, initialWaiters, metrics, section = "all" }: {
   establishmentId: string; slug: string; initialMode: Mode; initialWaiters: Waiter[]; metrics: Metric[];
+  section?: "all" | "mode" | "team";
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [mode, setMode] = useState(initialMode);
@@ -60,6 +61,8 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     && ["active", "serving"].includes(waiter.status)
     && (waiter.employment_type !== "daily" || waiter.work_date === localDate())
   ).length;
+  const showMode = section !== "team";
+  const showTeam = section !== "mode";
   const patch = <K extends keyof Mode>(key: K, value: Mode[K]) => setMode(current => ({ ...current, [key]: value }));
 
   async function saveMode() {
@@ -182,13 +185,13 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     ? mode.accepted_payment_methods.filter(item => item !== value) : [...mode.accepted_payment_methods, value]);
 
   return <div className="attendance-manager">
-    <section className="attendance-summary">
+    {showMode && <section className="attendance-summary">
       <article><small>MODO ATUAL</small><strong>{mode.mode === "counter" ? "Balcão" : mode.mode === "delivery" ? "Entrega" : mode.mode === "waiter" ? "Com garçom" : "Misto"}</strong></article>
       <article><small>GARÇONS ATIVOS AGORA</small><strong>{activeCount}</strong></article>
       <article><small>LINK DO GARÇOM</small><strong className="small-value">/garcom/{slug}</strong></article>
-    </section>
+    </section>}
 
-    <section className="panel attendance-config">
+    {showMode && <section className="panel attendance-config">
       <div className="panel-title-row"><div><h2>Como o estabelecimento atende?</h2><p>O cardápio e a operação mudam automaticamente conforme estas escolhas.</p></div><button className="button dark" disabled={busy} onClick={saveMode}>Salvar atendimento</button></div>
       <div className="mode-choice-grid">
         {[["counter", "Apenas balcão", "Cliente pede e retira no local."], ["delivery", "Apenas entrega", "Pedidos com endereço de entrega."], ["waiter", "Com garçom", "Mesas, cozinha e fechamento."], ["mixed", "Atendimento misto", "Todos os canais configuráveis."]].map(([value, title, text]) =>
@@ -211,9 +214,9 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       </div>
       <div className="payment-config"><h3>Formas de pagamento aceitas</h3>{[["pix","Pix"],["cash","Dinheiro"],["credit_card","Crédito"],["debit_card","Débito"]].map(([value,label]) => <label key={value}><input type="checkbox" checked={mode.accepted_payment_methods.includes(value)} onChange={() => togglePayment(value)} /> {label}</label>)}</div>
       <div className="field manual-waiters"><label>QUANTIDADE MANUAL DE GARÇONS ATIVOS (OPCIONAL)</label><input type="number" min="0" value={mode.manual_active_waiters ?? ""} onChange={event => patch("manual_active_waiters", event.target.value === "" ? null : Number(event.target.value))} /><small>Deixe vazio para calcular automaticamente pela lista.</small></div>
-    </section>
+    </section>}
 
-    <section className="panel waiter-admin" id="equipe-garcons">
+    {showTeam && <section className="panel waiter-admin" id="equipe-garcons">
       <div className="panel-title-row"><div><h2>Garçons ativos no momento</h2><p>Cadastre, pause, bloqueie e gere o acesso individual da equipe.</p></div><span className="status-pill">{activeCount} agora</span></div>
       <form className="waiter-admin-form form" onSubmit={saveWaiter}>
         <div className="form-grid">
@@ -264,7 +267,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
           </div>}
         </article>;
       })}</div>
-    </section>
+    </section>}
     {message && <div className={["salvo", "salvas", "copiado", "cadastrado", "gerado", "excluído"].some(term => message.includes(term)) ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
   </div>;
 }

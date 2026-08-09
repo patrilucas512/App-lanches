@@ -22,6 +22,6 @@ export default async function AttendancePage() {
   }));
   return <DashboardShell active="attendance" storeSlug={establishment.slug} role={member.role}>
     <header className="dashboard-head"><div><small>OPERAÇÃO PERSONALIZADA</small><h1>Modo de atendimento.</h1></div><span className="status-pill">Configurável</span></header>
-    <AttendanceManager establishmentId={establishment.id} slug={establishment.slug} initialMode={mode as never} initialWaiters={(waiters || []) as never[]} metrics={metrics} />
+    <AttendanceManager establishmentId={establishment.id} slug={establishment.slug} initialMode={mode as never} initialWaiters={(waiters || []) as never[]} metrics={metrics} section="mode" />
   </DashboardShell>;
 }
