@@ -367,6 +367,7 @@ button.table-qr-card { color:inherit; }
 .close-account { align-items:end; display:grid; gap:12px; grid-template-columns:1fr 180px 180px auto; }
 .close-account h2 { margin:0 0 6px; }
 .close-account p { color:var(--muted); font-size:8px; margin:0; }
+.closing-operator { grid-column:1/-1; }
 .payment-launch { min-height:54px; }
 .product-customizer { align-self:flex-start; margin:30px auto; max-height:calc(100vh - 60px); overflow:auto; }
 .addon-options { display:flex; flex-direction:column; gap:8px; }
@@ -446,6 +447,13 @@ button.table-qr-card { color:inherit; }
 .waiter-tracker > header h2 { font-family:var(--font-display),serif; font-size:28px; margin:4px 0; }
 .waiter-tracker > header p { color:var(--muted); font-size:8px; margin:0; }
 .waiter-tracker > header > span { background:#e1eee5; border-radius:99px; color:#285d3f; font-size:8px; font-weight:800; padding:8px 10px; }
+.waiter-alert-controls { align-items:flex-end; display:flex; flex-direction:column; gap:8px; }
+.waiter-alert-controls > span { background:#e1eee5; border-radius:99px; color:#285d3f; font-size:8px; font-weight:800; padding:8px 10px; }
+.waiter-alert-controls button { background:var(--wine); border:0; border-radius:99px; color:white; cursor:pointer; font-size:8px; font-weight:800; padding:9px 12px; }
+.waiter-alert-controls button.active { background:#226447; }
+.waiter-mode-off { margin-bottom:16px; }
+.waiter-mode-off b { display:block; font-family:var(--font-display),serif; font-size:24px; }
+.waiter-mode-off p { color:var(--muted); font-size:9px; line-height:1.6; margin:6px 0 0; }
 .ready-pickup-alert { align-items:center; animation:ready-pulse 1.4s infinite; background:#dff3e9; border:2px solid #2e8878; border-radius:12px; display:flex; gap:12px; padding:13px; }
 .ready-alert-icon { align-items:center; background:#2e8878; border-radius:50%; color:white; display:flex; flex:0 0 34px; font-size:17px; font-weight:900; height:34px; justify-content:center; }
 .ready-pickup-alert div { display:flex; flex-direction:column; gap:3px; }
