@@ -4,9 +4,10 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; notice?: string }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +45,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         return;
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível continuar.");
+      const detail = error instanceof Error ? error.message : "";
+      setMessage(detail === "Invalid login credentials" ? "E-mail ou senha inválidos." : detail || "Não foi possível continuar.");
     } finally { setLoading(false); }
   }
 
@@ -55,9 +57,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     </>}
     <div className="field"><label>{mode === "signup" ? "SEU E-MAIL DE ACESSO" : "E-MAIL"}</label><input name="email" type="email" autoComplete="email" required placeholder="seunome@gmail.com" /></div>
     {mode === "signup" && <div className="field"><label>CONFIRME O E-MAIL</label><input name="email_confirmation" type="email" autoComplete="email" required placeholder="Digite novamente o mesmo e-mail" /><small>Use um endereço que você consegue abrir agora.</small></div>}
-    <div className="field"><label>SENHA</label><input name="password" type="password" minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} required placeholder="Mínimo de 8 caracteres" /></div>
+    <div className="field"><label>SENHA</label><div className="password-input-wrap"><input name="password" type={passwordVisible ? "text" : "password"} minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} required placeholder="Mínimo de 8 caracteres" /><button type="button" className="password-visibility" aria-label={passwordVisible ? "Ocultar senha" : "Visualizar senha"} onClick={() => setPasswordVisible(value => !value)}>{passwordVisible ? "◉" : "👁"}</button></div></div>
     {mode === "login" && <Link className="auth-recovery-link" href="/recuperar-senha">Esqueci minha senha</Link>}
-    {message && <div className={`form-message ${message.startsWith("Enviamos") ? "form-success" : ""}`}>{message}</div>}
+    {(message || notice) && <div className={`form-message ${(notice || message.startsWith("Enviamos") || message.startsWith("Login realizado")) ? "form-success" : ""}`}>{message || notice}</div>}
     <button type="submit" className="button dark wide" disabled={loading}>{loading ? "Aguarde..." : mode === "signup" ? "Criar conta grátis →" : "Entrar no painel →"}</button>
     <p className="auth-switch">{mode === "signup" ? <>Já tem uma conta? <Link href="/login">Entrar</Link></> : <>Ainda não usa o Mesa Viva? <Link href="/cadastro">Começar grátis</Link></>}</p>
   </form>;

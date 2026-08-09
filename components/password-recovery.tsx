@@ -28,7 +28,7 @@ export function RequestPasswordRecovery({ initialEmail = "" }: { initialEmail?: 
       const supabase = createClient();
       const redirectOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${redirectOrigin}/nova-senha`,
+        redirectTo: `${redirectOrigin}/auth/callback?next=/nova-senha`,
       });
       if (error) throw error;
       setMessage(`Enviamos um link de recuperação para ${email}. Confira também a pasta de spam.`);
@@ -58,6 +58,16 @@ export function UpdatePassword() {
     let expiryTimer: ReturnType<typeof setTimeout> | undefined;
 
     async function recoverSession() {
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error && active) {
+          window.history.replaceState({}, "", window.location.pathname);
+          setReady(true);
+          setMessage("");
+          return;
+        }
+      }
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");

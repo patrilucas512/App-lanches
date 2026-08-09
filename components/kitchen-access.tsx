@@ -75,6 +75,7 @@ export function KitchenLoginForm() {
     <PasswordInput name="password" label="SENHA" autoComplete="current-password" />
     {message && <div className="form-message">{message}</div>}
     <button className="button dark wide" disabled={busy}>{busy ? "Entrando..." : "Abrir tela da cozinha →"}</button>
+    <button type="button" className="auth-recovery-link auth-recovery-button" onClick={() => setMessage("Peça ao administrador para abrir Equipe da cozinha, tocar em Redefinir senha e enviar um novo link pelo WhatsApp.")}>Esqueci minha senha</button>
     <p className="auth-switch">Primeiro acesso? Abra o link enviado pelo administrador.</p>
   </form>;
 }
@@ -114,14 +115,14 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
   const [editing, setEditing] = useState<KitchenOperator | null>(null);
   const [accessType, setAccessType] = useState<"fixed" | "daily">("fixed");
   const [message, setMessage] = useState("");
-  const [invite, setInvite] = useState<{ name: string; phone: string; link: string } | null>(null);
+  const [invite, setInvite] = useState<{ name: string; phone: string; link: string; isReset: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function createInvite(operator: KitchenOperator) {
     const supabase = createClient();
     const { data, error } = await supabase.rpc("create_kitchen_invite", { requested_operator_id: operator.id });
     if (error) { setMessage(error.message); return; }
-    setInvite({ name: operator.name, phone: operator.phone, link: `${window.location.origin}/convite-cozinha/${data.token}` });
+    setInvite({ name: operator.name, phone: operator.phone, link: `${window.location.origin}/convite-cozinha/${data.token}`, isReset: Boolean(operator.user_id) });
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -155,7 +156,11 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
   }
 
   function beginEdit(operator: KitchenOperator) { setEditing(operator); setAccessType(operator.access_type); setInvite(null); setMessage(""); }
-  const whatsappMessage = invite ? `Olá, ${invite.name}! Seu acesso à cozinha está pronto. Crie sua senha neste link: ${invite.link}` : "";
+  const whatsappMessage = invite
+    ? invite.isReset
+      ? `Olá, ${invite.name}! Use este link para criar uma nova senha de acesso à cozinha do Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu WhatsApp e a nova senha.`
+      : `Olá, ${invite.name}! Seu acesso à cozinha está pronto. Crie sua senha neste link: ${invite.link}`
+    : "";
   return <section className="panel kitchen-access-admin" id="equipe-cozinha">
     <div className="section-heading"><div><small>ACESSO SEPARADO</small><h2>Equipe da cozinha</h2><p>O operador entra pelo próprio WhatsApp e vê apenas pedidos, preparo e impressão.</p></div><Link className="button dark" href="/cozinha" target="_blank">Abrir cozinha</Link></div>
     <div className="kitchen-access-layout">
@@ -172,7 +177,7 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
       </form>
       <div className="kitchen-operator-list">{operators.length === 0 ? <div className="empty-state">Nenhum operador cadastrado.</div> : operators.map(operator => <article key={operator.id}><div><span className={`waiter-status status-${operator.status}`}>{operator.status === "active" ? "ATIVO" : operator.status === "blocked" ? "BLOQUEADO" : "INATIVO"}</span><h3>{operator.name}</h3><p>{operator.access_type === "daily" ? `Acesso em ${new Date(`${operator.work_date}T12:00:00`).toLocaleDateString("pt-BR")}` : "Funcionário fixo"} · Pagamento {operator.payment_cycle === "daily" ? "por diária" : operator.payment_cycle === "weekly" ? "semanal" : operator.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {operator.device_mode === "dedicated" ? "Tela exclusiva" : "Tela compartilhada"}</p><small>{operator.user_id ? "Senha criada" : "Aguardando criação da senha"}</small></div><div className="waiter-row-actions"><button type="button" onClick={() => beginEdit(operator)}>Editar</button><button type="button" onClick={() => void createInvite(operator)}>{operator.user_id ? "Redefinir senha" : "Gerar acesso"}</button><button type="button" onClick={() => void toggle(operator)}>{operator.status === "active" ? "Bloquear" : "Ativar"}</button></div></article>)}</div>
     </div>
-    {invite && <div className="waiter-invite-ready"><div><small>LINK PRONTO</small><h3>Envie para {invite.name}</h3><p>Ao abrir, a pessoa cria a senha e passa a entrar apenas na cozinha.</p></div><div className="invite-actions"><a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${normalizeBrazilianPhone(invite.phone)}?text=${encodeURIComponent(whatsappMessage)}`}>Enviar pelo WhatsApp</a><button className="button outline" type="button" onClick={() => void navigator.clipboard.writeText(invite.link)}>Copiar link</button></div></div>}
+    {invite && <div className="waiter-invite-ready"><div><small>{invite.isReset ? "REDEFINIÇÃO PRONTA" : "LINK PRONTO"}</small><h3>Envie para {invite.name}</h3><p>{invite.isReset ? "Ao abrir, a pessoa cria uma nova senha e continua usando o mesmo WhatsApp." : "Ao abrir, a pessoa cria a senha e passa a entrar apenas na cozinha."}</p></div><div className="invite-actions"><a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${normalizeBrazilianPhone(invite.phone)}?text=${encodeURIComponent(whatsappMessage)}`}>Enviar pelo WhatsApp</a><button className="button outline" type="button" onClick={() => void navigator.clipboard.writeText(invite.link)}>Copiar link</button></div></div>}
     {message && <div className="form-message">{message}</div>}
   </section>;
 }

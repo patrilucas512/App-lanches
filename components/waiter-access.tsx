@@ -15,6 +15,18 @@ function loginEmailForPhone(value: string) {
   return `w.${normalizeBrazilianPhone(value)}@garcom.mesaviva.app`;
 }
 
+async function functionErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object" || !("context" in error)) return fallback;
+  const response = (error as { context?: Response }).context;
+  if (!response || typeof response.clone !== "function") return fallback;
+  try {
+    const body = await response.clone().json() as { error?: string };
+    return body.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function saoPauloDate() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
@@ -137,6 +149,7 @@ export function WaiterLoginForm({ establishment }: { establishment?: string }) {
     <button className="button dark wide" disabled={busy}>
       {busy ? "Entrando..." : "Entrar para trabalhar →"}
     </button>
+    <button type="button" className="auth-recovery-link auth-recovery-button" onClick={() => setMessage("Peça ao administrador para abrir Equipe, tocar em Redefinir senha e enviar um novo link pelo WhatsApp.")}>Esqueci minha senha</button>
     <p className="auth-switch">
       Primeiro acesso? Abra o link recebido no WhatsApp e crie sua senha.
     </p>
@@ -170,7 +183,7 @@ export function WaiterInviteClaim({ token }: { token: string }) {
       body: { token, password },
     });
     if (error || !data?.login_email) {
-      setMessage(data?.error || "Não foi possível ativar este acesso.");
+      setMessage(data?.error || await functionErrorMessage(error, "Não foi possível redefinir este acesso. Peça um novo link ao administrador."));
       setBusy(false);
       return;
     }

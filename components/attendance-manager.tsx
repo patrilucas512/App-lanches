@@ -20,7 +20,7 @@ type Waiter = {
 type Metric = { waiterId: string; orders: number; salesCents: number; payments: number; tables: number };
 type WaiterInvite = {
   waiterId: string; waiterName: string; phone: string; link: string; expiresAt: string;
-  employmentType: "fixed" | "daily"; workDate?: string | null;
+  employmentType: "fixed" | "daily"; workDate?: string | null; isReset: boolean;
 };
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels: Record<string, string> = { active: "Ativo", inactive: "Inativo", serving: "Em atendimento", paused: "Pausado", blocked: "Bloqueado" };
@@ -37,7 +37,9 @@ const localDate = () => {
 };
 const formatWorkDate = (value?: string | null) =>
   value ? new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR") : "";
-const inviteMessage = (invite: WaiterInvite) => invite.employmentType === "daily"
+const inviteMessage = (invite: WaiterInvite) => invite.isReset
+  ? `Olá, ${invite.waiterName}! Use este link para criar uma nova senha de acesso ao Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu WhatsApp e a nova senha.`
+  : invite.employmentType === "daily"
   ? `Olá, ${invite.waiterName}! Seu acesso de diarista está liberado para ${formatWorkDate(invite.workDate)}. Crie sua senha neste link: ${invite.link}\n\nO acesso aos pedidos funcionará somente na data informada.`
   : `Olá, ${invite.waiterName}! Seu cadastro de funcionário está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois disso, use seu WhatsApp e sua senha para entrar sempre que estiver trabalhando.`;
 
@@ -144,6 +146,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         link, expiresAt: data.expires_at,
         employmentType: (data.employment_type || waiter.employment_type || "fixed") as "fixed" | "daily",
         workDate: data.work_date || waiter.work_date,
+        isReset: Boolean(waiter.user_id),
       };
       setInviteReady(invitation);
       return invitation;
@@ -156,7 +159,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   }
   async function invite(waiter: Waiter) {
     const invitation = await generateInvite(waiter);
-    if (invitation) setMessage(`Convite de ${waiter.name} gerado. Escolha abaixo como enviar.`);
+    if (invitation) setMessage(`${invitation.isReset ? "Link de redefinição" : "Convite"} de ${waiter.name} gerado. Escolha abaixo como enviar.`);
   }
   async function copyInvite() {
     if (!inviteReady) return;
@@ -230,10 +233,12 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
           </div>
           {currentInvite && <div className="waiter-invite-ready waiter-inline-invite" role="status">
             <div className="invite-ready-heading">
-              <div><small>ACESSO PRONTO</small><h3>Enviar convite de {currentInvite.waiterName}</h3></div>
+              <div><small>{currentInvite.isReset ? "REDEFINIÇÃO PRONTA" : "ACESSO PRONTO"}</small><h3>{currentInvite.isReset ? "Enviar nova senha para" : "Enviar acesso para"} {currentInvite.waiterName}</h3></div>
               <button type="button" aria-label="Fechar convite" onClick={() => setInviteReady(null)}>×</button>
             </div>
-            <p>{currentInvite.employmentType === "daily"
+            <p>{currentInvite.isReset
+              ? "Este link permite criar uma nova senha. Depois, o funcionário entra normalmente com o WhatsApp cadastrado e a nova senha."
+              : currentInvite.employmentType === "daily"
               ? `Este acesso funcionará somente em ${formatWorkDate(currentInvite.workDate)}. Envie o link para o diarista criar a senha.`
               : "Funcionário fixo: após criar a senha uma vez, ele entra sempre com WhatsApp e senha enquanto o cadastro estiver ativo."}</p>
             <div className="invite-link-box"><span>{currentInvite.link}</span><button type="button" onClick={copyInvite}>Copiar link</button></div>
