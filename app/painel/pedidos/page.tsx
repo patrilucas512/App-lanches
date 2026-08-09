@@ -21,8 +21,8 @@ export default async function OrdersPage() {
     supabase.from("table_orders").select("id,table_session_id,order_number,kitchen_status,created_at,table_order_items(total_cents),table_sessions(customer_name,restaurant_tables(table_number))").eq("establishment_id", establishment.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("orders").select("id,restaurant_table_id,order_number,customer_name,fulfillment_type,total_cents,status,created_at,restaurant_tables(table_number)").eq("establishment_id", establishment.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
-    supabase.from("orders").select("id,total_cents,status,created_at,fulfillment_type,order_items(product_name,quantity,unit_price_cents,total_cents)").eq("establishment_id", establishment.id).gte("created_at", recentDate),
-    supabase.from("table_orders").select("id,kitchen_status,created_at,table_order_items(product_name,quantity,unit_price_cents,total_cents)").eq("establishment_id", establishment.id).gte("created_at", recentDate),
+    supabase.from("orders").select("id,order_number,customer_name,total_cents,status,created_at,fulfillment_type,restaurant_tables(table_number),order_items(product_name,quantity,unit_price_cents,total_cents)").eq("establishment_id", establishment.id).gte("created_at", recentDate),
+    supabase.from("table_orders").select("id,order_number,kitchen_status,created_at,table_order_items(product_name,quantity,unit_price_cents,total_cents),table_sessions(customer_name,restaurant_tables(table_number))").eq("establishment_id", establishment.id).gte("created_at", recentDate),
   ]);
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
   const weekKeys = currentWeekDateKeys();
@@ -41,7 +41,18 @@ export default async function OrdersPage() {
       grouped.set(key, current);
       return grouped;
     }, new Map<string, { name: string; quantity: number; unitPriceCents: number; totalCents: number }>()).values()).sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name));
-    return { dateKey, label: weekDayNames[index], publicCount: publicDay.length, tableCount: tableDay.length, count: publicDay.length + tableDay.length, total: publicTotal + tableTotal, itemTotals };
+    const dayOrders = [
+      ...publicDay.map(order => {
+        const table = Array.isArray(order.restaurant_tables) ? order.restaurant_tables[0] : order.restaurant_tables;
+        return { id: order.id, number: order.order_number, customer: order.customer_name, location: order.fulfillment_type === "dine_in" ? table?.table_number || "Salão" : order.fulfillment_type === "delivery" ? "Entrega" : "Balcão", totalCents: order.total_cents, status: order.status, createdAt: order.created_at };
+      }),
+      ...tableDay.map(order => {
+        const session = Array.isArray(order.table_sessions) ? order.table_sessions[0] : order.table_sessions;
+        const table = Array.isArray(session?.restaurant_tables) ? session?.restaurant_tables[0] : session?.restaurant_tables;
+        return { id: order.id, number: order.order_number, customer: session?.customer_name || "Cliente do salão", location: table?.table_number || "Salão", totalCents: (order.table_order_items || []).reduce((sum, item) => sum + item.total_cents, 0), status: order.kitchen_status, createdAt: order.created_at };
+      }),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { dateKey, label: weekDayNames[index], publicCount: publicDay.length, tableCount: tableDay.length, count: publicDay.length + tableDay.length, total: publicTotal + tableTotal, itemTotals, orders: dayOrders };
   });
   const todayKey = saoPauloDateKey(new Date());
   const validPublicOrders = (weeklyPublicOrders || []).filter(order => order.status !== "canceled" && weekKeys.includes(saoPauloDateKey(new Date(order.created_at))));

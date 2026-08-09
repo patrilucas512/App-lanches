@@ -870,6 +870,10 @@ button.table-qr-card { color:inherit; }
 .weekly-orders-grid p { color:var(--muted); font-size:7px; margin:auto 0 0; }
 .weekly-day-card > strong { border-top:1px solid rgba(20,20,16,.1); color:#7b2326; font-size:8px; margin-top:10px; padding-top:10px; width:100%; }
 .daily-sales-report { margin-bottom:18px; scroll-margin-top:20px; }
+.daily-orders-section { border-top:1px solid var(--line); margin-top:28px; padding-top:24px; }
+.daily-orders-section > header { align-items:flex-start; display:flex; gap:24px; justify-content:space-between; margin-bottom:18px; }
+.daily-orders-section h3 { font-size:22px; margin:5px 0; }
+.daily-orders-section p { color:var(--muted); font-size:9px; margin:0; }
 .kitchen-closed-note { background:#302f2b; border-radius:8px; color:#e7dfcf; display:inline-block; font-size:8px; margin-top:8px; padding:8px 10px; }
 .team-group { margin:0; }
 .team-group-head { align-items:flex-start; display:flex; gap:24px; justify-content:space-between; margin-bottom:20px; }

@@ -9,6 +9,16 @@ type SoldItem = {
   totalCents: number;
 };
 
+type DailyOrder = {
+  id: string;
+  number: number;
+  customer: string;
+  location: string | number;
+  totalCents: number;
+  status: string;
+  createdAt: string;
+};
+
 type SalesDay = {
   dateKey: string;
   label: string;
@@ -17,6 +27,7 @@ type SalesDay = {
   count: number;
   total: number;
   itemTotals: SoldItem[];
+  orders: DailyOrder[];
 };
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -50,6 +61,14 @@ export function WeeklySalesReport({ days, todayKey }: { days: SalesDay[]; todayK
         <thead><tr><th>PRODUTO</th><th>QUANTIDADE</th><th>VALOR UNITÁRIO</th><th>TOTAL VENDIDO</th></tr></thead>
         <tbody>{selectedDay.itemTotals.map(item => <tr key={`${item.name}-${item.unitPriceCents}`}><td><b>{item.name}</b></td><td>{item.quantity}</td><td>{money.format(item.unitPriceCents / 100)}</td><td><b>{money.format(item.totalCents / 100)}</b></td></tr>)}</tbody>
       </table></div> : <div className="empty"><b>Nenhum item vendido neste dia.</b><span>Selecione outro dia da semana para consultar.</span></div>}
+
+      <div className="daily-orders-section">
+        <header><div><small>PEDIDOS DO DIA</small><h3>Conferência pedido por pedido</h3><p>Use esta lista para identificar o cliente, a mesa ou canal e o valor que formou o total do dia.</p></div><span className="status-pill">{selectedDay.orders.length} pedidos</span></header>
+        {selectedDay.orders.length ? <div className="team-report-scroll"><table className="table">
+          <thead><tr><th>NÚMERO</th><th>CLIENTE</th><th>MESA / CANAL</th><th>VALOR</th><th>STATUS</th><th>DATA</th></tr></thead>
+          <tbody>{selectedDay.orders.map(order => <tr key={order.id}><td>#{order.number}</td><td>{order.customer}</td><td>{order.location}</td><td><b>{money.format(order.totalCents / 100)}</b></td><td>{order.status}</td><td>{new Date(order.createdAt).toLocaleDateString("pt-BR")}</td></tr>)}</tbody>
+        </table></div> : <div className="empty"><b>Nenhum pedido registrado neste dia.</b></div>}
+      </div>
     </article>}
   </>;
 }
