@@ -13,7 +13,7 @@ type PublicItem = { id: string; order_id: string; product_name: string; quantity
 type Initial = { tickets: Ticket[]; tableOrders: TableOrder[]; publicOrders: PublicOrder[]; sessions: { id: string; table_id: string; customer_name?: string | null }[]; tables: { id: string; table_number: string; table_name?: string | null }[]; tableItems: TableItem[]; publicItems: PublicItem[] };
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
 
-export function KitchenBoard({ establishmentId, establishmentName, autoPrint, initial }: { establishmentId: string; establishmentName: string; autoPrint: boolean; initial: Initial }) {
+export function KitchenBoard({ establishmentId, establishmentName, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
   const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
@@ -103,7 +103,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, in
     window.setTimeout(() => window.print(), 50);
   }
 
-  return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`}>
+  return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`} style={{ "--ticket-width": `${paperWidth}mm` } as React.CSSProperties}>
     <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span>{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}<Link href="/painel/garcom">Área do garçom</Link></div></header>
     <section className="kitchen-columns">{columns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
       <header><h2>{title}</h2><b>{data.tickets.filter(value => value.status === status).length}</b></header>

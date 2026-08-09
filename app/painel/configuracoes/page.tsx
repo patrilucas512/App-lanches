@@ -1,16 +1,18 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { SettingsForm } from "@/components/settings-form";
 import { PixSettingsForm } from "@/components/pix-settings-form";
+import { PrinterSetupWizard } from "@/components/printer-setup-wizard";
 import { getDashboardContext } from "@/lib/dashboard";
 import { redirect } from "next/navigation";
 
 export default async function SettingsPage() {
   const { supabase, establishment, member } = await getDashboardContext();
   if (!["owner", "manager"].includes(member.role)) redirect("/painel/garcom");
-  const [{ data: details }, { data: settings }, { data: pix }] = await Promise.all([
+  const [{ data: details }, { data: settings }, { data: pix }, { data: printer }] = await Promise.all([
     supabase.from("establishments").select("*").eq("id", establishment.id).single(),
     supabase.from("establishment_settings").select("*").eq("establishment_id", establishment.id).single(),
     supabase.from("pix_settings").select("*").eq("establishment_id", establishment.id).maybeSingle(),
+    supabase.from("service_modes").select("printer_connection,printer_name,printer_paper_width,printer_network_address,printer_setup_completed,auto_print_kitchen").eq("establishment_id", establishment.id).maybeSingle(),
   ]);
   return <DashboardShell active="settings" storeSlug={establishment.slug} role={member.role}>
     <header className="dashboard-head"><div><small>CONFIGURAÇÕES</small><h1>Identidade e atendimento.</h1></div></header>
@@ -23,6 +25,7 @@ export default async function SettingsPage() {
       estimatedMinutes: settings?.estimated_minutes ?? 45,
       logoUrl: details?.logo_url ?? "",
     }} />
+    <PrinterSetupWizard establishmentId={establishment.id} establishmentName={details?.name ?? establishment.name} initial={{ connection: printer?.printer_connection ?? "usb", name: printer?.printer_name ?? "", paperWidth: printer?.printer_paper_width === 80 ? 80 : 58, networkAddress: printer?.printer_network_address ?? "", autoPrint: printer?.auto_print_kitchen ?? false, completed: printer?.printer_setup_completed ?? false }} />
     <PixSettingsForm establishmentId={establishment.id} initial={pix} />
   </DashboardShell>;
 }
