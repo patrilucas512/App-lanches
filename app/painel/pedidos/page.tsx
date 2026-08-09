@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { WaiterConsole } from "@/components/waiter-console";
 import { WaiterOrderTracker } from "@/components/waiter-order-tracker";
+import { WeeklySalesReport } from "@/components/weekly-sales-report";
 import { getDashboardContext } from "@/lib/dashboard";
 import { currentWeekDateKeys, saoPauloDateKey } from "@/lib/business-hours";
 
@@ -42,8 +43,6 @@ export default async function OrdersPage() {
     }, new Map<string, { name: string; quantity: number; unitPriceCents: number; totalCents: number }>()).values()).sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name));
     return { dateKey, label: weekDayNames[index], publicCount: publicDay.length, tableCount: tableDay.length, count: publicDay.length + tableDay.length, total: publicTotal + tableTotal, itemTotals };
   });
-  const weekCount = weeklyStats.reduce((sum, day) => sum + day.count, 0);
-  const weekTotal = weeklyStats.reduce((sum, day) => sum + day.total, 0);
   const todayKey = saoPauloDateKey(new Date());
   const validPublicOrders = (weeklyPublicOrders || []).filter(order => order.status !== "canceled" && weekKeys.includes(saoPauloDateKey(new Date(order.created_at))));
   const validTableOrders = (weeklyTableOrders || []).filter(order => order.kitchen_status !== "canceled" && weekKeys.includes(saoPauloDateKey(new Date(order.created_at))));
@@ -81,17 +80,7 @@ export default async function OrdersPage() {
       </article>)}
     </section>
 
-    <section className="panel weekly-orders" id="pedidos-semanais">
-      <header className="team-group-head"><div><small>HISTÓRICO ORGANIZADO</small><h2>Pedidos semanais</h2><p>Pedidos da cozinha contabilizados por dia, incluindo balcão, entrega e salão.</p></div><div className="weekly-orders-total"><span>{weekCount} pedidos</span><strong>{money.format(weekTotal / 100)}</strong></div></header>
-      <div className="weekly-orders-grid">{weeklyStats.map(day => <article className={day.dateKey === todayKey ? "is-today" : ""} key={day.dateKey}>
-        <small>{day.label}</small><b>{day.count}</b><span>{money.format(day.total / 100)}</span><p>{day.publicCount} diretos · {day.tableCount} salão</p>
-        <details className="daily-product-details"><summary>Ver itens vendidos</summary>
-          {day.itemTotals.length ? <div className="daily-product-list">{day.itemTotals.map(item => <div key={`${item.name}-${item.unitPriceCents}`}>
-            <strong>{item.name}</strong><span>{item.quantity} × {money.format(item.unitPriceCents / 100)}</span><b>{money.format(item.totalCents / 100)}</b>
-          </div>)}</div> : <div className="daily-product-empty">Nenhum item vendido neste dia.</div>}
-        </details>
-      </article>)}</div>
-    </section>
+    <WeeklySalesReport days={weeklyStats} todayKey={todayKey} />
 
     <section id="mesas-e-pedidos">
       {serviceMode?.waiter_mode_enabled && <WaiterOrderTracker establishmentId={establishment.id} initial={{

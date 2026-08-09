@@ -860,23 +860,16 @@ button.table-qr-card { color:inherit; }
 .weekly-orders-total span { color:var(--muted); font-size:8px; }
 .weekly-orders-total strong { font-size:18px; }
 .weekly-orders-grid { display:grid; gap:8px; grid-template-columns:repeat(7,minmax(0,1fr)); }
-.weekly-orders-grid article { background:#f3eee5; border:1px solid transparent; border-radius:10px; display:flex; flex-direction:column; min-height:120px; padding:14px; }
-.weekly-orders-grid article.is-today { background:#fff8e8; border-color:#d7a847; }
+.weekly-day-card { background:#f3eee5; border:1px solid transparent; border-radius:10px; color:inherit; display:flex; flex-direction:column; font:inherit; min-height:190px; padding:14px; text-align:left; }
+.weekly-day-card:hover,.weekly-day-card:focus-visible { border-color:#b57929; outline:none; transform:translateY(-1px); }
+.weekly-day-card.is-today { background:#fff8e8; border-color:#d7a847; }
+.weekly-day-card.is-selected { box-shadow:0 0 0 2px rgba(123,35,38,.18); border-color:#7b2326; }
 .weekly-orders-grid small { color:var(--muted); font-size:7px; text-transform:uppercase; }
 .weekly-orders-grid b { font-size:25px; margin:8px 0 3px; }
 .weekly-orders-grid span { font-size:10px; font-weight:800; }
 .weekly-orders-grid p { color:var(--muted); font-size:7px; margin:auto 0 0; }
-.daily-product-details { border-top:1px solid rgba(20,20,16,.1); margin-top:10px; padding-top:9px; }
-.daily-product-details summary { color:#7b2326; cursor:pointer; font-size:8px; font-weight:800; list-style:none; }
-.daily-product-details summary::-webkit-details-marker { display:none; }
-.daily-product-details summary::after { content:" +"; }
-.daily-product-details[open] summary::after { content:" −"; }
-.daily-product-list { display:flex; flex-direction:column; gap:7px; margin-top:10px; }
-.daily-product-list div { display:grid; gap:2px; grid-template-columns:1fr auto; }
-.daily-product-list strong { font-size:8px; grid-column:1 / -1; }
-.daily-product-list span,.daily-product-list b { font-size:7px; }
-.daily-product-list b { text-align:right; }
-.daily-product-empty { color:var(--muted); font-size:7px; margin-top:9px; }
+.weekly-day-card > strong { border-top:1px solid rgba(20,20,16,.1); color:#7b2326; font-size:8px; margin-top:10px; padding-top:10px; width:100%; }
+.daily-sales-report { margin-bottom:18px; scroll-margin-top:20px; }
 .kitchen-closed-note { background:#302f2b; border-radius:8px; color:#e7dfcf; display:inline-block; font-size:8px; margin-top:8px; padding:8px 10px; }
 .team-group { margin:0; }
 .team-group-head { align-items:flex-start; display:flex; gap:24px; justify-content:space-between; margin-bottom:20px; }
@@ -939,7 +932,7 @@ button.table-qr-card { color:inherit; }
   .business-hour-row { grid-template-columns:1fr 1fr; }
   .business-hour-row > b { grid-column:1/-1; }
   .weekly-orders-grid { display:flex; overflow-x:auto; padding-bottom:6px; }
-  .weekly-orders-grid article { flex:0 0 220px; }
+  .weekly-day-card { flex:0 0 220px; }
   .order-channel-grid { grid-template-columns:1fr; }
   .team-member-row { align-items:flex-start; grid-template-columns:1fr; }
   .team-payment { padding-left:54px; text-align:left; }
