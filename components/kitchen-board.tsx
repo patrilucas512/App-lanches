@@ -12,6 +12,7 @@ type TableItem = { id: string; table_order_id: string; product_name: string; qua
 type PublicItem = { id: string; order_id: string; product_name: string; quantity: number; notes?: string | null; addons: { name: string }[]; removed_ingredients: string[] };
 type Initial = { tickets: Ticket[]; tableOrders: TableOrder[]; publicOrders: PublicOrder[]; sessions: { id: string; table_id: string; customer_name?: string | null }[]; tables: { id: string; table_number: string; table_name?: string | null }[]; tableItems: TableItem[]; publicItems: PublicItem[] };
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
+const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
 
 export function KitchenBoard({ establishmentId, establishmentName, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
   const supabase = useMemo(() => createClient(), []);
@@ -39,7 +40,8 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
       supabase.from("table_order_items").select("id,table_order_id,product_name,quantity,notes,addons,removed_ingredients").eq("establishment_id", establishmentId),
       supabase.from("order_items").select("id,order_id,product_name,quantity,notes,addons,removed_ingredients").eq("establishment_id", establishmentId),
     ]);
-    if (tickets && tableOrders && publicOrders && sessions && tables && tableItems && publicItems) setData({ tickets, tableOrders, publicOrders, sessions, tables, tableItems, publicItems } as Initial);
+    const nextData = tickets && tableOrders && publicOrders && sessions && tables && tableItems && publicItems ? { tickets, tableOrders, publicOrders, sessions, tables, tableItems, publicItems } as Initial : null;
+    if (nextData) setData(nextData);
     if (withAlert) {
       try {
         const context = new AudioContext();
@@ -53,8 +55,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
     if (autoPrint && insertedId) {
       const inserted = tickets?.find(ticket => ticket.id === insertedId);
       if (inserted?.status === "received") await supabase.rpc("update_kitchen_ticket", { requested_ticket_id: insertedId, requested_status: "preparing" });
-      setPrintingId(insertedId);
-      window.setTimeout(() => window.print(), 450);
+      if (inserted && nextData) printReceipt(inserted, nextData);
     }
   }
 
@@ -81,16 +82,36 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
     if (error) setMessage(error.message); else await refresh();
   }
 
-  function details(ticket: Ticket) {
+  function details(ticket: Ticket, source = data) {
     if (ticket.public_order_id) {
-      const order = data.publicOrders.find(value => value.id === ticket.public_order_id);
-      const table = data.tables.find(value => value.id === order?.restaurant_table_id);
-      return { number: order?.order_number, notes: order?.notes, customer: order?.customer_name, table, payment: order?.payment_method, items: data.publicItems.filter(value => value.order_id === order?.id) };
+      const order = source.publicOrders.find(value => value.id === ticket.public_order_id);
+      const table = source.tables.find(value => value.id === order?.restaurant_table_id);
+      return { number: order?.order_number, notes: order?.notes, customer: order?.customer_name, table, payment: order?.payment_method, items: source.publicItems.filter(value => value.order_id === order?.id) };
     }
-    const order = data.tableOrders.find(value => value.id === ticket.table_order_id);
-    const session = data.sessions.find(value => value.id === order?.table_session_id);
-    const table = data.tables.find(value => value.id === session?.table_id);
-    return { number: order?.order_number, notes: order?.notes, customer: session?.customer_name, table, payment: null, items: data.tableItems.filter(value => value.table_order_id === order?.id) };
+    const order = source.tableOrders.find(value => value.id === ticket.table_order_id);
+    const session = source.sessions.find(value => value.id === order?.table_session_id);
+    const table = source.tables.find(value => value.id === session?.table_id);
+    return { number: order?.order_number, notes: order?.notes, customer: session?.customer_name, table, payment: null, items: source.tableItems.filter(value => value.table_order_id === order?.id) };
+  }
+
+  function printReceipt(ticket: Ticket, source = data) {
+    const detail = details(ticket, source);
+    const items = detail.items.map(item => `<div class="item"><b>${item.quantity}x ${escapeHtml(item.product_name)}</b>${item.addons?.length ? `<span>+ ${item.addons.map(addon => escapeHtml(addon.name)).join(", ")}</span>` : ""}${item.removed_ingredients?.length ? `<strong>SEM: ${item.removed_ingredients.map(escapeHtml).join(", ")}</strong>` : ""}${item.notes ? `<em>${escapeHtml(item.notes)}</em>` : ""}</div>`).join("");
+    const frame = document.createElement("iframe");
+    frame.title = `Pedido ${detail.number ?? ""}`;
+    frame.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;";
+    frame.onload = () => {
+      const printWindow = frame.contentWindow;
+      if (!printWindow) { frame.remove(); setMessage("Não foi possível abrir a impressão neste navegador."); return; }
+      const cleanup = () => { frame.remove(); setPrintingId(null); };
+      printWindow.addEventListener("afterprint", cleanup, { once: true });
+      window.setTimeout(cleanup, 60000);
+      printWindow.focus();
+      printWindow.print();
+    };
+    setPrintingId(ticket.id);
+    frame.srcdoc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Pedido #${escapeHtml(detail.number)}</title><style>@page{size:${paperWidth}mm 260mm;margin:2mm}*{box-sizing:border-box}html,body{background:#fff;color:#000;margin:0;padding:0}body{width:${paperWidth - 4}mm;font:12px/1.4 monospace}header{text-align:center}h1{font-size:16px;margin:0 0 5px}h2{font-size:22px;margin:8px 0}.line{border-top:1px dashed #000;margin:10px 0}.meta{text-align:center}.meta b,.meta span{display:block}.meta b{font-size:9px;text-transform:uppercase}.item{border-bottom:1px dashed #000;padding:9px 0}.item>b{font-size:14px}.item span,.item em{display:block;font-size:11px;margin-top:3px}.item em{font-style:normal}.item strong{border:2px solid #000;display:block;font-size:16px;margin-top:5px;padding:5px;text-align:center}.notes{border:2px solid #000;font-size:13px;font-weight:bold;margin-top:10px;padding:7px}.payment{font-size:12px;font-weight:bold;margin-top:10px;text-align:center}.footer{font-size:9px;margin-top:12px;text-align:center}</style></head><body><header><h1>${escapeHtml(establishmentName)}</h1><h2>PEDIDO #${escapeHtml(detail.number ?? "—")}</h2></header><div class="line"></div><div class="meta"><p><b>Atendimento</b><span>${escapeHtml(detail.table?.table_number ? `Mesa ${detail.table.table_number}` : "Balcão")}</span></p>${detail.customer ? `<p><b>Cliente</b><span>${escapeHtml(detail.customer)}</span></p>` : ""}${detail.table?.table_name ? `<p><b>Local</b><span>${escapeHtml(detail.table.table_name)}</span></p>` : ""}</div><div class="line"></div>${items}${detail.notes ? `<div class="notes">OBSERVAÇÃO: ${escapeHtml(detail.notes)}</div>` : ""}${detail.payment ? `<div class="payment">PAGAMENTO: ${escapeHtml(detail.payment).toUpperCase()}</div>` : ""}<div class="footer">${new Date(ticket.created_at).toLocaleString("pt-BR")}</div></body></html>`;
+    document.body.appendChild(frame);
   }
 
   async function printOne(ticket: Ticket) {
@@ -99,8 +120,7 @@ export function KitchenBoard({ establishmentId, establishmentName, autoPrint, pa
       if (error) { setMessage(error.message); return; }
       await refresh();
     }
-    setPrintingId(ticket.id);
-    window.setTimeout(() => window.print(), 50);
+    printReceipt(ticket);
   }
 
   return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`} style={{ "--ticket-width": `${paperWidth}mm` } as React.CSSProperties}>
