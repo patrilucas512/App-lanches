@@ -787,6 +787,9 @@ button.table-qr-card { color:inherit; }
 .printer-edit-button { background:transparent; border:0; color:white; cursor:pointer; font-size:8px; margin-top:12px; text-decoration:underline; width:100%; }
 .printer-preview-overlay { align-items:center; background:rgba(20,18,15,.72); display:flex; inset:0; justify-content:center; padding:18px; position:fixed; z-index:1000; }
 .printer-preview-modal { align-items:center; background:#f5f1e9; border-radius:18px; box-shadow:0 24px 80px rgba(0,0,0,.28); display:flex; flex-direction:column; max-height:94vh; max-width:430px; overflow:auto; padding:44px 24px 24px; position:relative; width:100%; }
+.printer-open-installer { background:#fff4d8; border:1px solid #d7a847; border-radius:12px; color:#5c3b05; margin:18px 0; padding:16px; }
+.printer-open-installer b { display:block; font-size:12px; margin-bottom:6px; }
+.printer-open-installer p { font-size:9px; line-height:1.6; margin:0; }
 .printer-preview-close { align-items:center; background:#e5ddd2; border:0; border-radius:50%; color:#1c1916; cursor:pointer; display:flex; font-size:20px; height:34px; justify-content:center; position:absolute; right:14px; top:14px; width:34px; }
 .printer-test-preview { align-items:center; background:white; box-shadow:0 5px 24px rgba(0,0,0,.1); box-sizing:border-box; display:flex; flex-direction:column; font-family:monospace; max-width:100%; padding:22px 14px; text-align:center; width:var(--printer-paper-width,58mm); }
 .printer-test-preview h1 { font-family:monospace; font-size:16px; margin:0 0 18px; }
