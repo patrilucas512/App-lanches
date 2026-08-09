@@ -14,6 +14,7 @@ type Waiter = {
   id: string; user_id?: string | null; name: string; phone?: string | null;
   status: string; sector?: string | null; active_now: boolean; shift_start?: string | null; shift_end?: string | null;
   employment_type?: "fixed" | "daily"; work_date?: string | null;
+  payment_cycle?: "daily" | "weekly" | "biweekly" | "monthly";
   permissions: Record<string, boolean>;
 };
 type Metric = { waiterId: string; orders: number; salesCents: number; payments: number; tables: number };
@@ -81,6 +82,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       shift_end: String(data.get("shift_end") || ""),
       employment_type: String(data.get("employment_type") || "fixed"),
       work_date: employmentType === "daily" ? String(data.get("work_date") || "") : "",
+      payment_cycle: String(data.get("payment_cycle") || (employmentType === "daily" ? "daily" : "monthly")),
       permissions: {
         open_tables: data.get("open_tables") === "on", create_orders: data.get("create_orders") === "on",
         close_bills: data.get("close_bills") === "on", register_payments: data.get("register_payments") === "on",
@@ -121,6 +123,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         name: waiter.name, phone: waiter.phone || "", email: "", sector: waiter.sector || "",
         status, active_now: activeNow, shift_start: waiter.shift_start || "", shift_end: waiter.shift_end || "",
         employment_type: waiter.employment_type || "fixed", work_date: waiter.work_date || "",
+        payment_cycle: waiter.payment_cycle || (waiter.employment_type === "daily" ? "daily" : "monthly"),
         permissions: waiter.permissions,
       },
     });
@@ -195,7 +198,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
       <div className="field manual-waiters"><label>QUANTIDADE MANUAL DE GARÇONS ATIVOS (OPCIONAL)</label><input type="number" min="0" value={mode.manual_active_waiters ?? ""} onChange={event => patch("manual_active_waiters", event.target.value === "" ? null : Number(event.target.value))} /><small>Deixe vazio para calcular automaticamente pela lista.</small></div>
     </section>
 
-    <section className="panel waiter-admin">
+    <section className="panel waiter-admin" id="equipe-garcons">
       <div className="panel-title-row"><div><h2>Garçons ativos no momento</h2><p>Cadastre, pause, bloqueie e gere o acesso individual da equipe.</p></div><span className="status-pill">{activeCount} agora</span></div>
       <form className="waiter-admin-form form" onSubmit={saveWaiter}>
         <div className="form-grid">
@@ -204,6 +207,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
           <div className="field"><label>SETOR</label><input name="sector" placeholder="Salão, varanda..." defaultValue={editing?.sector || ""} key={`sector-${editing?.id}`} /></div>
           <div className="field"><label>STATUS</label><select name="status" defaultValue={editing?.status || "inactive"} key={`status-${editing?.id}`}>{Object.entries(statusLabels).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select></div>
           <div className="field"><label>TIPO DE CONTRATAÇÃO</label><select name="employment_type" value={employmentType} onChange={event => setEmploymentType(event.target.value as "fixed" | "daily")}><option value="fixed">Funcionário fixo</option><option value="daily">Diarista</option></select></div>
+          <div className="field"><label>FORMA DE PAGAMENTO</label><select name="payment_cycle" defaultValue={editing?.payment_cycle || (employmentType === "daily" ? "daily" : "monthly")} key={`payment-${editing?.id}-${employmentType}`}><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option></select></div>
           {employmentType === "daily" && <div className="field"><label>DATA DA DIÁRIA</label><input name="work_date" type="date" min={localDate()} required defaultValue={editing?.work_date || localDate()} key={`work-date-${editing?.id}`} /><small>O acesso funcionará somente neste dia.</small></div>}
           <div className="field"><label>TURNO</label><div className="shift-fields"><input name="shift_start" type="time" defaultValue={editing?.shift_start?.slice(0,5) || ""} /><input name="shift_end" type="time" defaultValue={editing?.shift_end?.slice(0,5) || ""} /></div></div>
         </div>
@@ -216,7 +220,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         const currentInvite = inviteReady?.waiterId === waiter.id ? inviteReady : null;
         return <article key={waiter.id}>
           <div className="waiter-avatar">{waiter.name.slice(0,2).toUpperCase()}</div>
-          <div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.employment_type === "daily" ? `Diarista em ${formatWorkDate(waiter.work_date)}` : "Funcionário fixo"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando senha"}</p></div>
+          <div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.employment_type === "daily" ? `Diarista em ${formatWorkDate(waiter.work_date)}` : "Funcionário fixo"} · Pagamento {waiter.payment_cycle === "daily" ? "por diária" : waiter.payment_cycle === "weekly" ? "semanal" : waiter.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando senha"}</p></div>
           <div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div>
           <div className="waiter-row-actions">
             <button type="button" onClick={() => { setEditing(waiter); setEmploymentType(waiter.employment_type || "fixed"); }}>Editar</button>

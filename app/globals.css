@@ -409,6 +409,7 @@ button.table-qr-card { color:inherit; }
 .kitchen-head a { text-decoration:underline; }
 .kitchen-head-actions { align-items:center; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
 .kitchen-head .kitchen-admin-return { background:#fff; border-radius:999px; color:#171713; font-size:9px; font-weight:900; padding:13px 17px; text-decoration:none; }
+.kitchen-head .kitchen-register-return { background:#dcae5d; }
 .kitchen-columns { display:grid; gap:12px; grid-template-columns:repeat(4,minmax(260px,1fr)); overflow-x:auto; }
 .kitchen-column { background:#24241f; border-radius:13px; min-height:calc(100vh - 120px); padding:12px; }
 .kitchen-column > header { align-items:center; display:flex; justify-content:space-between; padding:5px 4px 13px; }
@@ -738,6 +739,7 @@ button.table-qr-card { color:inherit; }
 .printer-form-grid { display:grid; gap:12px; grid-template-columns:1fr 1fr; }
 
 .kitchen-access-admin { margin-top:24px; }
+.kitchen-access-admin,.waiter-admin { scroll-margin-top:18px; }
 .section-heading { align-items:flex-start; display:flex; gap:20px; justify-content:space-between; margin-bottom:22px; }
 .section-heading h2 { font-size:25px; margin:4px 0 7px; }
 .section-heading p { color:var(--muted); font-size:10px; line-height:1.6; margin:0; }
@@ -802,6 +804,30 @@ button.table-qr-card { color:inherit; }
 .tracking-items > div { border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:4px; padding:10px 0; }
 .tracking-items strong { color:#a22616; font-size:16px; text-transform:uppercase; }
 .ticket-items .ticket-removed-alert { font-size:19px; margin-top:9px; }
+.team-summary { display:grid; gap:14px; grid-template-columns:repeat(3,1fr); margin-bottom:22px; }
+.team-summary article { background:#fffdf9; border:1px solid var(--line); border-radius:14px; padding:20px; }
+.team-summary small,.team-summary strong { display:block; }
+.team-summary small { color:var(--muted); font-size:7px; margin-bottom:12px; }
+.team-summary strong { font-family:var(--font-display),serif; font-size:34px; font-weight:500; }
+.team-groups { display:grid; gap:18px; }
+.team-group { margin:0; }
+.team-group-head { align-items:flex-start; display:flex; gap:24px; justify-content:space-between; margin-bottom:20px; }
+.team-group-head h2 { margin:5px 0; }
+.team-group-head p { color:var(--muted); font-size:9px; margin:0; }
+.team-group-head > div:last-child { align-items:flex-end; display:flex; flex-direction:column; gap:10px; }
+.team-group-head a { color:var(--wine); font-size:9px; font-weight:800; }
+.team-member-list { display:flex; flex-direction:column; gap:8px; }
+.team-member-row { align-items:center; background:#f3eee5; border-radius:12px; display:grid; gap:18px; grid-template-columns:minmax(0,1fr) auto; padding:15px 17px; }
+.team-member-main { align-items:center; display:flex; gap:13px; min-width:0; }
+.team-member-main strong { display:block; font-size:13px; }
+.team-member-main p { color:var(--muted); font-size:8px; margin:4px 0 0; }
+.team-status { border-radius:999px; flex:none; font-size:6px; font-weight:900; padding:7px 9px; }
+.team-status.active { background:#dceee5; color:#23623c; }
+.team-status.inactive { background:#e6ded5; color:#746b62; }
+.team-payment { text-align:right; }
+.team-payment small,.team-payment b { display:block; }
+.team-payment small { color:var(--muted); font-size:6px; margin-bottom:5px; }
+.team-payment b { font-size:10px; }
 @media (max-width:640px) {
   .section-heading { flex-direction:column; }
   .kitchen-access-layout { grid-template-columns:1fr; }
@@ -839,4 +865,9 @@ button.table-qr-card { color:inherit; }
   .tracking-steps i,.tracking-confirm-step i { height:32px; width:32px; }
   .cart-line-heading { gap:12px; }
   .addon-admin-row { grid-template-columns:minmax(0,1fr) 90px 38px; }
+  .team-summary { grid-template-columns:1fr; }
+  .team-group-head { align-items:stretch; flex-direction:column; }
+  .team-group-head > div:last-child { align-items:flex-start; }
+  .team-member-row { align-items:flex-start; grid-template-columns:1fr; }
+  .team-payment { padding-left:54px; text-align:left; }
 }
