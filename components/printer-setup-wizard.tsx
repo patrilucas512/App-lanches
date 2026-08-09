@@ -21,6 +21,7 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
   const [autoPrint, setAutoPrint] = useState(initial.autoPrint);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const instructions = connection === "usb"
     ? ["Ligue a impressora e conecte o cabo USB.", "No computador, confirme que ela aparece em Impressoras e scanners.", "Clique em Imprimir teste e escolha a impressora instalada."]
     : connection === "bluetooth"
@@ -36,16 +37,8 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
   }
 
   function printTest() {
-    const popup = window.open("", "mesa-viva-printer-test", "width=420,height=650");
-    if (!popup) { setMessage("Permita a abertura da janela para imprimir o teste."); return; }
-    const safeName = establishmentName.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
-    popup.document.open();
-    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Teste de impressão</title><style>@page{size:${paperWidth}mm auto;margin:3mm}body{font:12px monospace;margin:0;width:${paperWidth - 8}mm;color:#000}h1{font-size:16px;text-align:center}p{margin:7px 0}.line{border-top:1px dashed #000;margin:10px 0}.ok{font-size:15px;font-weight:700;text-align:center}.print-help{background:#f4eee4;border:1px solid #6d2627;border-radius:8px;margin:0 0 14px;padding:10px;text-align:center}.print-help button{background:#6d2627;border:0;border-radius:999px;color:#fff;cursor:pointer;font:bold 12px sans-serif;margin-top:7px;padding:10px 16px}@media print{.print-help{display:none}}</style></head><body><div class="print-help"><b>Escolha a impressora para continuar</b><br><button id="print-now" type="button">ABRIR IMPRESSÃO</button></div><h1>${safeName}</h1><p>TESTE DA IMPRESSORA</p><div class="line"></div><p>Conexão: ${connection.toUpperCase()}</p><p>Papel: ${paperWidth} mm</p><p>Data: ${new Date().toLocaleString("pt-BR")}</p><div class="line"></div><p class="ok">CONFIGURAÇÃO CONCLUÍDA</p><p style="text-align:center">Mesa Viva</p></body></html>`);
-    popup.document.close();
-    const requestPrint = () => { popup.focus(); popup.print(); };
-    popup.document.getElementById("print-now")?.addEventListener("click", requestPrint);
-    window.setTimeout(requestPrint, 500);
-    setMessage("A tela da impressora será aberta. Se necessário, clique em ABRIR IMPRESSÃO na notinha.");
+    setShowPrintPreview(true);
+    setMessage("");
   }
 
   return <section className="panel printer-wizard">
@@ -55,5 +48,18 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
     {step === 2 && <div className="printer-step"><h3>2. Ajuste sua impressora</h3><div className="printer-form-grid"><div className="field"><label>NOME PARA IDENTIFICAÇÃO</label><input value={printerName} onChange={event => setPrinterName(event.target.value)} maxLength={120} placeholder="Ex.: Impressora da cozinha" /></div><div className="field"><label>LARGURA DO PAPEL</label><select value={paperWidth} onChange={event => setPaperWidth(Number(event.target.value) as 58 | 80)}><option value={58}>58 mm — compacta</option><option value={80}>80 mm — profissional</option></select></div>{connection === "network" && <div className="field field-wide"><label>ENDEREÇO IP OU NOME NA REDE</label><input value={networkAddress} onChange={event => setNetworkAddress(event.target.value)} maxLength={160} placeholder="Ex.: 192.168.0.50" /></div>}<label className="printer-auto-print field-wide"><input type="checkbox" checked={autoPrint} onChange={event => setAutoPrint(event.target.checked)} /><span><b>Abrir impressão automaticamente</b><small>Quando chegar um pedido novo, a cozinha abrirá a impressão da notinha. O navegador poderá pedir confirmação.</small></span></label></div><div className="printer-actions"><button type="button" className="button outline" onClick={() => setStep(1)}>Voltar</button><button type="button" className="button dark" disabled={saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar e continuar"}</button></div></div>}
     {step === 3 && <div className="printer-step printer-finish"><div><span className="printer-ready">CONFIGURAÇÃO ATIVA</span><h3>3. Conecte e faça o teste</h3><ol>{instructions.map(instruction => <li key={instruction}>{instruction}</li>)}</ol><div className="printer-summary"><span><small>CONEXÃO</small><b>{connection === "usb" ? "USB" : connection === "bluetooth" ? "Bluetooth" : "Wi-Fi / rede"}</b></span><span><small>PAPEL</small><b>{paperWidth} mm</b></span><span><small>AUTOMÁTICA</small><b>{autoPrint ? "Ativada" : "Desativada"}</b></span></div></div><div className="printer-test-card"><b>Teste antes de começar</b><p>Uma notinha será aberta no tamanho correto. Selecione a impressora e confirme.</p><button type="button" className="button dark wide" onClick={printTest}>Imprimir página de teste</button><button type="button" className="printer-edit-button" onClick={() => setStep(1)}>Alterar configuração</button></div></div>}
     {message && <div className={message.includes("sucesso") || message.includes("Escolha") ? "form-message form-success" : "form-message"}>{message}</div>}
+    {showPrintPreview && <div className="printer-preview-overlay" role="dialog" aria-modal="true" aria-label="Teste da impressora">
+      <div className="printer-preview-modal">
+        <button type="button" className="printer-preview-close" aria-label="Fechar" onClick={() => setShowPrintPreview(false)}>×</button>
+        <div className="printer-test-preview" style={{ "--printer-paper-width": `${paperWidth}mm` } as React.CSSProperties}>
+          <h1>{establishmentName}</h1><strong>TESTE DA IMPRESSORA</strong><hr />
+          <p><b>Conexão</b><span>{connection === "usb" ? "USB" : connection === "bluetooth" ? "Bluetooth" : "Wi-Fi / rede"}</span></p>
+          <p><b>Papel</b><span>{paperWidth} mm</span></p>
+          <p><b>Data</b><span>{new Date().toLocaleString("pt-BR")}</span></p>
+          <hr /><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>Mesa Viva</small>
+        </div>
+        <div className="printer-preview-actions"><button type="button" className="button dark wide" onClick={() => window.print()}>Imprimir</button><p>Escolha a impressora instalada no computador e confirme.</p></div>
+      </div>
+    </div>}
   </section>;
 }

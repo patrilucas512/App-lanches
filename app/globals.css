@@ -683,6 +683,12 @@ button.table-qr-card { color:inherit; }
   .customize-footer { align-items:stretch; flex-direction:column; }
 }
 @media print {
+  body:has(.printer-preview-overlay) * { visibility:hidden!important; }
+  .printer-preview-overlay,.printer-preview-modal,.printer-test-preview,.printer-test-preview * { visibility:visible!important; }
+  .printer-preview-overlay { background:white; display:block; inset:0; padding:0; position:absolute; }
+  .printer-preview-modal { background:white; box-shadow:none; display:block; max-height:none; max-width:none; overflow:visible; padding:0; width:auto; }
+  .printer-test-preview { box-shadow:none; margin:0; width:var(--printer-paper-width,58mm); }
+  .printer-preview-close,.printer-preview-actions { display:none!important; }
   .printing-one .kitchen-head,.printing-one .kitchen-column > header,.printing-one .kitchen-ticket:not(.print-target) { display:none!important; }
   .printing-one,.printing-one .kitchen-columns,.printing-one .kitchen-column,.printing-one .kitchen-column > div { background:white!important; display:block!important; padding:0!important; }
   .printing-one .print-target { border:1px dashed #111; box-shadow:none; display:block!important; margin:0; max-width:var(--ticket-width,80mm); opacity:1!important; }
@@ -752,6 +758,20 @@ button.table-qr-card { color:inherit; }
 .printer-test-card p { color:rgba(255,255,255,.72); font-size:8px; line-height:1.6; }
 .printer-test-card .button { background:white; color:var(--wine); }
 .printer-edit-button { background:transparent; border:0; color:white; cursor:pointer; font-size:8px; margin-top:12px; text-decoration:underline; width:100%; }
+.printer-preview-overlay { align-items:center; background:rgba(20,18,15,.72); display:flex; inset:0; justify-content:center; padding:18px; position:fixed; z-index:1000; }
+.printer-preview-modal { align-items:center; background:#f5f1e9; border-radius:18px; box-shadow:0 24px 80px rgba(0,0,0,.28); display:flex; flex-direction:column; max-height:94vh; max-width:430px; overflow:auto; padding:44px 24px 24px; position:relative; width:100%; }
+.printer-preview-close { align-items:center; background:#e5ddd2; border:0; border-radius:50%; color:#1c1916; cursor:pointer; display:flex; font-size:20px; height:34px; justify-content:center; position:absolute; right:14px; top:14px; width:34px; }
+.printer-test-preview { align-items:center; background:white; box-shadow:0 5px 24px rgba(0,0,0,.1); box-sizing:border-box; display:flex; flex-direction:column; font-family:monospace; max-width:100%; padding:22px 14px; text-align:center; width:var(--printer-paper-width,58mm); }
+.printer-test-preview h1 { font-family:monospace; font-size:16px; margin:0 0 18px; }
+.printer-test-preview > strong { font-size:12px; }
+.printer-test-preview hr { border:0; border-top:1px dashed #111; margin:13px 0; width:100%; }
+.printer-test-preview p { align-items:center; display:flex; flex-direction:column; font-size:11px; gap:3px; margin:5px 0; }
+.printer-test-preview p b { font-size:9px; text-transform:uppercase; }
+.printer-test-preview h2 { font-family:monospace; font-size:14px; margin:2px 0 12px; }
+.printer-test-preview small { font-size:10px; }
+.printer-preview-actions { margin-top:18px; text-align:center; width:min(100%,280px); }
+.printer-preview-actions .button { font-size:12px; min-height:46px; }
+.printer-preview-actions p { color:var(--muted); font-size:9px; line-height:1.5; margin:10px 0 0; }
 .tracking-steps { display:grid; grid-template-columns:repeat(4,1fr); margin:28px 0; position:relative; }
 .tracking-steps::before { background:#ddd6ca; content:""; height:3px; left:10%; position:absolute; right:10%; top:17px; }
 .tracking-steps > div { align-items:center; color:#898278; display:flex; flex-direction:column; gap:7px; position:relative; z-index:1; }
