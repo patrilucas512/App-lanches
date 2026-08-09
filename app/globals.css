@@ -407,6 +407,8 @@ button.table-qr-card { color:inherit; }
 .kitchen-head > div:last-child { align-items:flex-end; display:flex; flex-direction:column; gap:8px; }
 .kitchen-head span,.kitchen-head a { color:rgba(255,255,255,.7); font-size:9px; }
 .kitchen-head a { text-decoration:underline; }
+.kitchen-head-actions { align-items:center; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+.kitchen-head .kitchen-admin-return { background:#fff; border-radius:999px; color:#171713; font-size:9px; font-weight:900; padding:13px 17px; text-decoration:none; }
 .kitchen-columns { display:grid; gap:12px; grid-template-columns:repeat(4,minmax(260px,1fr)); overflow-x:auto; }
 .kitchen-column { background:#24241f; border-radius:13px; min-height:calc(100vh - 120px); padding:12px; }
 .kitchen-column > header { align-items:center; display:flex; justify-content:space-between; padding:5px 4px 13px; }
@@ -621,6 +623,8 @@ button.table-qr-card { color:inherit; }
   .waiter-modal { padding:26px; }
   .kitchen-page { padding:14px; }
   .kitchen-head { align-items:flex-start; }
+  .kitchen-head-actions { align-items:stretch; flex-direction:column; width:100%; }
+  .kitchen-head .kitchen-admin-return { text-align:center; }
   .attendance-summary,.mode-choice-grid,.attendance-toggle-grid,.permission-grid { grid-template-columns:1fr; }
   .table-client-actions { flex-wrap:wrap; }
   .waiter-mini-metrics { flex-wrap:wrap; }

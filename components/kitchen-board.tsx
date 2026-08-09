@@ -14,7 +14,7 @@ type Initial = { tickets: Ticket[]; tableOrders: TableOrder[]; publicOrders: Pub
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
 
-export function KitchenBoard({ establishmentId, establishmentName, operatorName, canPrint, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
+export function KitchenBoard({ establishmentId, establishmentName, operatorName, canReturnToAdmin, canPrint, autoPrint, paperWidth, initial }: { establishmentId: string; establishmentName: string; operatorName: string; canReturnToAdmin: boolean; canPrint: boolean; autoPrint: boolean; paperWidth: 58 | 80; initial: Initial }) {
   const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
@@ -124,7 +124,7 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
   }
 
   return <main className={`kitchen-page ${printingId ? "printing-one" : ""}`} style={{ "--ticket-width": `${paperWidth}mm` } as React.CSSProperties}>
-    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span>{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}<Link href="/cozinha/login">Trocar operador</Link></div></header>
+    <header className="kitchen-head"><div><small>COZINHA · TEMPO REAL</small><h1>{establishmentName}</h1><p>Operador: <b>{operatorName}</b></p></div><div><span>{data.tickets.filter(value => value.status !== "delivered").length} comandas ativas</span><div className="kitchen-head-actions">{canReturnToAdmin && <Link className="kitchen-admin-return" href="/painel">← Voltar ao painel administrativo</Link>}{pushStatus !== "unsupported" && <button className={`kitchen-notification-button ${pushStatus === "active" ? "active" : ""}`} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}</div><Link href="/cozinha/login">Trocar operador</Link></div></header>
     <section className="kitchen-columns">{columns.map(([status, title]) => <div className={`kitchen-column column-${status}`} key={status}>
       <header><h2>{title}</h2><b>{data.tickets.filter(value => value.status === status).length}</b></header>
       <div>{data.tickets.filter(value => value.status === status).map(ticket => {
