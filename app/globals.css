@@ -825,6 +825,8 @@ button.table-qr-card { color:inherit; }
 .team-summary small { color:var(--muted); font-size:7px; margin-bottom:12px; }
 .team-summary strong { font-family:var(--font-display),serif; font-size:34px; font-weight:500; }
 .team-groups { display:grid; gap:18px; }
+.team-report-scroll { overflow-x:auto; width:100%; }
+.team-report-scroll .waiter-report { min-width:900px; }
 .team-group { margin:0; }
 .team-group-head { align-items:flex-start; display:flex; gap:24px; justify-content:space-between; margin-bottom:20px; }
 .team-group-head h2 { margin:5px 0; }

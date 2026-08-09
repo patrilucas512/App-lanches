@@ -6,8 +6,6 @@ export function DashboardShell({ children, active = "overview", storeSlug, role 
   const allLinks = [
     ["overview", "/painel", "Visão geral"],
     ["attendance", "/painel/atendimento", "Atendimento"],
-    ["waiters", "/painel/garcons", "Garçons"],
-    ["waiter", "/painel/garcom", "Garçom"],
     ["kitchen", "/cozinha", "Cozinha"],
     ["orders", "/painel/pedidos", "Pedidos"],
     ["catalog", "/painel/cardapio", "Cardápio"],
@@ -16,8 +14,11 @@ export function DashboardShell({ children, active = "overview", storeSlug, role 
     ["settings", "/painel/configuracoes", "Configurações"],
     ["billing", "/painel/assinatura", "Plano e cobrança"],
   ];
-  const attendantLinks = new Set(["waiter", "orders", "calls"]);
-  const links = role === "attendant" ? allLinks.filter(([key]) => attendantLinks.has(key))
+  const attendantLinks = [
+    ["waiter", "/painel/garcom", "Pedidos"],
+    ["calls", "/painel/chamados", "Chamados"],
+  ];
+  const links = role === "attendant" ? attendantLinks
     : role === "kitchen" ? allLinks.filter(([key]) => key === "kitchen")
     : role === "catalog_editor" ? allLinks.filter(([key]) => key === "catalog") : allLinks;
   const mobileLinks = links.map(([key, href, label]) => ({ key, href, label }));

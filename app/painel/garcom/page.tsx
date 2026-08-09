@@ -18,7 +18,8 @@ function saoPauloDate() {
 
 export default async function WaiterPage() {
   const { supabase, establishment, member, userId } = await getDashboardContext();
-  if (!["owner", "manager", "attendant"].includes(member.role)) redirect("/painel");
+  if (["owner", "manager"].includes(member.role)) redirect("/painel/pedidos");
+  if (member.role !== "attendant") redirect("/painel");
   const [{ data: tables }, { data: sessions }, { data: products }, { data: categories }, { data: serviceMode }, { data: waiter }, { data: tickets }, { data: orders }, { data: publicOrders }, { data: profile }] = await Promise.all([
     supabase.from("restaurant_tables").select("*").eq("establishment_id", establishment.id).eq("is_active", true).order("table_number"),
     supabase.from("table_sessions").select("*").eq("establishment_id", establishment.id).in("status", ["open", "awaiting_payment", "paid"]),
