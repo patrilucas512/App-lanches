@@ -41,6 +41,25 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
     setMessage("");
   }
 
+  function printReceipt() {
+    const safeName = establishmentName.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
+    const connectionLabel = connection === "usb" ? "USB" : connection === "bluetooth" ? "Bluetooth" : "Wi-Fi / rede";
+    const frame = document.createElement("iframe");
+    frame.title = "Impressão da notinha de teste";
+    frame.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;";
+    frame.onload = () => {
+      const printWindow = frame.contentWindow;
+      if (!printWindow) { frame.remove(); setMessage("Não foi possível abrir a impressão neste navegador."); return; }
+      const cleanup = () => frame.remove();
+      printWindow.addEventListener("afterprint", cleanup, { once: true });
+      window.setTimeout(cleanup, 60000);
+      printWindow.focus();
+      printWindow.print();
+    };
+    frame.srcdoc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Teste da impressora</title><style>@page{size:${paperWidth}mm ${paperWidth === 58 ? 100 : 120}mm;margin:2mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:${paperWidth - 4}mm;font:12px/1.45 monospace;text-align:center}h1{font-size:16px;margin:0 0 14px}h2{font-size:14px;margin:10px 0}p{margin:7px 0}b,span{display:block}.label{font-size:9px;text-transform:uppercase}.line{border-top:1px dashed #000;margin:11px 0;width:100%}small{font-size:10px}</style></head><body><h1>${safeName}</h1><b>TESTE DA IMPRESSORA</b><div class="line"></div><p><b class="label">Conexão</b><span>${connectionLabel}</span></p><p><b class="label">Papel</b><span>${paperWidth} mm</span></p><p><b class="label">Data</b><span>${new Date().toLocaleString("pt-BR")}</span></p><div class="line"></div><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>Mesa Viva</small></body></html>`;
+    document.body.appendChild(frame);
+  }
+
   return <section className="panel printer-wizard">
     <header className="printer-wizard-head"><div><small>IMPRESSORA DA COZINHA</small><h2>Configure em poucos passos.</h2><p>Escolha como a impressora está conectada, ajuste o papel e imprima uma notinha de teste.</p></div><span>Etapa {step} de 3</span></header>
     <div className="printer-progress" aria-label={`Etapa ${step} de 3`}>{[1,2,3].map(value => <i className={value <= step ? "active" : ""} key={value}>{value}</i>)}</div>
@@ -58,7 +77,7 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
           <p><b>Data</b><span>{new Date().toLocaleString("pt-BR")}</span></p>
           <hr /><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>Mesa Viva</small>
         </div>
-        <div className="printer-preview-actions"><button type="button" className="button dark wide" onClick={() => window.print()}>Imprimir</button><p>Escolha a impressora instalada no computador e confirme.</p></div>
+        <div className="printer-preview-actions"><button type="button" className="button dark wide" onClick={printReceipt}>Imprimir</button><p>Escolha a impressora instalada no computador e confirme.</p></div>
       </div>
     </div>}
   </section>;

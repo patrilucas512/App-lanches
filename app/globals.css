@@ -683,12 +683,6 @@ button.table-qr-card { color:inherit; }
   .customize-footer { align-items:stretch; flex-direction:column; }
 }
 @media print {
-  body:has(.printer-preview-overlay) * { visibility:hidden!important; }
-  .printer-preview-overlay,.printer-preview-modal,.printer-test-preview,.printer-test-preview * { visibility:visible!important; }
-  .printer-preview-overlay { background:white; display:block; inset:0; padding:0; position:absolute; }
-  .printer-preview-modal { background:white; box-shadow:none; display:block; max-height:none; max-width:none; overflow:visible; padding:0; width:auto; }
-  .printer-test-preview { box-shadow:none; margin:0; width:var(--printer-paper-width,58mm); }
-  .printer-preview-close,.printer-preview-actions { display:none!important; }
   .printing-one .kitchen-head,.printing-one .kitchen-column > header,.printing-one .kitchen-ticket:not(.print-target) { display:none!important; }
   .printing-one,.printing-one .kitchen-columns,.printing-one .kitchen-column,.printing-one .kitchen-column > div { background:white!important; display:block!important; padding:0!important; }
   .printing-one .print-target { border:1px dashed #111; box-shadow:none; display:block!important; margin:0; max-width:var(--ticket-width,80mm); opacity:1!important; }
