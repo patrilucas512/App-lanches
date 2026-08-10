@@ -12,7 +12,10 @@ export default async function PosPage() {
   if (!employee || employee.status !== "active" || (employee.employment_type === "daily" && employee.work_date !== today)) redirect("/caixa/login");
   const { data: establishment } = await supabase.from("establishments").select("id,name").eq("id", employee.establishment_id).single();
   if (!establishment) redirect("/caixa/login");
-  const { data: shift } = await supabase.from("cash_shifts").select("*").eq("establishment_id", establishment.id).eq("status", "open").maybeSingle();
+  const [{ data: shift }, { data: registers }] = await Promise.all([
+    supabase.from("cash_shifts").select("*,cash_registers(name)").eq("staff_member_id", employee.id).eq("status", "open").maybeSingle(),
+    supabase.from("cash_registers").select("id,name,active").eq("establishment_id",establishment.id).eq("active",true).order("created_at"),
+  ]);
   const openedAt = shift?.opened_at || new Date().toISOString();
   const [{ data: products }, { data: orders }, { data: orderItems }, { data: sales }, { data: payments }, { data: movements }, { data: paid }] = await Promise.all([
     supabase.from("products").select("id,name,price_cents,barcode,category_id").eq("establishment_id", establishment.id).eq("active", true).order("name"),
@@ -25,5 +28,6 @@ export default async function PosPage() {
   ]);
   const paidIds = new Set((paid || []).map(item => item.source_order_id));
   const pending = (orders || []).filter(order => !paidIds.has(order.id)).map(order => ({ ...order, order_items: (orderItems || []).filter(item => item.order_id === order.id) }));
-  return <PosConsole establishmentName={establishment.name} employeeName={employee.name} initialShift={(shift || null) as never} products={(products || []) as never[]} initialOrders={pending as never[]} tablePayments={(payments || []) as never[]} initialSales={(sales || []) as never[]} initialMovements={(movements || []) as never[]} />;
+  const normalizedShift=shift?{...shift,cash_register_name:(shift.cash_registers as {name?:string}|null)?.name}:null;
+  return <PosConsole establishmentName={establishment.name} employeeName={employee.name} registers={(registers||[]) as never[]} initialShift={normalizedShift as never} products={(products || []) as never[]} initialOrders={pending as never[]} tablePayments={(payments || []) as never[]} initialSales={(sales || []) as never[]} initialMovements={(movements || []) as never[]} />;
 }

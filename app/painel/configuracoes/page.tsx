@@ -1,7 +1,7 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { SettingsForm } from "@/components/settings-form";
 import { PixSettingsForm } from "@/components/pix-settings-form";
-import { PrinterSetupWizard } from "@/components/printer-setup-wizard";
+import { MultiPrinterManager } from "@/components/multi-printer-manager";
 import { KitchenAccessManager } from "@/components/kitchen-access";
 import { BusinessHoursForm } from "@/components/business-hours-form";
 import { getDashboardContext } from "@/lib/dashboard";
@@ -10,13 +10,13 @@ import { redirect } from "next/navigation";
 export default async function SettingsPage() {
   const { supabase, establishment, member } = await getDashboardContext();
   if (!["owner", "manager"].includes(member.role)) redirect("/painel/garcom");
-  const [{ data: details }, { data: settings }, { data: pix }, { data: printer }, { data: kitchenOperators }, { data: connector }, { data: businessHours }] = await Promise.all([
+  const [{ data: details }, { data: settings }, { data: pix }, { data: kitchenOperators }, { data: printers }, { data: registers }, { data: businessHours }] = await Promise.all([
     supabase.from("establishments").select("*").eq("id", establishment.id).single(),
     supabase.from("establishment_settings").select("*").eq("establishment_id", establishment.id).single(),
     supabase.from("pix_settings").select("*").eq("establishment_id", establishment.id).maybeSingle(),
-    supabase.from("service_modes").select("printer_connection,printer_name,printer_paper_width,printer_network_address,printer_setup_completed,auto_print_kitchen").eq("establishment_id", establishment.id).maybeSingle(),
     supabase.from("kitchen_operators").select("id,user_id,name,phone,status,access_type,work_date,device_mode,permissions,payment_cycle").eq("establishment_id", establishment.id).order("created_at"),
-    supabase.rpc("get_printer_connector_status", { requested_establishment_id: establishment.id }),
+    supabase.rpc("list_printer_devices", { requested_establishment_id: establishment.id }),
+    supabase.from("cash_registers").select("id,name,active").eq("establishment_id",establishment.id).order("created_at"),
     supabase.from("business_hours").select("weekday,opens_at,closes_at,closed").eq("establishment_id", establishment.id).order("weekday"),
   ]);
   return <DashboardShell active="settings" storeSlug={establishment.slug} role={member.role}>
@@ -32,7 +32,7 @@ export default async function SettingsPage() {
     }} />
     <BusinessHoursForm establishmentId={establishment.id} initial={businessHours || []} />
     <KitchenAccessManager establishmentId={establishment.id} initialOperators={(kitchenOperators || []) as never[]} />
-    <PrinterSetupWizard establishmentId={establishment.id} establishmentName={details?.name ?? establishment.name} initial={{ connection: printer?.printer_connection ?? "usb", name: printer?.printer_name ?? "", paperWidth: printer?.printer_paper_width === 80 ? 80 : 58, networkAddress: printer?.printer_network_address ?? "", autoPrint: printer?.auto_print_kitchen ?? false, completed: printer?.printer_setup_completed ?? false, connector: (connector as { configured: boolean; online: boolean; printer_name?: string | null } | null) ?? { configured: false, online: false } }} />
+    <MultiPrinterManager establishmentId={establishment.id} establishmentName={details?.name ?? establishment.name} initialDevices={(printers || []) as never[]} initialRegisters={(registers || []) as never[]} />
     <PixSettingsForm establishmentId={establishment.id} initial={pix} />
   </DashboardShell>;
 }

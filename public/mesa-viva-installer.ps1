@@ -6,8 +6,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$installDir = Join-Path $env:LOCALAPPDATA "MesaVivaConnector"
-$startupFile = Join-Path ([Environment]::GetFolderPath("Startup")) "Mesa Viva Conector.cmd"
+$deviceSuffix = $DeviceToken.Substring(0,12)
+$installDir = Join-Path $env:LOCALAPPDATA ("MesaVivaConnector\" + $deviceSuffix)
+$startupFile = Join-Path ([Environment]::GetFolderPath("Startup")) ("Mesa Viva Conector " + $deviceSuffix + ".cmd")
 New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 
 $existingPid = Join-Path $installDir "connector.pid"
@@ -18,10 +19,14 @@ if (Test-Path -LiteralPath $existingPid) {
 
 $ignored = 'Microsoft Print|OneNote|Fax|XPS|PDF'
 $printers = @(Get-CimInstance Win32_Printer | Where-Object { $_.Name -notmatch $ignored })
-$printer = $printers | Where-Object Default | Select-Object -First 1
-if (!$printer) { $printer = $printers | Where-Object { $_.Name -match 'POS|58|80|Thermal|Termica|Receipt|Cupom' } | Select-Object -First 1 }
-if (!$printer) { $printer = $printers | Select-Object -First 1 }
-if (!$printer) { throw "Nenhuma impressora instalada foi encontrada. Instale a impressora no Windows e tente novamente." }
+if (!$printers.Count) { throw "Nenhuma impressora instalada foi encontrada. Instale a impressora no Windows e tente novamente." }
+Write-Host ""
+Write-Host "Escolha a impressora deste cadastro:" -ForegroundColor Cyan
+for ($index=0; $index -lt $printers.Count; $index++) { Write-Host ("[{0}] {1}" -f ($index+1),$printers[$index].Name) }
+$choice = Read-Host "Digite o numero"
+$selectedIndex = 0
+if ([int]::TryParse($choice,[ref]$selectedIndex) -and $selectedIndex -ge 1 -and $selectedIndex -le $printers.Count) { $printer=$printers[$selectedIndex-1] }
+else { throw "Selecao de impressora invalida." }
 
 $agentPath = Join-Path $installDir "MesaVivaConnector.ps1"
 $configPath = Join-Path $installDir "config.json"
