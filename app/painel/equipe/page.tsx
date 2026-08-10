@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AttendanceManager } from "@/components/attendance-manager";
+import { CustomStaffManager } from "@/components/custom-staff-manager";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { KitchenAccessManager } from "@/components/kitchen-access";
 import { TeamDeleteButton } from "@/components/team-delete-button";
 import { getDashboardContext } from "@/lib/dashboard";
 
@@ -49,16 +51,17 @@ export default async function TeamPage() {
   const { supabase, establishment, member, userId } = await getDashboardContext();
   if (!['owner', 'manager'].includes(member.role)) redirect("/painel/garcom");
 
-  const [{ data: members }, { data: waiters }, { data: kitchen }, { data: ownProfile }, { data: sessions }, { data: tableOrders }, { data: payments }, { data: proofs }, { data: serviceMode }] = await Promise.all([
+  const [{ data: members }, { data: waiters }, { data: kitchen }, { data: ownProfile }, { data: sessions }, { data: tableOrders }, { data: payments }, { data: proofs }, { data: serviceMode }, { data: customRoles }] = await Promise.all([
     supabase.from("establishment_members").select("id,user_id,role,created_at").eq("establishment_id", establishment.id).order("created_at"),
     supabase.from("waiters").select("id,user_id,name,phone,status,active_now,sector,employment_type,work_date,payment_cycle,permissions,shift_start,shift_end").eq("establishment_id", establishment.id).order("name"),
-    supabase.from("kitchen_operators").select("id,user_id,name,status,access_type,work_date,device_mode,payment_cycle").eq("establishment_id", establishment.id).order("name"),
+    supabase.from("kitchen_operators").select("id,user_id,name,phone,status,access_type,work_date,device_mode,payment_cycle,permissions").eq("establishment_id", establishment.id).order("name"),
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
     supabase.from("table_sessions").select("id,waiter_id").eq("establishment_id", establishment.id),
     supabase.from("table_orders").select("id,waiter_id").eq("establishment_id", establishment.id),
     supabase.from("table_payments").select("id,waiter_id,payment_method,amount_cents").eq("establishment_id", establishment.id),
     supabase.from("payment_proofs").select("id,waiter_id,image_path").eq("establishment_id", establishment.id),
     supabase.from("service_modes").select("*").eq("establishment_id", establishment.id).single(),
+    supabase.from("staff_roles").select("id,name,description,color,image_url,custom_staff_members(id,name,phone,status,employment_type,work_date,payment_cycle,shift_start,shift_end,photo_url,notes)").eq("establishment_id", establishment.id).order("created_at"),
   ]);
 
   const proofLinks = new Map<string, string>();
@@ -91,7 +94,8 @@ export default async function TeamPage() {
     active: true,
     detail: `${roleLabels[person.role] || person.role} · Desde ${new Date(person.created_at).toLocaleDateString("pt-BR")}`,
   }));
-  const allRows = [...adminRows, ...waiterRows, ...kitchenRows];
+  const customRows: TeamRow[] = (customRoles || []).flatMap(role => (role.custom_staff_members || []).map(person => ({ id: person.id, name: person.name, active: person.status === "active" && (person.employment_type === "fixed" || person.work_date === today), detail: role.name, payment: paymentLabels[person.payment_cycle] || "Mensal" })));
+  const allRows = [...adminRows, ...waiterRows, ...kitchenRows, ...customRows];
   const waiterMetrics = (waiters || []).map(waiter => ({
     waiterId: waiter.id,
     orders: (tableOrders || []).filter(order => order.waiter_id === waiter.user_id).length,
@@ -132,7 +136,8 @@ export default async function TeamPage() {
         </div>
         {!waiters?.length && <div className="empty"><b>Nenhum garçom cadastrado.</b><span>Cadastre a equipe no formulário acima.</span></div>}
       </article>
-      <TeamGroup title="Cozinha" description="Responsáveis por aceitar, imprimir, preparar e liberar pedidos." rows={kitchenRows} href="/painel/configuracoes#equipe-cozinha" />
+      <KitchenAccessManager establishmentId={establishment.id} initialOperators={(kitchen || []) as never[]} />
+      <CustomStaffManager establishmentId={establishment.id} initialRoles={(customRoles || []) as never[]} />
       <TeamGroup title="Administração" description="Proprietários, gerentes e responsáveis pelo catálogo." rows={adminRows} href="/painel/configuracoes" />
     </section>
   </DashboardShell>;

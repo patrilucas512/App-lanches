@@ -56,6 +56,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [teamFormOpen, setTeamFormOpen] = useState(false);
   const activeCount = mode.manual_active_waiters ?? waiters.filter(waiter =>
     waiter.active_now
     && ["active", "serving"].includes(waiter.status)
@@ -217,8 +218,8 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     </section>}
 
     {showTeam && <section className="panel waiter-admin" id="equipe-garcons">
-      <div className="panel-title-row"><div><h2>Garçons ativos no momento</h2><p>Cadastre, pause, bloqueie e gere o acesso individual da equipe.</p></div><span className="status-pill">{activeCount} agora</span></div>
-      <form className="waiter-admin-form form" onSubmit={saveWaiter}>
+      <div className="panel-title-row"><div><h2>Garçons ativos no momento</h2><p>Cadastre, pause, bloqueie e gere o acesso individual da equipe.</p></div><div className="team-heading-actions"><span className="status-pill">{activeCount} agora</span><button type="button" className="button dark" onClick={() => { setEditing(null); setEmploymentType("fixed"); setTeamFormOpen(value => !value); }}>{teamFormOpen ? "Fechar cadastro" : "Realizar cadastro de funcionário"}</button></div></div>
+      {teamFormOpen && <form className="waiter-admin-form form" onSubmit={saveWaiter}>
         <div className="form-grid">
           <div className="field"><label>NOME</label><input name="name" required defaultValue={editing?.name || ""} key={`name-${editing?.id}`} /></div>
           <div className="field"><label>TELEFONE</label><input name="phone" type="tel" inputMode="tel" placeholder="(21) 98139-2823" defaultValue={editing?.phone || ""} key={`phone-${editing?.id}`} /></div>
@@ -232,7 +233,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
         <label className="choice-card"><input name="active_now" type="checkbox" defaultChecked={editing?.active_now} key={`active-${editing?.id}`} /><span><b>Ativo no momento</b><small>Permite operar mesas e pagamentos agora.</small></span></label>
         <div className="permission-grid">{[["open_tables","Abrir mesas"],["create_orders","Lançar pedidos"],["close_bills","Fechar contas"],["register_payments","Registrar pagamentos"],["apply_discount","Aplicar desconto"],["cancel_items","Cancelar itens"]].map(([key,label]) => <label key={key}><input type="checkbox" name={key} defaultChecked={editing ? editing.permissions?.[key] : !["apply_discount","cancel_items"].includes(key)} /> {label}</label>)}</div>
         <div className="form-actions"><button type="button" className="button outline" onClick={() => { setEditing(null); setEmploymentType("fixed"); }}>Limpar</button><button className="button dark" disabled={busy}>{editing ? "Salvar alterações" : "Cadastrar garçom"}</button></div>
-      </form>
+      </form>}
       <div className="waiter-admin-list">{waiters.map(waiter => {
         const metric = metrics.find(value => value.waiterId === waiter.id);
         const currentInvite = inviteReady?.waiterId === waiter.id ? inviteReady : null;
@@ -241,7 +242,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
           <div><span className={`waiter-status status-${waiter.status}`}>{statusLabels[waiter.status]}</span><h3>{waiter.name}</h3><p>{waiter.sector || "Sem setor"} · {waiter.employment_type === "daily" ? `Diarista em ${formatWorkDate(waiter.work_date)}` : "Funcionário fixo"} · Pagamento {waiter.payment_cycle === "daily" ? "por diária" : waiter.payment_cycle === "weekly" ? "semanal" : waiter.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {waiter.user_id ? "Acesso vinculado" : "Aguardando senha"}</p></div>
           <div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div>
           <div className="waiter-row-actions">
-            <button type="button" onClick={() => { setEditing(waiter); setEmploymentType(waiter.employment_type || "fixed"); }}>Editar</button>
+            <button type="button" onClick={() => { setEditing(waiter); setEmploymentType(waiter.employment_type || "fixed"); setTeamFormOpen(true); }}>Editar</button>
             <button type="button" disabled={invitingId === waiter.id} onClick={() => invite(waiter)}>{invitingId === waiter.id ? "Gerando..." : waiter.user_id ? "Redefinir senha" : "Enviar acesso"}</button>
             {waiter.status === "blocked" ? <button type="button" onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button type="button" onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}
             {waiter.active_now ? <button type="button" onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button type="button" onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}
