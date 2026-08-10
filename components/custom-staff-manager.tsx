@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type StaffMember = {
   id: string; name: string; phone?: string | null; status: "active" | "inactive";
+  user_id?: string | null;
   employment_type: "fixed" | "daily"; work_date?: string | null;
   payment_cycle: "daily" | "weekly" | "biweekly" | "monthly";
   shift_start?: string | null; shift_end?: string | null; photo_url?: string | null; notes?: string | null;
@@ -27,6 +28,14 @@ export function CustomStaffManager({ establishmentId, initialRoles }: { establis
   const [employmentType, setEmploymentType] = useState<"fixed" | "daily">("fixed");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [cashierInvite, setCashierInvite] = useState<{ memberId: string; name: string; phone: string; link: string } | null>(null);
+
+  async function createCashierInvite(member: StaffMember) {
+    setMessage("");
+    const { data, error } = await supabase.rpc("create_cashier_invite", { requested_member_id: member.id });
+    if (error) return setMessage(error.message);
+    setCashierInvite({ memberId: member.id, name: member.name, phone: String(data.phone || member.phone || ""), link: `${window.location.origin}/convite-caixa/${data.token}` });
+  }
 
   async function upload(file: File | null, kind: string) {
     if (!file?.size) return null;
@@ -102,7 +111,8 @@ export function CustomStaffManager({ establishmentId, initialRoles }: { establis
         <div className="form-grid"><div className="field"><label>NOME E SOBRENOME</label><input name="name" required minLength={2} /></div><div className="field"><label>TELEFONE</label><input name="phone" type="tel" /></div><div className="field"><label>FOTO DO FUNCIONÁRIO</label><input name="photo" type="file" accept="image/*" /></div><div className="field"><label>STATUS</label><select name="status"><option value="active">Ativo</option><option value="inactive">Inativo</option></select></div><div className="field"><label>TIPO DE CONTRATAÇÃO</label><select value={employmentType} onChange={event => setEmploymentType(event.target.value as "fixed" | "daily")}><option value="fixed">Funcionário fixo</option><option value="daily">Diarista</option></select></div><div className="field"><label>FORMA DE PAGAMENTO</label><select name="payment_cycle" defaultValue={employmentType === "daily" ? "daily" : "monthly"} key={employmentType}><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option></select></div>{employmentType === "daily" && <div className="field"><label>DATA DE TRABALHO</label><input name="work_date" type="date" required min={localDate()} defaultValue={localDate()} /></div>}<div className="field"><label>TURNO</label><div className="shift-fields"><input name="shift_start" type="time" /><input name="shift_end" type="time" /></div></div><div className="field full"><label>OBSERVAÇÕES</label><input name="notes" placeholder="Responsabilidades ou informações importantes" /></div></div>
         <button className="button dark" disabled={busy}>{busy ? "Salvando..." : "Cadastrar funcionário"}</button>
       </form>}
-      <div className="custom-member-list">{role.custom_staff_members.length ? role.custom_staff_members.map(member => <div key={member.id} className="custom-member-row">{member.photo_url ? <img src={member.photo_url} alt="" /> : <span className="custom-member-avatar" style={{ backgroundColor: role.color }}>{member.name.slice(0,2).toUpperCase()}</span>}<div><span className={`team-status ${member.status === "active" ? "active" : "inactive"}`}>{member.status === "active" ? "ATIVO" : "INATIVO"}</span><h3>{member.name}</h3><p>{member.employment_type === "daily" ? `Diarista em ${member.work_date ? new Date(`${member.work_date}T12:00:00`).toLocaleDateString("pt-BR") : "data não informada"}` : "Funcionário fixo"} · Pagamento {paymentLabel[member.payment_cycle]}</p>{member.notes && <small>{member.notes}</small>}</div><button type="button" className="danger-action" onClick={() => void removeMember(role.id, member)}>Excluir</button></div>) : <div className="empty-state">Nenhum funcionário cadastrado nesta função.</div>}</div>
+      <div className="custom-member-list">{role.custom_staff_members.length ? role.custom_staff_members.map(member => <div key={member.id} className="custom-member-row">{member.photo_url ? <img src={member.photo_url} alt="" /> : <span className="custom-member-avatar" style={{ backgroundColor: role.color }}>{member.name.slice(0,2).toUpperCase()}</span>}<div><span className={`team-status ${member.status === "active" ? "active" : "inactive"}`}>{member.status === "active" ? "ATIVO" : "INATIVO"}</span><h3>{member.name}</h3><p>{member.employment_type === "daily" ? `Diarista em ${member.work_date ? new Date(`${member.work_date}T12:00:00`).toLocaleDateString("pt-BR") : "data não informada"}` : "Funcionário fixo"} · Pagamento {paymentLabel[member.payment_cycle]}{role.financial_role ? ` · ${member.user_id ? "Acesso vinculado" : "Aguardando senha"}` : ""}</p>{member.notes && <small>{member.notes}</small>}</div><div className="team-heading-actions">{role.financial_role && <button type="button" className="button outline" onClick={() => void createCashierInvite(member)}>{member.user_id ? "Redefinir senha" : "Gerar acesso"}</button>}<button type="button" className="danger-action" onClick={() => void removeMember(role.id, member)}>Excluir</button></div></div>) : <div className="empty-state">Nenhum funcionário cadastrado nesta função.</div>}</div>
+      {cashierInvite && role.custom_staff_members.some(member => member.id === cashierInvite.memberId) && <div className="invite-box"><div><small>ACESSO INDIVIDUAL DO CAIXA</small><h3>Enviar acesso de {cashierInvite.name}</h3><p>O funcionário cria a senha uma vez e depois entra somente com nome e senha.</p></div><input readOnly value={cashierInvite.link} /><div className="team-heading-actions"><button className="button outline" type="button" onClick={() => navigator.clipboard.writeText(cashierInvite.link)}>Copiar link</button><a className="button whatsapp" target="_blank" href={`https://wa.me/${cashierInvite.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá, ${cashierInvite.name}. Crie sua senha para acessar o caixa: ${cashierInvite.link}`)}`}>Enviar pelo WhatsApp</a></div></div>}
     </article>)}
     {message && <div className="form-message form-success sticky-message">{message}</div>}
   </section>;

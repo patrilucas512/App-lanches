@@ -58,7 +58,7 @@ export default async function TeamPage() {
     supabase.from("table_orders").select("id,waiter_id").eq("establishment_id", establishment.id),
     supabase.from("table_payments").select("id,waiter_id,payment_method,amount_cents").eq("establishment_id", establishment.id),
     supabase.from("service_modes").select("*").eq("establishment_id", establishment.id).single(),
-    supabase.from("staff_roles").select("id,name,description,color,image_url,financial_role,system_key,custom_staff_members(id,name,phone,status,employment_type,work_date,payment_cycle,shift_start,shift_end,photo_url,notes)").eq("establishment_id", establishment.id).order("created_at"),
+    supabase.from("staff_roles").select("id,name,description,color,image_url,financial_role,system_key,custom_staff_members(id,user_id,name,phone,status,employment_type,work_date,payment_cycle,shift_start,shift_end,photo_url,notes,permissions)").eq("establishment_id", establishment.id).order("created_at"),
   ]);
 
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());

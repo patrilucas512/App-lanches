@@ -1,0 +1,2 @@
+import { CashierInviteClaim } from "@/components/cashier-access";
+export default async function CashierInvitePage({params}:{params:Promise<{token:string}>}){const {token}=await params;return <main className="auth-page"><section className="auth-panel"><CashierInviteClaim token={token}/></section><aside className="auth-art"><span>ACESSO SEGURO</span><h2>Seu turno,<br/><em>sua responsabilidade.</em></h2></aside></main>}

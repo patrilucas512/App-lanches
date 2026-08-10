@@ -46,7 +46,7 @@ Deno.serve(async request => {
   try {
     const { kind, name, password, establishment } = await request.json();
     const normalizedName = typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
-    if (!['waiter', 'kitchen'].includes(kind) || normalizedName.split(" ").length < 2) {
+    if (!['waiter', 'kitchen', 'cashier'].includes(kind) || normalizedName.split(" ").length < 2) {
       return reply(origin, 400, { error: "Informe seu nome e sobrenome." });
     }
     if (typeof password !== "string" || password.length < 8 || password.length > 72) {
