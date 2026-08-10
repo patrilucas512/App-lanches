@@ -8,6 +8,8 @@ export function DashboardShell({ children, active = "overview", storeSlug, role 
     ["attendance", "/painel/atendimento", "Atendimento"],
     ["kitchen", "/cozinha", "Cozinha"],
     ["orders", "/painel/pedidos", "Pedidos"],
+    ["waiters", "/painel/garcons", "Garçons"],
+    ["cashier", "/painel/caixa", "Caixa"],
     ["catalog", "/painel/cardapio", "Cardápio"],
     ["calls", "/painel/chamados", "Chamados"],
     ["team", "/painel/equipe", "Equipe"],

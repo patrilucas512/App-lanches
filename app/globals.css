@@ -967,3 +967,4 @@ button.table-qr-card { color:inherit; }
   .team-member-row { align-items:flex-start; grid-template-columns:1fr; }
   .team-payment { padding-left:54px; text-align:left; }
 }
+.cashier-stack{display:grid;gap:18px}.cashier-summary strong{font-size:clamp(1.35rem,3vw,2.2rem)}.money-in{color:#176448;font-weight:800}.money-out{color:#9e2929;font-weight:800}.cashier-stack .empty .button{margin-top:14px;width:max-content}.cashier-stack .table td small{display:block;margin-top:4px;color:var(--muted)}
