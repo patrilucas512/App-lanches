@@ -78,6 +78,8 @@ jobs:
       - name: Initialize local config when absent
         run: test -f supabase/config.toml || supabase init
       - name: Start isolated database
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
           for attempt in 1 2 3; do
             if timeout --kill-after=15s 180s supabase start -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,storage,studio,vector; then
