@@ -79,8 +79,8 @@ jobs:
         run: test -f supabase/config.toml || supabase init
       - name: Start isolated database
         run: |
-          for attempt in 1 2; do
-            if timeout 300s supabase start -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,storage,studio,vector; then
+          for attempt in 1 2 3; do
+            if timeout --kill-after=15s 180s supabase start -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,storage,studio,vector; then
               exit 0
             fi
             supabase stop --no-backup || true
