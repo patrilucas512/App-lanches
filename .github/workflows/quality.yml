@@ -78,7 +78,15 @@ jobs:
       - name: Initialize local config when absent
         run: test -f supabase/config.toml || supabase init
       - name: Start isolated database
-        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+        run: |
+          for attempt in 1 2; do
+            if timeout 300s supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor; then
+              exit 0
+            fi
+            supabase stop --no-backup || true
+            sleep $((attempt * 15))
+          done
+          exit 1
       - name: Migration dry run
         run: supabase db reset
   application:
