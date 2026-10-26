@@ -1,3 +1,4 @@
+drop policy if exists kiosk_registration_tokens_deny on public.kiosk_registration_tokens;
 create policy kiosk_registration_tokens_deny on public.kiosk_registration_tokens for all to anon,authenticated using(false) with check(false);
 revoke all on function public.get_pickup_display(text) from public,anon,authenticated;
 grant execute on function public.get_pickup_display(text) to service_role;
