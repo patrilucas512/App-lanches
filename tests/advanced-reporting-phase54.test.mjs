@@ -21,7 +21,7 @@ test("15 small report executes inline",()=>assert.equal(core.planReportQuery(bas
 test("16 large report executes asynchronously",()=>assert.equal(core.planReportQuery({...base,dimensions:["date","store","channel"],metrics:["revenue","orders","average_ticket"],period:{from:"2020-01-01",to:"2022-01-01"},limit:5000},perms).executionMode,"async"));
 test("17 cache key isolates tenant, stores and permissions",()=>{const a=core.reportCacheKey({organizationId:"a",storeIds:["1"],reportVersion:1,definition:base,period:"30d",permissions:["reports:view"]}),b=core.reportCacheKey({organizationId:"b",storeIds:["1"],reportVersion:1,definition:base,period:"30d",permissions:["reports:view"]});assert.notEqual(a,b)});
 test("18 CSV escapes spreadsheet formulas",()=>assert.match(core.safeCsv([{name:"=cmd"}],["name"]),/"'=cmd"/));
-test("19 XLSX uses a standardized library",()=>assert.match(worker,/import\("xlsx"\)/));
+test("19 XLSX uses a maintained standardized library",()=>assert.match(worker,/import\("exceljs"\)/));
 test("20 PDF is summary-oriented",()=>{assert.match(worker,/jsPDF/);assert.match(worker,/Linhas:/)});
 test("21 exports expire and cleanup removes private files",()=>{assert.match(migration,/report_exports[\s\S]*expires_at/);assert.match(worker,/storage[\s\S]*remove/)});
 test("22 schedules use safe recurrence",()=>{assert.equal(core.validateSchedule({recurrence:"weekly",timezone:"America/Sao_Paulo",destinationType:"in_app",recipients:[]}),true);assert.throws(()=>core.validateSchedule({recurrence:"* * * * *",timezone:"UTC",destinationType:"email",recipients:[]}),/Recorrência/)});
