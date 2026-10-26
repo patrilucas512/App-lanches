@@ -19,7 +19,7 @@ test("07 progresso multiusuário",()=>assert.match(migration,/organization_membe
 test("08 escopo da unidade",()=>assert.match(migration,/establishment_id uuid not null/));
 test("09 cardápio real",()=>assert.match(migration,/public\.products/));
 test("10 import CSV",()=>assert.match(importer,/extension==="csv"/));
-test("11 import XLSX",()=>assert.match(importer,/XLSX\.read/));
+test("11 import XLSX",()=>{assert.match(importer,/Workbook/);assert.match(importer,/workbook\.xlsx\.load/)});
 test("12 mapeamento de colunas",()=>assert.match(importer,/autoMapping/));
 test("13 preview obrigatório",()=>assert.match(importer,/preview_rows/));
 test("14 duplicidade por checksum",()=>assert.match(migration,/source_checksum/));
