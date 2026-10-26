@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 2 }
+        with: { fetch-depth: 3 }
       - uses: pnpm/action-setup@v4
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
@@ -64,6 +64,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: node --test tests/*.test.mjs
+        env:
+          MASTERAPP_ENVIRONMENT: production
       - run: pnpm test:performance
       - run: pnpm test:phase27
   migration-dry-run:
