@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Employee = { id: string; role_id: string; name: string; status: string; staff_roles: { name: string } | { name: string }[] | null };
@@ -12,9 +12,24 @@ const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: 
 const method: Record<string, string> = { pix: "Pix", cash: "Dinheiro", credit_card: "Crédito", debit_card: "Débito", transfer: "Transferência", other: "Outro" };
 const parseCents = (value: string) => Math.round(Number(value.replace(/\./g, "").replace(",", ".")) * 100);
 
-export function CashierManager({ establishmentId, userId, employees, initialMovements, tablePayments }: { establishmentId: string; userId: string; employees: Employee[]; initialMovements: Movement[]; tablePayments: Payment[] }) {
+export function CashierManager({ establishmentId, userId, employees, initialMovements, tablePayments: initialTablePayments }: { establishmentId: string; userId: string; employees: Employee[]; initialMovements: Movement[]; tablePayments: Payment[] }) {
   const supabase = useMemo(() => createClient(), []);
   const [movements, setMovements] = useState(initialMovements);
+  const [tablePayments, setTablePayments] = useState(initialTablePayments);
+  useEffect(() => {
+    let active = true;
+    async function refreshPayments() {
+      if (document.hidden) return;
+      const { data, error } = await supabase.from("table_payments")
+        .select("id,waiter_name,payment_method,amount_cents,table_number,confirmed_at")
+        .eq("establishment_id", establishmentId).eq("status", "confirmed")
+        .order("confirmed_at", { ascending: false }).limit(500);
+      if (active && !error) setTablePayments(data || []);
+    }
+    void refreshPayments();
+    const timer = window.setInterval(refreshPayments, 10000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [establishmentId, supabase]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const inflow = movements.filter(item => item.movement_type === "inflow").reduce((sum, item) => sum + item.amount_cents, 0) + tablePayments.reduce((sum, item) => sum + item.amount_cents, 0);

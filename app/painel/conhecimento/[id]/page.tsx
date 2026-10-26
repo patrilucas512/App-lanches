@@ -1,0 +1,2 @@
+import{DashboardShell}from"@/components/dashboard-shell";import{KnowledgeArticleViewer}from"@/components/knowledge-article-viewer";import{getDashboardContext}from"@/lib/dashboard";import"../knowledge.css";
+export default async function Page({params}:{params:Promise<{id:string}>}){const[{id},{establishment,member}]=await Promise.all([params,getDashboardContext()]);return <DashboardShell brand={establishment} active="knowledge" storeSlug={establishment.slug} role={member.role}><KnowledgeArticleViewer storeId={establishment.id} articleId={id}/></DashboardShell>}

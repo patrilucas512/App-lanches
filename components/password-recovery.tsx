@@ -127,14 +127,26 @@ export function UpdatePassword() {
       return;
     }
     const supabase = createClient();
+    const { data: currentUser } = await supabase.auth.getUser();
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setMessage(error.message);
       setLoading(false);
       return;
     }
-    await supabase.auth.signOut();
-    window.location.assign("/login?senha=alterada");
+    let { data: currentSession } = await supabase.auth.getSession();
+    if (!currentSession.session && currentUser.user?.email) {
+      const { data } = await supabase.auth.signInWithPassword({ email: currentUser.user.email, password });
+      currentSession = data;
+    }
+    if (!currentSession.session) {
+      setMessage("Senha alterada. Entre uma vez com a nova senha neste aparelho.");
+      setLoading(false);
+      return;
+    }
+    const accessType = String(currentUser.user?.app_metadata?.access_type || "");
+    const destination = accessType === "driver" ? "/motoboy" : accessType === "waiter" ? "/garcom/app" : accessType === "kitchen" ? "/cozinha" : accessType === "cashier" ? "/caixa" : "/painel";
+    window.location.replace(destination);
   }
 
   return <form className="form" onSubmit={submit}>

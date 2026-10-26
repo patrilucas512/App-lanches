@@ -1,0 +1,23 @@
+{
+  "id": "/masterapp",
+  "name": "MasterApp",
+  "short_name": "MasterApp",
+  "description": "Cardápio, pedidos e operação do estabelecimento em um só aplicativo.",
+  "lang": "pt-BR",
+  "start_url": "/abrir-app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#080806",
+  "theme_color": "#ff5a1f",
+  "orientation": "any",
+  "categories": ["food", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

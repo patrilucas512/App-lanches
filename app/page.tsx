@@ -22,7 +22,7 @@ export default function Home() {
           </div>
           <small>14 dias grátis · sem cartão · cancele quando quiser</small>
         </div>
-        <div className="hero-product" aria-label="Prévia do painel Mesa Viva">
+        <div className="hero-product" aria-label="Prévia do painel MasterApp">
           <div className="mock-window">
             <div className="mock-top"><Brand compact /><span>● ● ●</span></div>
             <div className="mock-grid">
@@ -74,7 +74,7 @@ export default function Home() {
         <div><span className="kicker">COMECE HOJE</span><h2>Seu próximo pedido<br />começa aqui.</h2></div>
         <div><p>Crie sua conta, configure seu estabelecimento e publique o primeiro cardápio ainda hoje.</p><Link className="button light" href="/cadastro">Criar minha conta →</Link></div>
       </section>
-      <footer><Brand /><span>© 2026 Mesa Viva. Tecnologia para quem serve.</span><nav><Link href="/planos">Planos</Link><Link href="/login">Entrar</Link></nav></footer>
+      <footer><Brand /><span>© 2026 MasterApp. Tecnologia para quem serve.</span><nav><Link href="/planos">Planos</Link><Link href="/login">Entrar</Link></nav></footer>
     </main>
   );
 }

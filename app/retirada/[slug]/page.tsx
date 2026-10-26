@@ -1,0 +1,5 @@
+import{notFound}from"next/navigation";
+import{createAdminClient}from"@/lib/supabase/admin";
+import{PickupDisplay}from"@/components/pickup-display";
+export const metadata={title:"Retirada de pedidos | MasterApp",robots:{index:false,follow:false}};
+export default async function PickupPage({params}:{params:Promise<{slug:string}>}){const{slug}=await params,a=createAdminClient(),{data:e}=await a.from("establishments").select("id,name,logo_url,accent_color").eq("slug",slug).eq("active",true).maybeSingle();if(!e)notFound();const{data:p}=await a.from("pickup_tokens").select("display_token,status,called_at,created_at").eq("store_id",e.id).in("status",["preparing","ready","called"]).gt("expires_at",new Date().toISOString()).order("created_at");const initial={store:e,preparing:(p||[]).filter(x=>x.status==="preparing").map(x=>({token:x.display_token,status:x.status})),ready:(p||[]).filter(x=>x.status==="ready"||x.status==="called").map(x=>({token:x.display_token,status:x.status,called_at:x.called_at}))};return <PickupDisplay slug={slug} initial={initial}/>}

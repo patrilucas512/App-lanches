@@ -1,0 +1,35 @@
+import test from"node:test";import assert from"node:assert/strict";import{readFileSync}from"node:fs";
+const migration=readFileSync("supabase/migrations/20261022030000_phase43_self_service_kiosks.sql","utf8"),api=readFileSync("app/api/self-service/route.ts","utf8"),ui=readFileSync("components/kiosk-app.tsx","utf8"),admin=readFileSync("components/self-service-manager.tsx","utf8"),core=readFileSync("lib/self_service/core.ts","utf8"),display=readFileSync("components/pickup-display.tsx","utf8");
+const checks={
+"1 registro por token temporário":()=>assert.match(api,/kiosk_registration_tokens/),
+"2 revogação imediata":()=>assert.match(api,/revoked_at/),
+"3 escopos mínimos":()=>assert.match(migration,/kiosk:catalog/),
+"4 criação de sessão":()=>assert.match(api,/start_session/),
+"5 timeout e reset":()=>assert.match(core,/shouldAutoReset/),
+"6 catálogo oficial":()=>assert.match(api,/from\("products"\)/),
+"7 disponibilidade de produto":()=>assert.match(api,/eq\("active",true\)/),
+"8 modifiers reutilizados":()=>assert.match(api,/addon_options/),
+"9 carrinho touch":()=>assert.match(ui,/kiosk-cart/),
+"10 identificação opcional":()=>assert.match(ui,/opcional/),
+"11 promo preparada no checkout oficial":()=>assert.match(api,/place_public_order_v2/),
+"12 preço validado no backend":()=>assert.match(api,/place_public_order_v2/),
+"13 estoque validado no backend":()=>assert.match(api,/checkout_validation_failed/),
+"14 PIX por provedor":()=>assert.match(api,/mercado_pago_online/),
+"15 abstraction de terminal":()=>assert.match(core,/KioskPaymentTerminalProvider/),
+"16 retry seguro":()=>assert.match(migration,/idempotency_key/),
+"17 idempotência de pagamento":()=>assert.match(migration,/unique\(store_id,idempotency_key\)/),
+"18 reconciliação":()=>assert.match(migration,/reconciliation_required/),
+"19 senha de retirada":()=>assert.match(migration,/create table public\.pickup_tokens/),
+"20 roteamento KDS oficial":()=>assert.match(api,/place_public_order_v2/),
+"21 painel de retirada":()=>assert.match(display,/Prontos para retirar/),
+"22 acompanhamento sem PII":()=>assert.doesNotMatch(display,/customer_name/),
+"23 device health":()=>assert.match(migration,/kiosk_device_health/),
+"24 manutenção":()=>assert.match(ui,/temporariamente indisponível/),
+"25 modo degradado":()=>assert.match(api,/degraded/),
+"26 catálogo offline":()=>assert.match(ui,/catálogo continua visível/),
+"27 múltiplos kiosks":()=>assert.match(admin,/Dispositivos vinculados/),
+"28 permissões":()=>assert.match(core,/kiosk:manage_devices/),
+"29 auditoria":()=>assert.match(migration,/kiosk_audit_events/),
+"30 isolamento tenant e loja":()=>{assert.match(migration,/organization_id uuid not null/);assert.match(migration,/store_id uuid not null/)}
+};for(const[name,fn]of Object.entries(checks))test(name,fn);
+

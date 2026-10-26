@@ -1,0 +1,18 @@
+begin;
+select plan(14);
+select has_table('public','organization_security_settings','políticas de segurança existem');
+select has_table('public','security_sessions','sessões avançadas existem');
+select has_table('public','sso_connections','SSO por organização existe');
+select has_table('public','security_audit_logs','auditoria avançada existe');
+select has_table('public','security_events','eventos de segurança existem');
+select has_table('public','backup_runs','monitoramento de backup existe');
+select has_table('public','restore_test_runs','testes de restore existem');
+select has_table('public','security_incidents','resposta a incidente existe');
+select ok((select relrowsecurity from pg_class where oid='public.security_sessions'::regclass),'RLS em sessões');
+select ok((select relrowsecurity from pg_class where oid='public.sso_connections'::regclass),'RLS em SSO');
+select ok((select relrowsecurity from pg_class where oid='public.security_audit_logs'::regclass),'RLS em auditoria');
+select has_function('public','get_security_summary',array['uuid'],'resumo seguro existe');
+select has_function('public','consume_security_rate_limit',array['text','text','integer','integer','integer','boolean'],'rate limit central existe');
+select ok(exists(select 1 from pg_trigger where tgname='security_audit_immutable'),'auditoria append-only protegida');
+select * from finish();
+rollback;

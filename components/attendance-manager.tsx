@@ -2,10 +2,12 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { StaffSectionControls } from "@/components/staff-section-controls";
+import { StaffAccessActions } from "@/components/staff-access-actions";
 
 type Mode = {
   mode: string; waiter_mode_enabled: boolean; table_service_enabled: boolean; counter_pickup_enabled: boolean;
-  delivery_enabled: boolean; customer_self_order_enabled: boolean; waiter_call_enabled: boolean;
+  takeaway_enabled: boolean; delivery_enabled: boolean; store_open: boolean; customer_self_order_enabled: boolean; waiter_call_enabled: boolean;
   bill_closing_enabled: boolean; card_proof_required: boolean; manual_active_waiters?: number | null;
   accepted_payment_methods: string[]; manager_approval_for_discount: boolean;
   manager_approval_for_cancellation: boolean; audit_enabled: boolean;
@@ -38,7 +40,7 @@ const localDate = () => {
 const formatWorkDate = (value?: string | null) =>
   value ? new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR") : "";
 const inviteMessage = (invite: WaiterInvite) => invite.isReset
-  ? `Olá, ${invite.waiterName}! Use este link para criar uma nova senha de acesso ao Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu nome completo e a nova senha.`
+  ? `Olá, ${invite.waiterName}! Use este link para criar uma nova senha de acesso ao MasterApp: ${invite.link}\n\nDepois de salvar, entre normalmente com seu nome completo e a nova senha.`
   : invite.employmentType === "daily"
   ? `Olá, ${invite.waiterName}! Seu acesso de diarista está liberado para ${formatWorkDate(invite.workDate)}. Crie sua senha neste link: ${invite.link}\n\nO acesso aos pedidos funcionará somente na data informada.`
   : `Olá, ${invite.waiterName}! Seu cadastro de funcionário está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois disso, use seu nome completo e sua senha para entrar sempre que estiver trabalhando.`;
@@ -187,7 +189,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
 
   return <div className="attendance-manager">
     {showMode && <section className="attendance-summary">
-      <article><small>MODO ATUAL</small><strong>{mode.mode === "counter" ? "Balcão" : mode.mode === "delivery" ? "Entrega" : mode.mode === "waiter" ? "Com garçom" : "Misto"}</strong></article>
+      <article><small>MODO ATUAL</small><strong>{mode.mode === "counter" ? "Retirada" : mode.mode === "delivery" ? "Entrega" : mode.mode === "waiter" ? "Com garçom" : "Misto"}</strong></article>
       <article><small>GARÇONS ATIVOS AGORA</small><strong>{activeCount}</strong></article>
       <article><small>LINK DO GARÇOM</small><strong className="small-value">/garcom/{slug}</strong></article>
     </section>}
@@ -195,18 +197,18 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     {showMode && <section className="panel attendance-config">
       <div className="panel-title-row"><div><h2>Como o estabelecimento atende?</h2><p>O cardápio e a operação mudam automaticamente conforme estas escolhas.</p></div><button className="button dark" disabled={busy} onClick={saveMode}>Salvar atendimento</button></div>
       <div className="mode-choice-grid">
-        {[["counter", "Apenas balcão", "Cliente pede e retira no local."], ["delivery", "Apenas entrega", "Pedidos com endereço de entrega."], ["waiter", "Com garçom", "Mesas, cozinha e fechamento."], ["mixed", "Atendimento misto", "Todos os canais configuráveis."]].map(([value, title, text]) =>
+        {[["counter", "Retirada e para viagem", "Cliente busca no local ou pede embalado para viagem."], ["delivery", "Apenas entrega", "Pedidos com endereço de entrega."], ["waiter", "Com garçom", "Mesas, cozinha e fechamento."], ["mixed", "Atendimento misto", "Todos os canais configuráveis."]].map(([value, title, text]) =>
           <button key={value} className={mode.mode === value ? "selected" : ""} onClick={() => {
             patch("mode", value);
-            if (value === "counter") setMode(current => ({ ...current, mode: value, waiter_mode_enabled: false, table_service_enabled: false, counter_pickup_enabled: true, delivery_enabled: false }));
-            if (value === "delivery") setMode(current => ({ ...current, mode: value, waiter_mode_enabled: false, table_service_enabled: false, counter_pickup_enabled: false, delivery_enabled: true }));
+            if (value === "counter") setMode(current => ({ ...current, mode: value, waiter_mode_enabled: false, table_service_enabled: false, counter_pickup_enabled: true, takeaway_enabled: true, delivery_enabled: false }));
+            if (value === "delivery") setMode(current => ({ ...current, mode: value, waiter_mode_enabled: false, table_service_enabled: false, counter_pickup_enabled: false, takeaway_enabled: false, delivery_enabled: true }));
             if (value === "waiter") setMode(current => ({ ...current, mode: value, waiter_mode_enabled: true, table_service_enabled: true }));
           }}><b>{title}</b><span>{text}</span></button>)}
       </div>
       <div className="attendance-toggle-grid">
         {[
           ["waiter_mode_enabled", "Usa garçons"], ["table_service_enabled", "Trabalha com mesas"],
-          ["counter_pickup_enabled", "Retirada no balcão"], ["delivery_enabled", "Entrega"],
+          ["takeaway_enabled", "Para viagem"], ["counter_pickup_enabled", "Retirada"], ["delivery_enabled", "Entrega"],
           ["customer_self_order_enabled", "Cliente pode pedir sozinho"], ["waiter_call_enabled", "Cliente pode chamar garçom"],
           ["bill_closing_enabled", "Fechamento de mesa"], ["audit_enabled", "Registrar auditoria"],
           ["card_proof_required", "Exigir comprovante no cartão"], ["manager_approval_for_discount", "Desconto exige gerente"],
@@ -218,7 +220,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
     </section>}
 
     {showTeam && <section className="panel waiter-admin" id="equipe-garcons">
-      <div className="panel-title-row"><div><h2>Garçons ativos no momento</h2><p>Cadastre, pause, bloqueie e gere o acesso individual da equipe.</p></div><div className="team-heading-actions"><span className="status-pill">{activeCount} agora</span><button type="button" className="button dark" onClick={() => { setEditing(null); setEmploymentType("fixed"); setTeamFormOpen(value => !value); }}>{teamFormOpen ? "Fechar cadastro" : "Realizar cadastro de funcionário"}</button></div></div>
+      <div className="panel-title-row"><div><h2>Equipe de garçons</h2><p>Cadastre, pause, bloqueie e gere o acesso individual da equipe.</p></div><StaffSectionControls activeCount={activeCount} totalCount={waiters.length} open={teamFormOpen} label="garçom" onToggle={() => { setEditing(null); setEmploymentType("fixed"); setTeamFormOpen(value => !value); }} /></div>
       {teamFormOpen && <form className="waiter-admin-form form" onSubmit={saveWaiter}>
         <div className="form-grid">
           <div className="field"><label>NOME</label><input name="name" required defaultValue={editing?.name || ""} key={`name-${editing?.id}`} /></div>
@@ -243,7 +245,7 @@ export function AttendanceManager({ establishmentId, slug, initialMode, initialW
           <div className="waiter-mini-metrics"><span>{metric?.tables || 0}<small>mesas</small></span><span>{metric?.orders || 0}<small>pedidos</small></span><span>{money(metric?.salesCents || 0)}<small>vendido</small></span></div>
           <div className="waiter-row-actions">
             <button type="button" onClick={() => { setEditing(waiter); setEmploymentType(waiter.employment_type || "fixed"); setTeamFormOpen(true); }}>Editar</button>
-            <button type="button" disabled={invitingId === waiter.id} onClick={() => invite(waiter)}>{invitingId === waiter.id ? "Gerando..." : waiter.user_id ? "Redefinir senha" : "Enviar acesso"}</button>
+            <StaffAccessActions name={waiter.name} phone={waiter.phone} areaLabel="garçom" loginPath="/garcom/login" activated={Boolean(waiter.user_id)} busy={invitingId === waiter.id} onCreateAccess={() => invite(waiter)} onResetPassword={() => invite(waiter)} />
             {waiter.status === "blocked" ? <button type="button" onClick={() => changeStatus(waiter, "inactive", false)}>Desbloquear</button> : <button type="button" onClick={() => changeStatus(waiter, "blocked", false)}>Bloquear</button>}
             {waiter.active_now ? <button type="button" onClick={() => changeStatus(waiter, "paused", false)}>Pausar</button> : <button type="button" onClick={() => changeStatus(waiter, "active", true)}>Ativar</button>}
             <button type="button" className="danger-action" disabled={busy} onClick={() => void removeWaiter(waiter)}>Excluir</button>

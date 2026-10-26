@@ -38,10 +38,18 @@ export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; noti
         }
         setMessage(`Enviamos a confirmação para ${email}. Confira também a pasta de spam.`);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: String(data.get("email")), password: String(data.get("password")) });
+        const email=String(data.get("email")).trim().toLowerCase();
+        const preflight=await fetch("/api/security/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+        const guard=await preflight.json();
+        if(!preflight.ok)throw new Error(guard.error||"Acesso temporariamente limitado.");
+        if(Number(guard.delay_ms)>0)await new Promise(resolve=>setTimeout(resolve,Number(guard.delay_ms)));
+        const { error } = await supabase.auth.signInWithPassword({ email, password: String(data.get("password")) });
         if (error) throw error;
-        setMessage("Login realizado. Abrindo o painel...");
-        window.location.assign("/painel");
+        await fetch("/api/security/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,success:true})});
+        const{data:aal}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if(aal?.nextLevel==="aal2"&&aal.currentLevel!=="aal2"){window.location.assign("/auth/mfa");return;}
+        setMessage("Login realizado. Abrindo sua área...");
+        window.location.assign("/auth/after-login");
         return;
       }
     } catch (error) {
@@ -61,6 +69,7 @@ export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; noti
     {mode === "login" && <Link className="auth-recovery-link" href="/recuperar-senha">Esqueci minha senha</Link>}
     {(message || notice) && <div className={`form-message ${(notice || message.startsWith("Enviamos") || message.startsWith("Login realizado")) ? "form-success" : ""}`}>{message || notice}</div>}
     <button type="submit" className="button dark wide" disabled={loading}>{loading ? "Aguarde..." : mode === "signup" ? "Criar conta grátis →" : "Entrar no painel →"}</button>
-    <p className="auth-switch">{mode === "signup" ? <>Já tem uma conta? <Link href="/login">Entrar</Link></> : <>Ainda não usa o Mesa Viva? <Link href="/cadastro">Começar grátis</Link></>}</p>
+    {mode === "login" && <Link className="auth-recovery-link" href="/auth/sso">Entrar com SSO corporativo</Link>}
+    <p className="auth-switch">{mode === "signup" ? <>Já tem uma conta? <Link href="/login">Entrar</Link></> : <>Ainda não usa o MasterApp? <Link href="/cadastro">Começar grátis</Link></>}</p>
   </form>;
 }

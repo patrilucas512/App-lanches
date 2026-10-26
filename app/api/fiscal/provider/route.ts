@@ -1,0 +1,4 @@
+import {NextResponse} from "next/server";
+import {createClient} from "@/lib/supabase/server";
+import {getFiscalProvider} from "@/lib/fiscal/provider";
+export async function POST(request:Request){const body=await request.json() as Record<string,unknown>;const establishmentId=String(body.establishment_id||"");const db=await createClient();const today=new Date().toISOString().slice(0,10);const {data,error}=await db.rpc("fiscal_phase19_summary",{requested_establishment_id:establishmentId,requested_start:today,requested_end:today});if(error)return NextResponse.json({error:error.message},{status:403});const profile=(data as Record<string,any>)?.profile||{};const health=await getFiscalProvider(String(profile.provider||"manual")).validate({environment:profile.environment||"test"});return NextResponse.json({...health,provider:profile.provider||"manual",environment:profile.environment||"test"});}

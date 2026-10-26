@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { WaiterConsole } from "@/components/waiter-console";
+import { operationTheme } from "@/lib/operation-theme";
 import { WaiterOrderTracker } from "@/components/waiter-order-tracker";
 import { getDashboardContext } from "@/lib/dashboard";
 
@@ -34,7 +35,8 @@ export default async function WaiterPage() {
   ]);
   const outsideDailyDate = waiter?.employment_type === "daily" && waiter.work_date !== saoPauloDate();
   if (member.role === "attendant" && (!serviceMode?.waiter_mode_enabled || !waiter?.active_now || outsideDailyDate || ["inactive", "paused", "blocked"].includes(waiter?.status || ""))) redirect("/garcom/login");
-  return <DashboardShell active="waiter" storeSlug={establishment.slug} role={member.role}>
+  return <DashboardShell brand={establishment} active="waiter" storeSlug={establishment.slug} role={member.role} operationColors={operationTheme(establishment)}>
+    <div className="operation-theme" style={operationTheme(establishment)}>
     <header className="dashboard-head"><div><small>OPERAÇÃO DE SALÃO</small><h1>Mesas e pedidos.</h1></div><span className="status-pill">Tempo real</span></header>
     {serviceMode?.waiter_mode_enabled ? <WaiterOrderTracker establishmentId={establishment.id} initial={{
       tickets: tickets || [], orders: orders || [], sessions: (sessions || []).map(session => ({ id: session.id, table_id: session.table_id })),
@@ -46,5 +48,6 @@ export default async function WaiterPage() {
       role={member.role} initialTables={tables || []} initialSessions={sessions || []}
       products={(products || []) as never[]} categories={categories || []}
       serviceMode={serviceMode as never} />
+    </div>
   </DashboardShell>;
 }

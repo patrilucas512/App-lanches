@@ -1,0 +1,2 @@
+import{DashboardShell}from"@/components/dashboard-shell";import{AuditPlayer}from"@/components/audit-player";import{getDashboardContext}from"@/lib/dashboard";import"../audits.css";
+export default async function Page({params}:{params:Promise<{id:string}>}){const[{id},{establishment,member}]=await Promise.all([params,getDashboardContext()]);return <DashboardShell brand={establishment} active="audits" storeSlug={establishment.slug} role={member.role}><AuditPlayer storeId={establishment.id} auditId={id}/></DashboardShell>}

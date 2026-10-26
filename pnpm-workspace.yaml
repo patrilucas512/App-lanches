@@ -1,2 +1,7 @@
+# Instaladores nativos usados no build do Site e revisados para publicação.
 allowBuilds:
   core-js: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true

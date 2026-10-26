@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/client";
 
 type QrSettings = {
+  displayName: string;
   title: string;
   subtitle: string;
   footerText: string;
@@ -27,34 +28,17 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
   image.src = src;
 });
 
-async function qrImage(link: string, color: string, logoUrl: string) {
-  const raw = await QRCode.toDataURL(link, {
-    width: 900,
-    margin: 2,
-    errorCorrectionLevel: "H",
-    color: { dark: color, light: "#ffffff" },
+async function qrImage(link: string) {
+  return QRCode.toDataURL(link, {
+    width: 1024,
+    margin: 6,
+    errorCorrectionLevel: "M",
+    color: { dark: "#000000", light: "#ffffff" },
   });
-  if (!logoUrl) return raw;
-  try {
-    const [qr, logo] = await Promise.all([loadImage(raw), loadImage(logoUrl)]);
-    const canvas = document.createElement("canvas");
-    canvas.width = 900;
-    canvas.height = 900;
-    const context = canvas.getContext("2d")!;
-    context.drawImage(qr, 0, 0, 900, 900);
-    context.fillStyle = "#ffffff";
-    context.beginPath();
-    context.roundRect(350, 350, 200, 200, 30);
-    context.fill();
-    context.drawImage(logo, 370, 370, 160, 160);
-    return canvas.toDataURL("image/png");
-  } catch {
-    return raw;
-  }
 }
 
 async function printableCard(link: string, settings: QrSettings, establishmentName: string) {
-  const qr = await loadImage(await qrImage(link, settings.primaryColor, settings.logoUrl));
+  const qr = await loadImage(await qrImage(link));
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
   canvas.height = 1600;
@@ -65,7 +49,7 @@ async function printableCard(link: string, settings: QrSettings, establishmentNa
   context.textAlign = "center";
   context.fillStyle = premium ? "#ffffff" : "#171713";
   context.font = "700 52px Arial";
-  context.fillText(establishmentName, 600, 105);
+  context.fillText(settings.displayName.trim() || establishmentName, 600, 105);
   context.font = "700 66px Arial";
   context.fillText(settings.title, 600, 205);
   context.fillStyle = "#ffffff";
@@ -84,15 +68,15 @@ async function printableCard(link: string, settings: QrSettings, establishmentNa
   return canvas.toDataURL("image/png");
 }
 
-function QrPreview({ link, color, logoUrl }: { link: string; color: string; logoUrl: string }) {
+function QrPreview({ link }: { link: string }) {
   const [src, setSrc] = useState("");
   useEffect(() => {
     let active = true;
-    void qrImage(link, color, logoUrl).then(value => {
+    void qrImage(link).then(value => {
       if (active) setSrc(value);
     });
     return () => { active = false; };
-  }, [link, color, logoUrl]);
+  }, [link]);
   return src
     ? <img className="qr-preview-image" src={src} alt="Prévia do QR Code geral" />
     : <div className="qr-loading">Gerando...</div>;
@@ -121,7 +105,9 @@ export function QrCodeManager({
     const timer = window.setTimeout(() => setOrigin(window.location.origin), 0);
     return () => window.clearTimeout(timer);
   }, []);
-  const menuLink = `${origin}/loja/${slug}?origem=qr`;
+  const menuLink = origin
+    ? new URL(`/q/${encodeURIComponent(slug)}`, origin).toString()
+    : "";
 
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,6 +127,7 @@ export function QrCodeManager({
     }
     const { error } = await supabase.from("qr_code_settings").upsert({
       establishment_id: establishmentId,
+      display_name: settings.displayName.trim() || establishmentName,
       title: settings.title,
       subtitle: settings.subtitle,
       footer_text: settings.footerText,
@@ -159,6 +146,15 @@ export function QrCodeManager({
     link.href = image;
     link.download = `qr-cardapio-${slug}.png`;
     link.click();
+  }
+
+  async function downloadDirectQr() {
+    const image = await qrImage(menuLink);
+    const link = document.createElement("a");
+    link.href = image;
+    link.download = `qr-direto-atualizado-${slug}.png`;
+    link.click();
+    setMessage("Novo QR direto baixado. Substitua qualquer QR antigo por este arquivo.");
   }
 
   async function downloadPdf() {
@@ -192,24 +188,32 @@ export function QrCodeManager({
     </section>
     <div className="qr-layout">
       <section className="panel qr-preview-panel">
+        <div className="qr-update-notice">
+          <b>NOVO QR COM ACESSO DIRETO</b>
+          <p>O endereço correto começa com <strong>/q/{slug}</strong>. Se a câmera mostrar <strong>/loja/</strong>, você está escaneando o arquivo antigo.</p>
+        </div>
         <div className="qr-preview-card" data-template={settings.template} style={{ "--qr-color": settings.primaryColor } as React.CSSProperties}>
-          <b>{establishmentName}</b>
+          {settings.logoUrl && <img className="qr-card-logo" src={settings.logoUrl} alt={`Logotipo de ${settings.displayName || establishmentName}`} />}
+          <b>{settings.displayName || establishmentName}</b>
           <h2>{settings.title}</h2>
-          {origin && <QrPreview link={menuLink} color={settings.primaryColor} logoUrl={settings.logoUrl} />}
+          {origin && <QrPreview link={menuLink} />}
+          <span className="qr-camera-ready">QR puro conectado ao cardápio e otimizado para câmera</span>
           <strong>Cardápio digital</strong>
           <p>{settings.subtitle}</p>
           <small>{settings.footerText}</small>
         </div>
         <div className="qr-link"><span>{menuLink}</span><button onClick={() => { void navigator.clipboard.writeText(menuLink); setMessage("Link copiado."); }}>Copiar link</button></div>
-        <div className="qr-actions"><button className="button dark" onClick={downloadPng}>Baixar PNG</button><button className="button outline" onClick={downloadPdf}>Baixar PDF</button><button className="button outline" onClick={printCode}>Imprimir</button></div>
+        <a className="button outline wide qr-test-link" href={menuLink} target="_blank" rel="noreferrer">Abrir cardápio e testar QR</a>
+        <div className="qr-actions"><button className="button dark" onClick={downloadDirectQr}>Baixar novo QR direto</button><button className="button outline" onClick={downloadPng}>Baixar cartaz PNG</button><button className="button outline" onClick={downloadPdf}>Baixar PDF</button><button className="button outline" onClick={printCode}>Imprimir</button></div>
       </section>
       <section className="panel">
         <h2>Personalização</h2>
         <form className="form" onSubmit={saveSettings}>
+          <div className="field"><label>NOME EXIBIDO NO CARTÃO</label><input minLength={2} maxLength={80} required value={settings.displayName} onChange={event => setSettings({ ...settings, displayName: event.target.value })} /></div>
           <div className="field"><label>TÍTULO</label><input value={settings.title} onChange={event => setSettings({ ...settings, title: event.target.value })} /></div>
           <div className="field"><label>SUBTÍTULO</label><input value={settings.subtitle} onChange={event => setSettings({ ...settings, subtitle: event.target.value })} /></div>
           <div className="field"><label>TEXTO INFERIOR</label><input value={settings.footerText} onChange={event => setSettings({ ...settings, footerText: event.target.value })} /></div>
-          <div className="form-grid"><div className="field"><label>COR PRINCIPAL</label><input type="color" value={settings.primaryColor} onChange={event => setSettings({ ...settings, primaryColor: event.target.value })} /></div><div className="field"><label>MODELO</label><select value={settings.template} onChange={event => setSettings({ ...settings, template: event.target.value as QrSettings["template"] })}><option value="simple">Simples</option><option value="premium">Premium</option><option value="counter">Balcão</option></select></div></div>
+          <div className="form-grid"><div className="field"><label>COR PRINCIPAL</label><input type="color" value={settings.primaryColor} onChange={event => setSettings({ ...settings, primaryColor: event.target.value })} /></div><div className="field"><label>MODELO</label><select value={settings.template} onChange={event => setSettings({ ...settings, template: event.target.value as QrSettings["template"] })}><option value="simple">Simples</option><option value="premium">Premium</option><option value="counter">Retirada</option></select></div></div>
           <div className="field">
             <label>LOGOTIPO</label>
             <label className="photo-picker">
@@ -217,7 +221,8 @@ export function QrCodeManager({
               <span>{logoFile ? logoFile.name : "Escolher imagem da galeria"}</span>
             </label>
             {settings.logoUrl && <img className="brand-logo-preview" src={settings.logoUrl} alt="Logotipo atual" />}
-            <small>JPG, PNG ou WebP de até 8 MB.</small>
+            {settings.logoUrl && <button className="button outline" type="button" onClick={() => { setLogoFile(null); setSettings(current => ({ ...current, logoUrl: "" })); }}>Remover logotipo</button>}
+            <small>JPG, PNG ou WebP de até 8 MB. O logotipo aparece no cartão, sem cobrir o QR Code, para preservar a leitura pela câmera.</small>
           </div>
           <button className="button dark wide" disabled={busy}>Salvar personalização</button>
         </form>

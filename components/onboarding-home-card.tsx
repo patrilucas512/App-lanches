@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function OnboardingHomeCard({progress,currentStep}:{progress:number;currentStep?:string|null}){return <section className="onboarding-home-card"><div><small>PRIMEIROS PASSOS</small><h2>Vamos deixar sua loja pronta.</h2><p>Configuração salva e compartilhada com os administradores. Próxima etapa: <b>{currentStep?.replaceAll("_"," ")||"revisar checklist"}</b>.</p></div><div><strong>{Math.round(progress)}%</strong><i><span style={{width:`${progress}%`}}/></i><Link href="/onboarding">Continuar configuração →</Link></div></section>}

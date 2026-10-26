@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { requireSuperadmin } from "@/lib/superadmin";
+
+function csv(value: unknown) { return `"${String(value ?? "").replaceAll('"','""')}"`; }
+export async function GET() { const { supabase } = await requireSuperadmin(); const { data } = await supabase.from("establishments").select("name,slug,email,phone,city,state,active,created_at,subscriptions(status,plans(name))").order("created_at"); const lines = [["Estabelecimento","Slug","Email","Telefone","Cidade","Estado","Plano","Assinatura","Ativo","Cadastro"].map(csv).join(","), ...(data ?? []).map(row => [row.name,row.slug,row.email,row.phone,row.city,row.state,row.subscriptions?.[0]?.plans?.[0]?.name,row.subscriptions?.[0]?.status,row.active,row.created_at].map(csv).join(","))]; return new NextResponse(`\uFEFF${lines.join("\n")}`, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="estabelecimentos-${new Date().toISOString().slice(0,10)}.csv"` } }); }

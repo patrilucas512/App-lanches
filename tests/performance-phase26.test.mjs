@@ -1,0 +1,36 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const migration=readFileSync(new URL("../supabase/migrations/20261012144725_performance_scalability_phase26.sql",import.meta.url),"utf8");
+const core=readFileSync(new URL("../lib/observability/core.ts",import.meta.url),"utf8");
+const proxy=readFileSync(new URL("../proxy.ts",import.meta.url),"utf8");
+const health=readFileSync(new URL("../app/api/health/route.ts",import.meta.url),"utf8");
+const worker=readFileSync(new URL("../app/api/performance/worker/route.ts",import.meta.url),"utf8");
+const page=readFileSync(new URL("../components/performance-center.tsx",import.meta.url),"utf8");
+const load=readFileSync(new URL("../scripts/load-test-phase26.mjs",import.meta.url),"utf8");
+const ci=readFileSync(new URL("../.github/workflows/quality.yml",import.meta.url),"utf8");
+
+test("1 correlation ID",()=>assert.match(proxy,/x-correlation-id/i));
+test("2 structured logs",()=>{assert.match(core,/structuredLog/);assert.match(core,/\[redacted\]/)});
+test("3 tracing",()=>{assert.match(core,/withTrace/);assert.match(migration,/observability_trace_spans/)});
+test("4 cache",()=>assert.match(core,/class TenantCache/));
+test("5 cache invalidation",()=>assert.match(migration,/invalidate_cache_namespace/));
+test("6 queue priority",()=>assert.match(migration,/critical.*high.*normal.*low.*batch/s));
+test("7 retry",()=>{assert.match(migration,/retry_scheduled/);assert.match(migration,/power\(2/)});
+test("8 DLQ",()=>assert.match(migration,/operational_dead_letters/));
+test("9 job idempotency",()=>assert.match(migration,/operational_jobs_idempotency_idx/));
+test("10 webhook async worker",()=>assert.match(worker,/claim_operational_jobs/));
+test("11 rate limit remains available",()=>assert.match(readFileSync(new URL("../supabase/migrations/20261012150000_security_enterprise_phase25.sql",import.meta.url),"utf8"),/consume_security_rate_limit/));
+test("12 circuit breaker",()=>{assert.match(core,/class CircuitBreaker/);assert.match(migration,/integration_circuit_breakers/)});
+test("13 timeout",()=>{assert.match(core,/AbortSignal\.timeout/);assert.match(migration,/timeout_seconds/)});
+test("14 database pool telemetry",()=>assert.match(readFileSync(new URL("../docs/performance-phase26-diagnostic.md",import.meta.url),"utf8"),/Conexões.*7\/60/i));
+test("15 pagination",()=>assert.match(core,/cursorPage/));
+test("16 N+1 detection",()=>assert.match(readFileSync(new URL("../docs/performance-phase26-diagnostic.md",import.meta.url),"utf8"),/pg_stat_statements/));
+test("17 graceful shutdown runbook",()=>assert.match(readFileSync(new URL("../docs/performance-runbooks-phase26.md",import.meta.url),"utf8"),/concluir o lote atual/));
+test("18 health checks",()=>{assert.match(health,/liveness/);assert.match(health,/readiness/)});
+test("19 load test",()=>{assert.match(load,/LOAD_TEST_CONCURRENCY/);assert.match(load,/produção bloqueado/i)});
+test("20 tenant fairness",()=>assert.match(migration,/partition by coalesce\(j\.organization_id/));
+test("21 autoscaling metrics",()=>assert.match(readFileSync(new URL("../docs/performance-capacity-phase26.md",import.meta.url),"utf8"),/queue depth/));
+test("22 degraded mode",()=>{assert.match(migration,/degradation_controls/);assert.match(page,/pause_low_priority/)});
+test("23 deployment compatibility",()=>{assert.match(migration,/add column if not exists/);assert.match(ci,/performance-phase26/)});

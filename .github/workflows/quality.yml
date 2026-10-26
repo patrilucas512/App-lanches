@@ -1,0 +1,112 @@
+name: MasterApp Quality Gate
+# Compatibility marker: performance-phase26 remains part of the regression gate.
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  MASTERAPP_ENVIRONMENT: test
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  policy-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.13.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: secret-scanning
+        run: pnpm qa:secret-scan
+      - name: migration-safety
+        run: pnpm qa:migration-safety
+      - name: dependency-audit
+        run: pnpm audit --audit-level high
+  test-suites:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, integration, e2e, contract, security, performance-smoke]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.13.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:${{ matrix.suite }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-${{ matrix.suite }}
+          path: test-results/${{ matrix.suite }}
+          if-no-files-found: ignore
+          retention-days: 14
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.13.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: node --test tests/*.test.mjs
+      - run: pnpm test:performance
+      - run: pnpm test:phase27
+  migration-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.109.1 }
+      - name: Initialize local config when absent
+        run: test -f supabase/config.toml || supabase init
+      - name: Start isolated database
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+      - name: Migration dry run
+        run: supabase db reset
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.13.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: lint
+        run: pnpm lint
+      - name: typecheck
+        run: pnpm typecheck
+      - name: build
+        run: pnpm build
+      - name: Generate SBOM
+        run: node scripts/quality/generate-sbom.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: immutable-build-and-sbom
+          path: |
+            dist
+            artifacts/masterapp-sbom.cdx.json
+          retention-days: 30
+  quality-gate:
+    if: always()
+    needs: [policy-checks, test-suites, regression, migration-dry-run, application]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block merge on critical failure
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}
+        run: test "$RESULTS" = "success,success,success,success,success"

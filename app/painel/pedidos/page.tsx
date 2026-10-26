@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { WaiterConsole } from "@/components/waiter-console";
+import { operationTheme } from "@/lib/operation-theme";
 import { WaiterOrderTracker } from "@/components/waiter-order-tracker";
 import { WeeklySalesReport } from "@/components/weekly-sales-report";
+import { DeliveryDispatchManager } from "@/components/delivery-dispatch-manager";
 import { getDashboardContext } from "@/lib/dashboard";
 import { currentWeekDateKeys, saoPauloDateKey } from "@/lib/business-hours";
 
@@ -11,7 +13,7 @@ export default async function OrdersPage() {
   if (!["owner", "manager"].includes(member.role)) redirect("/painel/garcom");
 
   const recentDate = new Date(Date.now() - 9 * 86400000).toISOString();
-  const [{ data: tables }, { data: sessions }, { data: products }, { data: categories }, { data: serviceMode }, { data: tickets }, { data: tableOrders }, { data: publicOrders }, { data: profile }, { data: weeklyPublicOrders }, { data: weeklyTableOrders }] = await Promise.all([
+  const [{ data: tables }, { data: sessions }, { data: products }, { data: categories }, { data: serviceMode }, { data: tickets }, { data: tableOrders }, { data: publicOrders }, { data: profile }, { data: weeklyPublicOrders }, { data: weeklyTableOrders }, { data: dispatchDeliveries }, { data: driverAvailability }, { data: deliveryAssignments }, { data: deliveryDashboard }, { data: deliveryAlerts }] = await Promise.all([
     supabase.from("restaurant_tables").select("*").eq("establishment_id", establishment.id).eq("is_active", true).order("table_number"),
     supabase.from("table_sessions").select("*").eq("establishment_id", establishment.id).in("status", ["open", "awaiting_payment", "paid"]),
     supabase.from("products").select("id,name,description,image_url,price_cents,category_id,product_variations(id,name,price_delta_cents,active),product_addon_groups(addon_groups(id,name,addons(id,name,price_cents,active)))").eq("establishment_id", establishment.id).eq("active", true).order("sort_order"),
@@ -23,6 +25,11 @@ export default async function OrdersPage() {
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
     supabase.from("orders").select("id,order_number,customer_name,total_cents,status,created_at,fulfillment_type,restaurant_tables(table_number),order_items(product_name,quantity,unit_price_cents,total_cents)").eq("establishment_id", establishment.id).gte("created_at", recentDate),
     supabase.from("table_orders").select("id,order_number,kitchen_status,created_at,table_order_items(product_name,quantity,unit_price_cents,total_cents),table_sessions(customer_name,restaurant_tables(table_number))").eq("establishment_id", establishment.id).gte("created_at", recentDate),
+    supabase.from("deliveries").select("id,status,ready_at,dispatch_started_at,customer_delivery_fee_cents,estimated_min_minutes,estimated_max_minutes,estimated_arrival_at,orders(order_number,customer_name,total_cents)").eq("establishment_id", establishment.id).in("status", ["ready_for_dispatch", "searching_driver", "driver_assigned", "driver_to_pickup", "picked_up", "on_route", "arrived", "returning_to_store"]).order("ready_at", { ascending: true }),
+    supabase.from("driver_availability").select("driver_profile_id,status,driver_profiles(custom_staff_members(name))").eq("establishment_id", establishment.id),
+    supabase.from("delivery_assignments").select("id,delivery_id,driver_profile_id,group_suggestion_id,status,expires_at,driver_profiles(custom_staff_members(name))").eq("establishment_id", establishment.id).in("status", ["offered", "accepted"]),
+    supabase.rpc("get_delivery_operations_dashboard", { requested_establishment_id: establishment.id }),
+    supabase.rpc("refresh_delivery_operational_alerts", { requested_establishment_id: establishment.id }),
   ]);
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
   const weekKeys = currentWeekDateKeys();
@@ -44,7 +51,7 @@ export default async function OrdersPage() {
     const dayOrders = [
       ...publicDay.map(order => {
         const table = Array.isArray(order.restaurant_tables) ? order.restaurant_tables[0] : order.restaurant_tables;
-        return { id: order.id, number: order.order_number, customer: order.customer_name, location: order.fulfillment_type === "dine_in" ? table?.table_number || "Salão" : order.fulfillment_type === "delivery" ? "Entrega" : "Balcão", totalCents: order.total_cents, status: order.status, createdAt: order.created_at };
+        return { id: order.id, number: order.order_number, customer: order.customer_name, location: order.fulfillment_type === "dine_in" ? table?.table_number || "Salão" : order.fulfillment_type === "delivery" ? "Entrega" : order.fulfillment_type === "takeaway" ? "Para viagem" : "Retirada", totalCents: order.total_cents, status: order.status, createdAt: order.created_at };
       }),
       ...tableDay.map(order => {
         const session = Array.isArray(order.table_sessions) ? order.table_sessions[0] : order.table_sessions;
@@ -62,14 +69,31 @@ export default async function OrdersPage() {
   const diningOrders = validPublicOrders.filter(order => order.fulfillment_type === "dine_in");
   const channelStats = [
     { label: "Cozinha", detail: "Todos os pedidos preparados", count: validPublicOrders.length + validTableOrders.length, total: validPublicOrders.reduce((sum, order) => sum + order.total_cents, 0) + validTableOrders.reduce((sum, order) => sum + tableOrderTotal(order), 0) },
-    { label: "Balcão", detail: "Retirada e pedidos de entrega", count: counterOrders.length, total: counterOrders.reduce((sum, order) => sum + order.total_cents, 0) },
+    { label: "Retirada", detail: "Retirada, viagem e entrega", count: counterOrders.length, total: counterOrders.reduce((sum, order) => sum + order.total_cents, 0) },
     { label: "Salão", detail: "Mesas e consumo no local", count: diningOrders.length + validTableOrders.length, total: diningOrders.reduce((sum, order) => sum + order.total_cents, 0) + validTableOrders.reduce((sum, order) => sum + tableOrderTotal(order), 0) },
   ];
   const historyRows = [
-    ...(publicOrders || []).map(order => ({
-      id: order.id, number: order.order_number, customer: order.customer_name, table: order.fulfillment_type === "dine_in" ? (Array.isArray(order.restaurant_tables) ? order.restaurant_tables[0]?.table_number : order.restaurant_tables?.table_number) || "Informada no pedido" : "—",
-      totalCents: order.total_cents, status: order.status, createdAt: order.created_at,
-    })),
+    ...(publicOrders || []).map(order => {
+      const tableRelation = order.restaurant_tables as
+        | { table_number?: string | null }
+        | { table_number?: string | null }[]
+        | null;
+      const table = Array.isArray(tableRelation)
+        ? tableRelation[0]
+        : tableRelation;
+      return {
+        id: order.id,
+        number: order.order_number,
+        customer: order.customer_name,
+        table:
+          order.fulfillment_type === "dine_in"
+            ? table?.table_number || "Informada no pedido"
+            : "—",
+        totalCents: order.total_cents,
+        status: order.status,
+        createdAt: order.created_at,
+      };
+    }),
     ...(tableOrders || []).map(order => {
       const session = Array.isArray(order.table_sessions) ? order.table_sessions[0] : order.table_sessions;
       const table = Array.isArray(session?.restaurant_tables) ? session?.restaurant_tables[0] : session?.restaurant_tables;
@@ -78,9 +102,9 @@ export default async function OrdersPage() {
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const historyTotal = historyRows.filter(order => order.status !== "canceled").reduce((sum, order) => sum + order.totalCents, 0);
 
-  return <DashboardShell active="orders" storeSlug={establishment.slug} role={member.role}>
+  return <DashboardShell brand={establishment} active="orders" storeSlug={establishment.slug} role={member.role} operationColors={operationTheme(establishment)}>
     <header className="dashboard-head">
-      <div><small>OPERAÇÃO CENTRALIZADA</small><h1>Pedidos da loja.</h1><p>Acompanhe cozinha, balcão, salão, vendas e histórico em uma única área.</p></div>
+      <div><small>OPERAÇÃO CENTRALIZADA</small><h1>Pedidos da loja.</h1><p>Acompanhe cozinha, retirada, salão, vendas e histórico em uma única área.</p></div>
       <span className="status-pill">Tempo real</span>
     </header>
 
@@ -93,7 +117,16 @@ export default async function OrdersPage() {
 
     <WeeklySalesReport days={weeklyStats} todayKey={todayKey} />
 
-    <section id="mesas-e-pedidos">
+    <DeliveryDispatchManager
+      establishmentId={establishment.id}
+      initialDeliveries={(dispatchDeliveries || []) as never[]}
+      initialDrivers={(driverAvailability || []) as never[]}
+      initialAssignments={(deliveryAssignments || []) as never[]}
+      initialDashboard={(deliveryDashboard || null) as never}
+      initialAlerts={(deliveryAlerts || []) as never[]}
+    />
+
+    <section id="mesas-e-pedidos" className="operation-theme" style={operationTheme(establishment)}>
       {serviceMode?.waiter_mode_enabled && <WaiterOrderTracker establishmentId={establishment.id} initial={{
         tickets: tickets || [],
         orders: tableOrders || [],

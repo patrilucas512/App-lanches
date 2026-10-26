@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-export function Brand({ compact = false }: { compact?: boolean }) {
-  return <Link className={`brand ${compact ? "compact" : ""}`} href="/"><span className="brand-mark">M</span><span><b>MESA VIVA</b>{!compact && <small>TECNOLOGIA PARA RESTAURANTES</small>}</span></Link>;
+export function Brand({ compact = false, href = "/", name = "MASTERAPP", logo }: { compact?: boolean; href?: string; name?: string; logo?: string }) {
+  return <Link className={`brand ${compact ? "compact" : ""}`} href={href}>{logo ? <img className="brand-mark" src={logo} alt={`Logo de ${name}`} /> : <span className="brand-mark">{name.charAt(0)}</span>}<span><b>{name}</b>{!compact && <small>TECNOLOGIA PARA RESTAURANTES</small>}</span></Link>;
 }
 
 export function MarketingHeader() {

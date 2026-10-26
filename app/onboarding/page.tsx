@@ -1,6 +1,8 @@
 import { Brand } from "@/components/ui";
 import { OnboardingForm, type OnboardingInitialData } from "@/components/onboarding-form";
+import { GuidedOnboarding } from "@/components/guided-onboarding";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +13,15 @@ export default async function OnboardingPage() {
   const userId = claimsData?.claims?.sub;
   if (!userId) redirect("/login");
 
-  const { data: membership } = await supabase
+  const cookieStore = await cookies();
+  const activeStoreId = cookieStore.get("masterapp_active_store")?.value;
+  const { data: memberships } = await supabase
     .from("establishment_members")
-    .select("establishment_id")
+    .select("establishment_id, role")
     .eq("user_id", userId)
-    .eq("role", "owner")
-    .limit(1)
-    .maybeSingle();
+    .eq("status", "active")
+    .order("created_at");
+  const membership = memberships?.find(item => item.establishment_id === activeStoreId) ?? memberships?.[0];
 
   let initial: OnboardingInitialData | undefined;
   if (membership) {
@@ -25,7 +29,6 @@ export default async function OnboardingPage() {
       supabase.from("establishments").select("*").eq("id", membership.establishment_id).single(),
       supabase.from("establishment_settings").select("*").eq("establishment_id", membership.establishment_id).single(),
     ]);
-    if (establishment?.onboarding_completed) redirect("/painel");
     if (establishment) {
       initial = {
         hasEstablishment: true,
@@ -44,6 +47,8 @@ export default async function OnboardingPage() {
       };
     }
   }
+
+  if (membership) return <main className="guided-onboarding-page"><GuidedOnboarding /></main>;
 
   return (
     <main className="auth-page onboarding-page">

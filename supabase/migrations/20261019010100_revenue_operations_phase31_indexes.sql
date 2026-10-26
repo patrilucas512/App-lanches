@@ -1,0 +1,20 @@
+-- Phase 31 follow-up: covering indexes for Revenue Ops foreign keys used by governance screens.
+create index revenue_permissions_updated_by_idx on public.revenue_ops_permissions(updated_by);
+create index revenue_snapshots_locked_by_idx on public.revenue_snapshots(locked_by) where locked_by is not null;
+create index revenue_forecasts_opportunity_idx on public.revenue_forecasts(opportunity_id);
+create index revenue_forecasts_updated_by_idx on public.revenue_forecasts(updated_by) where updated_by is not null;
+create index revenue_targets_user_idx on public.revenue_targets(user_id) where user_id is not null;
+create index revenue_targets_owner_idx on public.revenue_targets(owner_user_id) where owner_user_id is not null;
+create index revenue_targets_created_by_idx on public.revenue_targets(created_by) where created_by is not null;
+create index marketing_spend_created_by_idx on public.marketing_spend(created_by) where created_by is not null;
+create index revenue_cost_org_idx on public.revenue_cost_entries(organization_id) where organization_id is not null;
+create index revenue_cost_plan_idx on public.revenue_cost_entries(plan_id) where plan_id is not null;
+create index revenue_cost_created_by_idx on public.revenue_cost_entries(created_by) where created_by is not null;
+create index revenue_budgets_owner_idx on public.revenue_budgets(owner_user_id) where owner_user_id is not null;
+create index revenue_budgets_created_by_idx on public.revenue_budgets(created_by) where created_by is not null;
+create index revenue_scenarios_created_by_idx on public.revenue_scenarios(created_by) where created_by is not null;
+create index revenue_scenario_versions_created_by_idx on public.revenue_scenario_versions(created_by) where created_by is not null;
+create index revenue_goal_comments_target_idx on public.revenue_goal_comments(target_id);
+create index revenue_goal_comments_created_by_idx on public.revenue_goal_comments(created_by) where created_by is not null;
+create index revenue_summaries_generated_by_idx on public.revenue_executive_summaries(generated_by) where generated_by is not null;
+create index revenue_audit_actor_idx on public.revenue_ops_audit_events(actor_user_id,created_at desc) where actor_user_id is not null;

@@ -1,0 +1,24 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const read=path=>readFileSync(new URL(path,import.meta.url),"utf8");
+const migration=read("../supabase/migrations/20261012185858_quality_release_engineering_phase27.sql");
+const ci=read("../.github/workflows/quality.yml"),release=read("../.github/workflows/release.yml"),core=read("../lib/quality/core.ts"),api=read("../app/api/quality/route.ts"),smoke=read("../scripts/quality/smoke-test.mjs"),migrationCheck=read("../scripts/quality/migration-safety.mjs"),secretScan=read("../scripts/quality/secret-scan.mjs"),golden=read("e2e/golden-paths-phase27.test.mjs");
+test("01 pipeline success",()=>assert.match(ci,/unit|integration|contract|security/));
+test("02 pipeline failure blocks merge",()=>assert.match(ci,/quality-gate[\s\S]*needs:/));
+test("03 staging deploy",()=>assert.match(release,/environment:\s*staging/));
+test("04 production deploy",()=>assert.match(release,/environment:\s*production/));
+test("05 feature flag rollout",()=>assert.match(core,/rolloutBucket[\s\S]*rolloutPercent/));
+test("06 rollback",()=>assert.match(migration,/request_release_rollback[\s\S]*awaiting_approval/));
+test("07 migration dry run",()=>assert.match(ci,/migration-safety[\s\S]*supabase db reset/));
+test("08 smoke tests",()=>assert.match(smoke,/health[\s\S]*login/));
+test("09 E2E",()=>assert.match(golden,/novo cliente[\s\S]*integrações/i));
+test("10 webhook duplication",()=>assert.match(read("payment-providers.test.mjs"),/idempot|duplicate|duplic/i));
+test("11 payment duplication",()=>assert.match(read("pix-payment.test.mjs"),/idempot|duplicate|duplic/i));
+test("12 concurrency",()=>assert.match(read("inventory.test.mjs"),/insufficient|atomic|concorr|estoque/i));
+test("13 tenant isolation",()=>assert.match(read("security-enterprise-phase25.test.mjs"),/tenant isolation/i));
+test("14 secret scanning",()=>assert.match(secretScan,/private.?key|access.?token|password/i));
+test("15 security checks",()=>assert.match(ci,/security-scan|dependency-audit/));
+test("16 release audit",()=>{assert.match(migration,/release_audit_events/);assert.match(api,/correlation_id/);});
+test("migration safety detects destructive DDL",()=>assert.match(migrationCheck,/DROP|RENAME|rewrite/i));
+

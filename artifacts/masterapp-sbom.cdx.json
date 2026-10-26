@@ -1,0 +1,196 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:07b60c8e-a6bb-4576-9d20-5a17c0402fc1",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-12T19:06:41.960Z",
+    "component": {
+      "type": "application",
+      "name": "masterapp-cardapio",
+      "version": "0.1.0"
+    },
+    "properties": [
+      {
+        "name": "masterapp:lockfile:sha256",
+        "value": "b072dbaaaf5b481adf733feae0fdbd6fa2632e856415f36239e397c0868bb9ac"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "@supabase/ssr",
+      "version": "0.12.3",
+      "purl": "pkg:npm/%40supabase%2Fssr@0.12.3"
+    },
+    {
+      "type": "library",
+      "name": "@supabase/supabase-js",
+      "version": "2.110.8",
+      "purl": "pkg:npm/%40supabase%2Fsupabase-js@2.110.8"
+    },
+    {
+      "type": "library",
+      "name": "drizzle-orm",
+      "version": "0.45.2",
+      "purl": "pkg:npm/drizzle-orm@0.45.2"
+    },
+    {
+      "type": "library",
+      "name": "jspdf",
+      "version": "3.0.3",
+      "purl": "pkg:npm/jspdf@3.0.3"
+    },
+    {
+      "type": "library",
+      "name": "next",
+      "version": "16.2.6",
+      "purl": "pkg:npm/next@16.2.6"
+    },
+    {
+      "type": "library",
+      "name": "qrcode",
+      "version": "1.5.4",
+      "purl": "pkg:npm/qrcode@1.5.4"
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "19.2.6",
+      "purl": "pkg:npm/react@19.2.6"
+    },
+    {
+      "type": "library",
+      "name": "react-dom",
+      "version": "19.2.6",
+      "purl": "pkg:npm/react-dom@19.2.6"
+    },
+    {
+      "type": "library",
+      "name": "stripe",
+      "version": "22.3.2",
+      "purl": "pkg:npm/stripe@22.3.2"
+    },
+    {
+      "type": "library",
+      "name": "xlsx",
+      "version": "0.18.5",
+      "purl": "pkg:npm/xlsx@0.18.5"
+    },
+    {
+      "type": "library",
+      "name": "zod",
+      "version": "4.4.3",
+      "purl": "pkg:npm/zod@4.4.3"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/vite-plugin",
+      "version": "1.37.1",
+      "purl": "pkg:npm/%40cloudflare%2Fvite-plugin@1.37.1"
+    },
+    {
+      "type": "library",
+      "name": "@tailwindcss/postcss",
+      "version": "4.2.1",
+      "purl": "pkg:npm/%40tailwindcss%2Fpostcss@4.2.1"
+    },
+    {
+      "type": "library",
+      "name": "@types/node",
+      "version": "22.19.19",
+      "purl": "pkg:npm/%40types%2Fnode@22.19.19"
+    },
+    {
+      "type": "library",
+      "name": "@types/qrcode",
+      "version": "1.5.6",
+      "purl": "pkg:npm/%40types%2Fqrcode@1.5.6"
+    },
+    {
+      "type": "library",
+      "name": "@types/react",
+      "version": "19.2.14",
+      "purl": "pkg:npm/%40types%2Freact@19.2.14"
+    },
+    {
+      "type": "library",
+      "name": "@types/react-dom",
+      "version": "19.2.3",
+      "purl": "pkg:npm/%40types%2Freact-dom@19.2.3"
+    },
+    {
+      "type": "library",
+      "name": "@vitejs/plugin-react",
+      "version": "6.0.2",
+      "purl": "pkg:npm/%40vitejs%2Fplugin-react@6.0.2"
+    },
+    {
+      "type": "library",
+      "name": "@vitejs/plugin-rsc",
+      "version": "0.5.26",
+      "purl": "pkg:npm/%40vitejs%2Fplugin-rsc@0.5.26"
+    },
+    {
+      "type": "library",
+      "name": "drizzle-kit",
+      "version": "0.31.10",
+      "purl": "pkg:npm/drizzle-kit@0.31.10"
+    },
+    {
+      "type": "library",
+      "name": "eslint",
+      "version": "9.39.4",
+      "purl": "pkg:npm/eslint@9.39.4"
+    },
+    {
+      "type": "library",
+      "name": "eslint-config-next",
+      "version": "16.2.6",
+      "purl": "pkg:npm/eslint-config-next@16.2.6"
+    },
+    {
+      "type": "library",
+      "name": "react-server-dom-webpack",
+      "version": "19.2.6",
+      "purl": "pkg:npm/react-server-dom-webpack@19.2.6"
+    },
+    {
+      "type": "library",
+      "name": "supabase",
+      "version": "2.109.1",
+      "purl": "pkg:npm/supabase@2.109.1"
+    },
+    {
+      "type": "library",
+      "name": "tailwindcss",
+      "version": "4.2.1",
+      "purl": "pkg:npm/tailwindcss@4.2.1"
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "5.9.3",
+      "purl": "pkg:npm/typescript@5.9.3"
+    },
+    {
+      "type": "library",
+      "name": "vinext",
+      "version": "0.0.50",
+      "purl": "pkg:npm/vinext@0.0.50"
+    },
+    {
+      "type": "library",
+      "name": "vite",
+      "version": "8.0.13",
+      "purl": "pkg:npm/vite@8.0.13"
+    },
+    {
+      "type": "library",
+      "name": "wrangler",
+      "version": "4.92.0",
+      "purl": "pkg:npm/wrangler@4.92.0"
+    }
+  ]
+}

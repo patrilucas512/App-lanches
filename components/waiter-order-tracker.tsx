@@ -62,7 +62,7 @@ export function WaiterOrderTracker({ establishmentId, initial }: { establishment
     const order = source.orders.find(value => value.id === ticket.table_order_id);
     const session = source.sessions.find(value => value.id === order?.table_session_id);
     const table = source.tables.find(value => value.id === session?.table_id);
-    return { orderNumber: order?.order_number, table };
+    return { orderNumber: order?.order_number, table, sessionId: order?.table_session_id };
   }
 
   function signalAlert(ticket: Ticket, status: string, source: WaiterTrackingData) {
@@ -118,6 +118,8 @@ export function WaiterOrderTracker({ establishmentId, initial }: { establishment
   }
 
   useEffect(() => {
+    void refresh();
+    const refreshTimer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 10000);
     const resumePush = window.setTimeout(() => {
       if (typeof Notification !== "undefined" && Notification.permission === "granted") void enablePushNotifications(false);
     }, 0);
@@ -129,7 +131,7 @@ export function WaiterOrderTracker({ establishmentId, initial }: { establishment
         void refresh(shouldAlert ? String(next?.id) : undefined, shouldAlert ? String(next?.status) : undefined);
       })
       .subscribe();
-    return () => { window.clearTimeout(resumePush); window.clearInterval(timer); void supabase.removeChannel(channel); };
+    return () => { window.clearInterval(refreshTimer); window.clearTimeout(resumePush); window.clearInterval(timer); void supabase.removeChannel(channel); };
   }, [establishmentId, supabase]);
 
   function stageStartedAt(ticket: Ticket) {
@@ -152,7 +154,7 @@ export function WaiterOrderTracker({ establishmentId, initial }: { establishment
 
   return <section className="waiter-tracker" aria-label="Acompanhamento dos pedidos do salão">
     <header>
-      <div><small>ACOMPANHAMENTO EM TEMPO REAL</small><h2>Pedidos do salão.</h2><p>Retirada no balcão não aparece aqui. Somente pedidos que precisam da equipe de garçons.</p></div>
+      <div><small>ACOMPANHAMENTO EM TEMPO REAL</small><h2>Pedidos do salão.</h2><p>Retirada e para viagem não aparecem aqui. Somente pedidos que precisam da equipe de garçons.</p></div>
       <div className="waiter-alert-controls"><span>{visibleTickets.filter(ticket => ticket.status !== "delivered").length} ativos</span>{pushStatus !== "unsupported" && <button type="button" className={pushStatus === "active" ? "active" : ""} onClick={() => void enablePushNotifications(true)}>{pushStatus === "active" ? "Alertas ativos" : "Ativar alertas"}</button>}</div>
     </header>
 
@@ -167,7 +169,7 @@ export function WaiterOrderTracker({ establishmentId, initial }: { establishment
             {tickets.map(ticket => {
               const details = ticketDetails(ticket);
               return <article key={ticket.id}>
-                <div><small>MESA</small><strong>{details.table?.table_number || "—"}</strong></div>
+                <div><small>MESA</small>{details.table ? <button className="table-account-shortcut" aria-label={`Abrir conta da mesa ${details.table.table_number}`} onClick={() => window.dispatchEvent(new CustomEvent("open-waiter-table", { detail: { tableId: details.table!.id, sessionId: details.sessionId } }))}>{details.table.table_number} · Abrir conta</button> : <strong>—</strong>}</div>
                 <div><small>PEDIDO</small><b>#{details.orderNumber || "—"}</b></div>
                 <time><span>Nesta etapa</span><b>{elapsed(now, stageStartedAt(ticket))}</b><small>Total {elapsed(now, ticket.created_at)}</small></time>
                 {ticket.status === "ready" && <button disabled={busyTicket === ticket.id} onClick={() => collect(ticket)}>{busyTicket === ticket.id ? "Registrando..." : "Retirar pedido"}</button>}
