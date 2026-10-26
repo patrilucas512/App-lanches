@@ -7,6 +7,8 @@ permissions:
   contents: read
 env:
   MASTERAPP_ENVIRONMENT: test
+  NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-placeholder
 concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
@@ -20,7 +22,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22.13.0, cache: pnpm }
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: secret-scanning
         run: pnpm qa:secret-scan
@@ -40,7 +42,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22.13.0, cache: pnpm }
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:${{ matrix.suite }}
       - uses: actions/upload-artifact@v4
@@ -58,8 +60,9 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22.13.0, cache: pnpm }
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - run: node --test tests/*.test.mjs
       - run: pnpm test:performance
       - run: pnpm test:phase27
@@ -84,12 +87,12 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22.13.0, cache: pnpm }
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: lint
         run: pnpm lint
       - name: typecheck
-        run: pnpm typecheck
+        run: pnpm typecheck:ci
       - name: build
         run: pnpm build
       - name: Generate SBOM

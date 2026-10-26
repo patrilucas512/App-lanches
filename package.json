@@ -12,6 +12,7 @@
     "start": "vinext start",
     "test": "vinext build && tsc --noEmit -p tsconfig.app.json && node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck:ci": "node scripts/quality/typecheck-baseline.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "test:performance": "node --test tests/performance-phase26.test.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
