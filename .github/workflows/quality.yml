@@ -80,7 +80,7 @@ jobs:
       - name: Start isolated database
         run: |
           for attempt in 1 2; do
-            if timeout 300s supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor; then
+            if timeout 300s supabase start -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,storage,studio,vector; then
               exit 0
             fi
             supabase stop --no-backup || true
