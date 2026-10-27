@@ -74,6 +74,8 @@ Mudanças em produção são versionadas. Ambientes protegidos entram em revisã
 5. Manter os leitores legados em modo de compatibilidade durante a migração gradual.
 6. Migrar feature por feature, comparar decisões em shadow mode e só então retirar o leitor legado.
 
+Após o primeiro advisor de produção, a migration complementar `phase77_feature_management_indexes` adiciona índices de cobertura às chaves estrangeiras do módulo sem alterar dados ou contratos.
+
 ## Fora do escopo
 
 - Nenhuma migration foi aplicada em produção neste estágio.
