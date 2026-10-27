@@ -11,7 +11,7 @@ export default async function WaiterReportPage() {
     supabase.from("waiters").select("id,user_id,name,sector,status,active_now").eq("establishment_id", establishment.id).order("name"),
     supabase.from("table_sessions").select("id,waiter_id").eq("establishment_id", establishment.id),
     supabase.from("table_orders").select("id,waiter_id").eq("establishment_id", establishment.id),
-    supabase.from("table_payments").select("id,waiter_id,waiter_name,payment_method,amount_cents").eq("establishment_id", establishment.id),
+    supabase.from("table_payments").select("id,waiter_id,waiter_name,payment_method,amount_cents").eq("establishment_id", establishment.id).eq("status", "confirmed"),
     supabase.from("payment_proofs").select("id,waiter_id,image_path").eq("establishment_id", establishment.id),
   ]);
   const proofLinks = new Map<string, string>();
@@ -19,7 +19,7 @@ export default async function WaiterReportPage() {
     const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(proof.image_path, 900);
     if (data?.signedUrl) proofLinks.set(proof.id, data.signedUrl);
   }));
-  return <DashboardShell active="waiters" storeSlug={establishment.slug} role={member.role}>
+  return <DashboardShell brand={establishment} active="waiters" storeSlug={establishment.slug} role={member.role}>
     <header className="dashboard-head"><div><small>OPERAÇÃO DO SALÃO</small><h1>Relatório dos garçons.</h1><p>Mesas, pedidos e pagamentos registrados no nome de quem realizou o atendimento.</p></div><span className="status-pill">{waiters?.length || 0} cadastrados</span></header>
     <article className="panel team-group">
       <div className="team-report-scroll"><table className="table waiter-report"><thead><tr><th>GARÇOM</th><th>STATUS</th><th>MESAS</th><th>PEDIDOS</th><th>VENDAS</th><th>PIX</th><th>DINHEIRO</th><th>CARTÃO</th><th>COMPROVANTES</th></tr></thead>

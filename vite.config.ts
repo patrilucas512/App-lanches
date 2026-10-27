@@ -1,10 +1,25 @@
 import vinext from "vinext";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
+
+const PUBLIC_BUILD_ENV = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+] as const;
+
+function normalizePublicBuildEnv(value: string | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  return (first === '"' && last === '"') || (first === "'" && last === "'")
+    ? trimmed.slice(1, -1)
+    : trimmed;
+}
 
 const { d1, r2 } = hostingConfig;
 
@@ -33,7 +48,19 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command, mode }) => {
+  // NEXT_PUBLIC values are compiled into browser assets, not supplied by the
+  // Worker's runtime environment. Refuse an unusable production build.
+  if (command === "build") {
+    const publicEnv = loadEnv(mode, process.cwd(), "NEXT_PUBLIC_");
+    for (const name of PUBLIC_BUILD_ENV) {
+      const value = normalizePublicBuildEnv(process.env[name] || publicEnv[name]);
+      if (!value) {
+        throw new Error(`Missing public build configuration: ${name}. Configure the local build environment before publishing.`);
+      }
+      process.env[name] = value;
+    }
+  }
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= "false";

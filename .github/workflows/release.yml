@@ -1,0 +1,73 @@
+name: MasterApp Controlled Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version or release number
+        required: true
+      sensitive_release:
+        description: Requires production approval
+        required: true
+        default: true
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.13.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:phase27
+      - run: pnpm build
+      - run: node scripts/quality/generate-sbom.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: masterapp-${{ inputs.version }}-${{ github.sha }}
+          path: |
+            dist
+            artifacts/masterapp-sbom.cdx.json
+          retention-days: 30
+  staging:
+    needs: release-candidate
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.13.0 }
+      - name: Validate isolated staging target
+        env:
+          TEST_ENVIRONMENT: staging
+          TEST_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          PRODUCTION_BASE_URL: ${{ vars.PRODUCTION_BASE_URL }}
+          SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          PRODUCTION_SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_SUPABASE_PROJECT_ID }}
+        run: node scripts/quality/staging-safety.mjs
+      - name: Staging smoke
+        env:
+          TEST_ENVIRONMENT: staging
+          TEST_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          TEST_PUBLIC_MENU_PATH: ${{ vars.TEST_PUBLIC_MENU_PATH }}
+        run: node scripts/quality/smoke-test.mjs
+  production:
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production approval record
+        run: node -e "console.log(JSON.stringify({version:process.env.VERSION,commit:process.env.COMMIT,approved_by:process.env.ACTOR,approved_at:new Date().toISOString()}))"
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+      - name: Deployment handoff
+        run: echo "Immutable artifact approved. Publish it with the native Sites release operation, then run the read-only production smoke."

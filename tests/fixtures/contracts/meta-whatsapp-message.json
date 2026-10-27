@@ -1,0 +1,1 @@
+{"object":"whatsapp_business_account","entry":[{"id":"SANITIZED","changes":[{"field":"messages","value":{"metadata":{"phone_number_id":"TEST"},"messages":[{"id":"wamid.test","from":"5511999990000","type":"text","text":{"body":"Quero fazer um pedido"}}]}}]}]}

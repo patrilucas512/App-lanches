@@ -1,5 +1,4 @@
 revoke all on function public.handle_new_user() from public, anon, authenticated;
-revoke all on function public.rls_auto_enable() from public, anon, authenticated;
 
 create policy stripe_events_superadmin_read on public.stripe_events
 for select to authenticated using (private.is_superadmin());

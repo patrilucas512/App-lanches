@@ -1,0 +1,47 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const read=path=>readFileSync(new URL(path,import.meta.url),"utf8");
+const migration=read("../supabase/migrations/20261012150000_security_enterprise_phase25.sql");
+const enforcement=read("../supabase/migrations/20261012152000_security_phase25_session_ip_enforcement.sql");
+const api=read("../app/api/security/route.ts");
+const login=read("../app/api/security/login/route.ts");
+const center=read("../components/security-center.tsx");
+const auth=read("../components/auth-form.tsx");
+const mfa=read("../app/auth/mfa/page.tsx");
+const core=read("../lib/security/core.ts");
+const integrationSecurity=read("../lib/integrations/security.ts");
+const webhook=read("../app/api/order-payments/webhook/mercado-pago/route.ts");
+const has=(source,...parts)=>parts.every(part=>source.toLowerCase().includes(part.toLowerCase()));
+
+test("01 MFA enable usa enrollment TOTP nativo e confirmação",()=>assert.ok(has(center,"auth.mfa.enroll","challengeAndVerify","mfa_state")));
+test("02 MFA disable remove o fator e audita",()=>assert.ok(has(center,"auth.mfa.unenroll","mfa_state")&&has(api,"security.mfa_disabled")));
+test("03 recovery codes aparecem uma vez e ficam em hash",()=>assert.ok(has(api,"shown_once","secureDigest(`recovery:","mfa_recovery_codes")));
+test("04 session list não exibe token nem localização precisa",()=>assert.ok(has(api,"device_label,browser_label,ip_region,last_seen_at")&&!has(api,"refresh_token")));
+test("05 revoke session valida o proprietário",()=>assert.ok(has(api,"revoke_session","session.user_id !== userId","security.session_revoked")));
+test("06 logout all preserva a sessão atual",()=>assert.ok(has(center,'signOut({scope:"others"})')&&has(api,"logout_others")));
+test("07 brute force tem rate limit, atraso e bloqueio",()=>assert.ok(has(login,"consume_security_rate_limit","Retry-After")&&has(migration,"blocked_until","delay_ms")));
+test("08 suspicious login e novo dispositivo são modelados",()=>assert.ok(has(migration,"suspicious_login","new_device","ip_region")));
+test("09 SSO config suporta SAML/OIDC sem campo de secret",()=>assert.ok(has(migration,"provider_type in ('saml','oidc')")&&!has(center,"client_secret")));
+test("10 SSO login usa redirecionamento nativo por domínio",()=>assert.ok(has(read("../app/auth/sso/page.tsx"),"signInWithSSO","domain")));
+test("11 role mapping bloqueia owner automático",()=>assert.ok(has(migration,"sso_role_mappings","masterapp_role","default 'viewer'")&&!has(migration,"masterapp_role in ('owner'")));
+test("12 SSO enforcement exige break-glass",()=>assert.ok(has(api,"break_glass_user_id","Defina uma conta de emergência")));
+test("13 audit log contém campos enterprise",()=>assert.ok(has(migration,"actor_user_id","organization_id","before_state","after_state","correlation_id")));
+test("14 audit log é imutável",()=>assert.ok(has(migration,"security_audit_immutable","before update or delete","append-only")));
+test("15 API key security existente mantém hash, scope, rate e rotação",()=>{const source=read("../lib/integrations/auth.ts");assert.ok(has(source,"secret_hash","previous_secret_hash","insufficient_scope","consume_api_rate_limit"));});
+test("16 export exige MFA quando política exige",()=>{const source=read("../app/api/security/audit-export/route.ts");assert.ok(has(source,'aal !== "aal2"',"audit_exported"));});
+test("17 backup run não armazena credenciais",()=>assert.ok(has(migration,"backup_runs","location_reference","checksum")&&!has(migration,"backup_password")));
+test("18 backup failure gera tipo de evento",()=>assert.ok(has(migration,"backup_failed","status in ('scheduled','running','succeeded','failed','expired')")));
+test("19 restore test registra ambiente e inconsistências",()=>assert.ok(has(migration,"restore_test_runs","test_environment","inconsistencies")));
+test("20 incidente de segurança é separado do suporte",()=>assert.ok(has(migration,"security_incidents","investigating","postmortem")&&!has(migration,"references public.support_incidents")));
+test("21 IP allowlist é entitlement, configuração CIDR e enforcement",()=>assert.ok(has(migration,"ip_allowlist_enabled","admin_ip_allowlist cidr[]")&&has(enforcement,"security_ip_allowed","requested_ip <<= allowed")));
+test("22 tenant isolation usa organization_id e RLS",()=>assert.ok(has(migration,"enable row level security","security_org_access","organization_id")));
+test("23 role escalation exige owner/admin e JIT seguro",()=>assert.ok(has(migration,"m.role in ('owner','admin')","default_role text not null default 'viewer'")));
+test("24 SSRF bloqueia localhost, RFC1918 e metadata",()=>assert.ok(has(integrationSecurity,"localhost","169 && b === 254","metadata.google.internal","https:")));
+test("25 file upload valida MIME, extensão, tamanho e filename",()=>assert.ok(has(core,"validateSecurityUpload","allowedExtensions","10 * 1024 * 1024","Nome de arquivo inválido")));
+test("26 webhook spoofing continua validando assinatura",()=>assert.ok(has(webhook,"verifyMercadoPagoSignature","signature")));
+test("27 login com MFA redireciona AAL1 para desafio AAL2",()=>assert.ok(has(auth,"getAuthenticatorAssuranceLevel","/auth/mfa")&&has(mfa,"challengeAndVerify")));
+test("28 security headers e CSRF estão aplicados",()=>assert.ok(has(read("../proxy.ts"),"Content-Security-Policy","Strict-Transport-Security","X-Frame-Options")&&has(api,"assertSameOrigin")));
+test("29 sessão revogada é bloqueada pelo proxy",()=>assert.ok(has(read("../proxy.ts"),"security_sessions","sessao=revogada","signOut")));
+

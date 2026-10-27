@@ -1,0 +1,38 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { planManagerAction, prohibitedOperationalIntent } from "../lib/intelligence/action-planner.ts";
+
+const migration = await readFile(new URL("../supabase/migrations/20261010064354_copilot_operational_actions_phase10.sql", import.meta.url), "utf8");
+const api = await readFile(new URL("../app/api/intelligence/actions/route.ts", import.meta.url), "utf8");
+const intelligenceApi = await readFile(new URL("../app/api/intelligence/route.ts", import.meta.url), "utf8");
+const ui = await readFile(new URL("../components/manager-copilot.tsx", import.meta.url), "utf8");
+
+test("1 action preview is server controlled", () => assert.match(migration, /preview_copilot_action/));
+test("2 confirmation binds action, user and token", () => { assert.match(migration, /confirmation_token_hash/); assert.match(migration, /auth\.uid\(\)/); });
+test("3 confirmation expires", () => assert.match(migration, /confirmation_expires_at<=now\(\)/));
+test("4 permission mapping has no AI bypass", () => assert.match(migration, /copilot_action_allowed/));
+test("5 store scope is fixed by authenticated request", () => assert.match(migration, /establishment_id=requested_establishment_id/));
+test("6 tenant is resolved from the store", () => assert.match(migration, /select organization_id into org_id/));
+test("7 product can become unavailable", () => assert.deepEqual(planManagerAction("Desative a Coca-Cola 350ml")?.payload, { target_name: "Coca-Cola 350ml", new_value: false }));
+test("8 idempotency covers already unavailable", () => assert.match(migration, /already_applied/));
+test("9 campaign pause is typed", () => assert.equal(planManagerAction("Pause a campanha VOLTA10")?.actionType, "CAMPAIGN_PAUSE"));
+test("10 campaign resume is typed", () => assert.equal(planManagerAction("Retome a campanha VOLTA10")?.actionType, "CAMPAIGN_RESUME"));
+test("11 temporary close has bounded duration", () => { const plan=planManagerAction("Feche a loja por 1 hora"); assert.equal(plan?.payload.duration_minutes,60); assert.match(migration,/duration_minutes<5 or duration_minutes>1440/); });
+test("12 automatic reopening uses scheduler", () => { assert.match(migration,/process_due_copilot_temporary_operations/); assert.match(migration,/cron\.schedule/); });
+test("13 delivery pause is typed", () => assert.deepEqual(planManagerAction("Pause o delivery")?.payload,{new_value:false}));
+test("14 AI toggle is typed", () => assert.equal(planManagerAction("Coloque a atendente IA em modo humano")?.actionType,"AI_TOGGLE"));
+test("15 undo has a real expiry window", () => { assert.match(migration,/undo_expires_at/); assert.match(migration,/undo_copilot_action/); });
+test("16 dry run returns affected items and impact", () => { assert.match(migration,/affected_count/); assert.match(migration,/preview_data/); });
+test("17 complete audit records before and after", () => { for(const field of ["before_state","after_state","requested_by","confirmed_at","executed_at","failure_reason"]) assert.ok(migration.includes(field)); });
+test("18 concurrency locks the action", () => assert.match(migration,/for update/));
+test("19 version conflict rejects stale preview", () => assert.match(migration,/A configuração mudou desde a confirmação/));
+test("20 idempotency key prevents duplicate request", () => assert.match(migration,/unique \(establishment_id,idempotency_key\)/));
+test("21 bulk actions require reinforced confirmation", () => assert.match(migration,/CONFIRMAR ALTERAÇÃO EM.*PRODUTOS/));
+test("22 prohibited financial and security actions stay outside registry", () => { assert.equal(prohibitedOperationalIntent("Aprove o reembolso"),true); assert.doesNotMatch(migration,/APPROVE_REFUND/); });
+test("23 plan entitlement gates actions", () => assert.match(migration,/copilot_actions_enabled/));
+test("24 rule engine only defines safe approval modes", () => assert.match(migration,/notify_only','require_approval','auto_low_risk/));
+test("25 approval flow supports segregation", () => { assert.match(migration,/required_approvals/); assert.match(migration,/copilot_action_approvals/); });
+test("API only invokes controlled RPC functions", () => { assert.match(api,/\.rpc\("confirm_copilot_action"/); assert.doesNotMatch(api,/\.from\(/); });
+test("the model path only creates a preview", () => { assert.match(intelligenceApi,/preview_copilot_action/); assert.doesNotMatch(intelligenceApi,/confirm_copilot_action/); });
+test("UI communicates impact, confirmation, undo and history", () => { for(const label of ["Impacto","Confirmar alteração","Desfazer","Histórico de ações","Aprovações"]) assert.ok(ui.includes(label)); });

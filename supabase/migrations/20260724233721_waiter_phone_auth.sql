@@ -8,8 +8,10 @@ security definer
 set search_path = ''
 as $$
 declare
-  link_record public.waiter_access_links%rowtype;
-  waiter_record public.waiters%rowtype;
+  -- Use records because this compatibility function predates the migration
+  -- that creates the waiter tables. The canonical function is replaced there.
+  link_record record;
+  waiter_record record;
 begin
   if requested_user_id is null or not exists (
     select 1 from auth.users where id = requested_user_id

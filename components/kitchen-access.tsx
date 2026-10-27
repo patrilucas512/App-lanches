@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { StaffSectionControls } from "@/components/staff-section-controls";
+import { StaffAccessActions } from "@/components/staff-access-actions";
 
 type KitchenOperator = {
   id: string;
@@ -124,6 +126,10 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
   const [invite, setInvite] = useState<{ name: string; phone: string; link: string; isReset: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const activeCount = operators.filter(operator =>
+    operator.status === "active" &&
+    (operator.access_type === "fixed" || operator.work_date === localDate())
+  ).length;
 
   async function createInvite(operator: KitchenOperator) {
     const supabase = createClient();
@@ -179,11 +185,11 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
   function beginEdit(operator: KitchenOperator) { setEditing(operator); setAccessType(operator.access_type); setInvite(null); setMessage(""); setFormOpen(true); }
   const whatsappMessage = invite
     ? invite.isReset
-      ? `Olá, ${invite.name}! Use este link para criar uma nova senha de acesso à cozinha do Mesa Viva: ${invite.link}\n\nDepois de salvar, entre normalmente com seu nome completo e a nova senha.`
+      ? `Olá, ${invite.name}! Use este link para criar uma nova senha de acesso à cozinha do MasterApp: ${invite.link}\n\nDepois de salvar, entre normalmente com seu nome completo e a nova senha.`
       : `Olá, ${invite.name}! Seu acesso à cozinha está pronto. Crie sua senha neste link: ${invite.link}\n\nDepois, entre usando seu nome completo e a senha.`
     : "";
   return <section className="panel kitchen-access-admin" id="equipe-cozinha">
-    <div className="section-heading"><div><small>ACESSO SEPARADO</small><h2>Equipe da cozinha</h2><p>O operador recebe o acesso pelo WhatsApp e depois entra somente com nome e senha.</p></div><div className="team-heading-actions"><button type="button" className="button dark" onClick={() => { setEditing(null); setAccessType("fixed"); setInvite(null); setFormOpen(value => !value); }}>{formOpen ? "Fechar cadastro" : "Realizar cadastro de funcionário"}</button><Link className="button outline" href="/cozinha" target="_blank">Abrir cozinha</Link></div></div>
+    <div className="section-heading"><div><small>ACESSO SEPARADO</small><h2>Equipe da cozinha</h2><p>O operador recebe o acesso pelo WhatsApp e depois entra somente com nome e senha.</p></div><div className="staff-header-actions"><StaffSectionControls activeCount={activeCount} totalCount={operators.length} open={formOpen} label="operador" onToggle={() => { setEditing(null); setAccessType("fixed"); setInvite(null); setFormOpen(value => !value); }} /><Link className="button outline" href="/cozinha" target="_blank">Abrir cozinha</Link></div></div>
     <div className={`kitchen-access-layout ${formOpen ? "" : "list-only"}`}>
       {formOpen && <form className="form kitchen-operator-form" onSubmit={save} key={editing?.id || "new"}>
         <div className="field"><label>NOME DO OPERADOR</label><input name="name" required minLength={2} defaultValue={editing?.name || ""} placeholder="Ex.: João da cozinha" /></div>
@@ -196,7 +202,7 @@ export function KitchenAccessManager({ establishmentId, initialOperators }: { es
         <div className="permission-grid"><label><input type="checkbox" name="accept_orders" defaultChecked={editing?.permissions.accept_orders ?? true} /> Aceitar pedidos</label><label><input type="checkbox" name="print_orders" defaultChecked={editing?.permissions.print_orders ?? true} /> Imprimir comandas</label><label><input type="checkbox" name="mark_ready" defaultChecked={editing?.permissions.mark_ready ?? true} /> Marcar como pronto</label></div>
         <div className="form-actions"><button className="button dark" disabled={busy}>{busy ? "Salvando..." : editing ? "Salvar alterações" : "Cadastrar e gerar acesso"}</button>{editing && <button className="button outline" type="button" onClick={() => { setEditing(null); setAccessType("fixed"); setInvite(null); }}>Novo operador</button>}</div>
       </form>}
-      <div className="kitchen-operator-list">{operators.length === 0 ? <div className="empty-state">Nenhum operador cadastrado.</div> : operators.map(operator => <article key={operator.id}><div><span className={`waiter-status status-${operator.status}`}>{operator.status === "active" ? "ATIVO" : operator.status === "blocked" ? "BLOQUEADO" : "INATIVO"}</span><h3>{operator.name}</h3><p>{operator.access_type === "daily" ? `Acesso em ${new Date(`${operator.work_date}T12:00:00`).toLocaleDateString("pt-BR")}` : "Funcionário fixo"} · Pagamento {operator.payment_cycle === "daily" ? "por diária" : operator.payment_cycle === "weekly" ? "semanal" : operator.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {operator.device_mode === "dedicated" ? "Tela exclusiva" : "Tela compartilhada"}</p><small>{operator.user_id ? "Senha criada" : "Aguardando criação da senha"}</small></div><div className="waiter-row-actions"><button type="button" onClick={() => beginEdit(operator)}>Editar</button><button type="button" onClick={() => void createInvite(operator)}>{operator.user_id ? "Redefinir senha" : "Gerar acesso"}</button><button type="button" onClick={() => void toggle(operator)}>{operator.status === "active" ? "Bloquear" : "Ativar"}</button><button type="button" className="danger-action" disabled={busy} onClick={() => void removeOperator(operator)}>Excluir</button></div></article>)}</div>
+      <div className="kitchen-operator-list">{operators.length === 0 ? <div className="empty-state">Nenhum operador cadastrado.</div> : operators.map(operator => <article key={operator.id}><div><span className={`waiter-status status-${operator.status}`}>{operator.status === "active" ? "ATIVO" : operator.status === "blocked" ? "BLOQUEADO" : "INATIVO"}</span><h3>{operator.name}</h3><p>{operator.access_type === "daily" ? `Acesso em ${new Date(`${operator.work_date}T12:00:00`).toLocaleDateString("pt-BR")}` : "Funcionário fixo"} · Pagamento {operator.payment_cycle === "daily" ? "por diária" : operator.payment_cycle === "weekly" ? "semanal" : operator.payment_cycle === "biweekly" ? "quinzenal" : "mensal"} · {operator.device_mode === "dedicated" ? "Tela exclusiva" : "Tela compartilhada"}</p><small>{operator.user_id ? "Senha criada" : "Aguardando criação da senha"}</small></div><div className="waiter-row-actions"><button type="button" onClick={() => beginEdit(operator)}>Editar</button><StaffAccessActions name={operator.name} phone={operator.phone} areaLabel="cozinha" loginPath="/cozinha/login" activated={Boolean(operator.user_id)} busy={busy} onCreateAccess={() => createInvite(operator)} onResetPassword={() => createInvite(operator)} /><button type="button" onClick={() => void toggle(operator)}>{operator.status === "active" ? "Bloquear" : "Ativar"}</button><button type="button" className="danger-action" disabled={busy} onClick={() => void removeOperator(operator)}>Excluir</button></div></article>)}</div>
     </div>
     {invite && <div className="waiter-invite-ready"><div><small>{invite.isReset ? "REDEFINIÇÃO PRONTA" : "LINK PRONTO"}</small><h3>Envie para {invite.name}</h3><p>{invite.isReset ? "Ao abrir, a pessoa cria uma nova senha e continua usando o mesmo WhatsApp." : "Ao abrir, a pessoa cria a senha e passa a entrar apenas na cozinha."}</p></div><div className="invite-actions"><a className="button whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${normalizeBrazilianPhone(invite.phone)}?text=${encodeURIComponent(whatsappMessage)}`}>Enviar pelo WhatsApp</a><button className="button outline" type="button" onClick={() => void navigator.clipboard.writeText(invite.link)}>Copiar link</button></div></div>}
     {message && <div className={`form-message ${message.includes("excluído") ? "form-success" : ""}`}>{message}</div>}

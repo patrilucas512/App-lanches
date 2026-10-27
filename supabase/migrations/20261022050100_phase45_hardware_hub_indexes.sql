@@ -1,0 +1,14 @@
+create index if not exists hardware_agents_org_idx on public.hardware_agents(organization_id);
+create index if not exists hardware_registration_org_idx on public.hardware_agent_registration_tokens(organization_id);
+create index if not exists hardware_devices_org_idx on public.hardware_devices(organization_id);
+create index if not exists hardware_commands_org_idx on public.hardware_commands(organization_id);
+create index if not exists print_routes_org_idx on public.print_routing_rules(organization_id);
+create index if not exists print_routes_station_fk_idx on public.print_routing_rules(station_id) where station_id is not null;
+create index if not exists print_routes_primary_device_idx on public.print_routing_rules(primary_device_id);
+create index if not exists print_templates_org_idx on public.hardware_print_templates(organization_id);
+create index if not exists hardware_health_org_idx on public.hardware_health_events(organization_id);
+create index if not exists hardware_audit_org_idx on public.hardware_audit_events(organization_id);
+create index if not exists hardware_audit_agent_idx on public.hardware_audit_events(agent_id) where agent_id is not null;
+create index if not exists terminal_tx_org_idx on public.payment_terminal_transactions(organization_id);
+create index if not exists printer_jobs_hardware_device_idx on public.printer_jobs(hardware_device_id) where hardware_device_id is not null;
+create index if not exists printer_jobs_routing_rule_idx on public.printer_jobs(routing_rule_id) where routing_rule_id is not null;

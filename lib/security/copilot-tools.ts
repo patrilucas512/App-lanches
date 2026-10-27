@@ -1,0 +1,11 @@
+type QueryResult={data:any;error:any};
+type SecurityClient={rpc:(name:string,args:Record<string,unknown>)=>Promise<QueryResult>;from:(table:string)=>any};
+
+export const securityCopilotTools=["getSecuritySummary","getMfaCoverage","getActiveSessions","getBackupStatus","getRecentSecurityEvents","getSSOStatus"] as const;
+
+export async function getSecuritySummary(client:SecurityClient,organizationId:string){const{data,error}=await client.rpc("get_security_summary",{requested_organization_id:organizationId});if(error)throw error;return data;}
+export async function getMfaCoverage(client:SecurityClient,organizationId:string){const summary=await getSecuritySummary(client,organizationId);return{members:summary.members,mfa_enabled:summary.mfa_enabled,owners:{enabled:summary.owners_mfa,total:summary.owners_total},admins:{enabled:summary.admins_mfa,total:summary.admins_total}};}
+export async function getActiveSessions(client:SecurityClient,organizationId:string){const{data,error}=await client.from("security_sessions").select("device_label,browser_label,ip_region,last_seen_at,is_current").eq("organization_id",organizationId).is("revoked_at",null).order("last_seen_at",{ascending:false}).limit(20);if(error)throw error;return data;}
+export async function getBackupStatus(client:SecurityClient,organizationId:string){const{data,error}=await client.from("backup_runs").select("backup_type,status,started_at,completed_at,encrypted,error_summary").eq("organization_id",organizationId).order("started_at",{ascending:false}).limit(10);if(error)throw error;return data;}
+export async function getRecentSecurityEvents(client:SecurityClient,organizationId:string){const{data,error}=await client.from("security_events").select("event_type,severity,title,status,detected_at").eq("organization_id",organizationId).order("detected_at",{ascending:false}).limit(20);if(error)throw error;return data;}
+export async function getSSOStatus(client:SecurityClient,organizationId:string){const{data,error}=await client.from("sso_connections").select("provider_type,display_name,domain,status,last_tested_at,last_error").eq("organization_id",organizationId).order("updated_at",{ascending:false}).limit(5);if(error)throw error;return data;}

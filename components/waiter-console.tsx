@@ -1,9 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import QRCode from "qrcode";
+import { PixPayment } from "@/components/pix-payment";
+import { CameraProof } from "@/components/camera-proof";
 import { createClient } from "@/lib/supabase/client";
-import { createPixPayload } from "@/lib/pix";
 
 type Table = { id: string; table_number: string; table_name?: string | null; sector?: string | null; status: string };
 type Session = {
@@ -18,10 +18,6 @@ type Product = {
   product_variations?: Variation[]; product_addon_groups?: { addon_groups?: { id: string; name: string; addons?: Addon[] }[] | null }[];
 };
 type CartItem = { key: string; product: Product; quantity: number; variationId: string; addonIds: string[]; removed: string[]; notes: string };
-type PixData = {
-  pix_key: string; receiver_name: string; receiver_document_masked?: string; receiver_city: string;
-  institution_name?: string; amount_cents: number; establishment_name: string; table_number: string; session_id: string;
-};
 type ServiceMode = {
   bill_closing_enabled: boolean; card_proof_required: boolean; accepted_payment_methods: string[];
 };
@@ -45,25 +41,34 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
   const supabase = useMemo(() => createClient(), []);
   const [tables, setTables] = useState(initialTables);
   const [sessions, setSessions] = useState(initialSessions);
+  const [historicalSession, setHistoricalSession] = useState<Session | null>(null);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [openTableId, setOpenTableId] = useState<string | null>(null);
   const [customProduct, setCustomProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const draftCarts = useRef<Record<string, CartItem[]>>({});
+  useEffect(() => { if (selectedTableId) draftCarts.current[selectedTableId] = cart; }, [cart, selectedTableId]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [focusMenuAfterOpening, setFocusMenuAfterOpening] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [pix, setPix] = useState<(PixData & { payload: string; qr: string }) | null>(null);
+  const [pix, setPix] = useState(false);
   const [receipt, setReceipt] = useState<{ method: string; amount: number; date: string; waiterName: string; cashReceived?: number | null; cashChange?: number | null } | null>(null);
   const [cardMethod, setCardMethod] = useState<"credit_card" | "debit_card" | null>(null);
+  const [cardProof, setCardProof] = useState<File | null>(null);
+  useEffect(() => { setCardProof(null); }, [cardMethod]);
   const [cashOpen, setCashOpen] = useState(false);
   const [cashReceived, setCashReceived] = useState("");
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const focusAccountOnly = useRef(false);
   const productSearchRef = useRef<HTMLInputElement>(null);
   const selectedTable = tables.find(table => table.id === selectedTableId);
-  const selectedSession = sessions.find(session => session.table_id === selectedTableId);
+  const selectedSession = historicalSession?.table_id === selectedTableId ? historicalSession : sessions.find(session => session.table_id === selectedTableId);
+  useEffect(() => {
+    if (paymentOpen && selectedSession && ["paid", "closed"].includes(selectedSession.status)) void loadReceipt(selectedSession.id);
+  }, [paymentOpen, selectedSession?.id, selectedSession?.status]);
 
   async function refresh() {
     const [{ data: nextTables }, { data: nextSessions }] = await Promise.all([
@@ -78,22 +83,57 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
       .on("postgres_changes", { event: "*", schema: "public", table: "restaurant_tables", filter: `establishment_id=eq.${establishmentId}` }, () => { void refresh(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "table_sessions", filter: `establishment_id=eq.${establishmentId}` }, () => { void refresh(); })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 10000);
+    return () => { window.clearInterval(timer); void supabase.removeChannel(channel); };
   }, [establishmentId, supabase]);
   useEffect(() => {
     if (!focusMenuAfterOpening || !selectedTable || selectedSession?.status !== "open") return;
     const timer = window.setTimeout(() => {
       workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      productSearchRef.current?.focus({ preventScroll: true });
+      if (focusAccountOnly.current) workspaceRef.current?.focus({ preventScroll: true });
+      else productSearchRef.current?.focus({ preventScroll: true });
       setFocusMenuAfterOpening(false);
     }, 150);
     return () => window.clearTimeout(timer);
   }, [focusMenuAfterOpening, selectedSession?.status, selectedTable]);
 
   function chooseTable(table: Table) {
-    setMessage(""); setReceipt(null); setPix(null);
-    if (table.status !== "blocked") setSelectedTableId(table.id);
+    if (busy) return;
+    if (table.status === "blocked") { setMessage("Esta mesa está bloqueada."); return; }
+    if (selectedTableId) draftCarts.current[selectedTableId] = cart;
+    setCart(draftCarts.current[table.id] || []);
+    setMessage(""); setReceipt(null); setPix(false);
+    setCardMethod(null); setCashOpen(false);
+    setSelectedTableId(table.id);
+    setHistoricalSession(null);
+    const session = sessions.find(value => value.table_id === table.id);
+    focusAccountOnly.current = true;
+    setPaymentOpen(session?.status === "awaiting_payment" || session?.status === "paid");
+    setFocusMenuAfterOpening(true);
+    void refresh();
   }
+  useEffect(() => {
+    const openAccount = async (event: Event) => {
+      if (busy) return;
+      const request = (event as CustomEvent<{ tableId: string; sessionId?: string }>).detail;
+      const table = tables.find(value => value.id === request.tableId);
+      if (!table) { setMessage("Esta mesa não está mais disponível nos atendimentos ativos."); return; }
+      const active = sessions.find(value => value.table_id === table.id);
+      if (!request.sessionId || request.sessionId === active?.id) { chooseTable(table); return; }
+      setBusy(true);
+      try {
+        const result = await supabase.from("table_sessions").select("*").eq("establishment_id", establishmentId).eq("id", request.sessionId).maybeSingle();
+        if (result.error || !result.data) { setMessage("Não foi possível abrir esta conta. Tente novamente."); return; }
+        setSelectedTableId(table.id); setHistoricalSession(result.data as Session);
+        setReceipt(null); setPix(false); setCardMethod(null); setCashOpen(false);
+        setPaymentOpen(result.data.status !== "open");
+        focusAccountOnly.current = true; setFocusMenuAfterOpening(true);
+      } catch { setMessage("Não foi possível abrir esta conta. Tente novamente."); }
+      finally { setBusy(false); }
+    };
+    window.addEventListener("open-waiter-table", openAccount);
+    return () => window.removeEventListener("open-waiter-table", openAccount);
+  }, [tables, sessions, selectedTableId, cart, busy]);
   async function openTable(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!openTableId) return; setBusy(true);
     const form = new FormData(event.currentTarget);
@@ -112,6 +152,9 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
     if (error) setMessage(error.message);
     else {
       const session = data as Session;
+      setHistoricalSession(null);
+      focusAccountOnly.current = false;
+      setCart([]);
       setSelectedTableId(session.table_id);
       setOpenTableId(null);
       setSessions(current => [...current, session]);
@@ -141,7 +184,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
   }
   const cartTotal = cart.reduce((sum, item) => sum + itemPrice(item), 0);
   async function sendOrder() {
-    if (!selectedSession || !cart.length || !confirm("Enviar este pedido para a cozinha?")) return;
+    if (busy || !selectedSession || !cart.length) return;
     setBusy(true); setMessage("");
     const { error } = await supabase.rpc("submit_table_order", {
       requested_session_id: selectedSession.id,
@@ -156,7 +199,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
     setBusy(false);
   }
   async function closeAccount(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!selectedSession || !confirm("Confirmar fechamento desta conta?")) return;
+    event.preventDefault(); if (busy || !selectedSession) return;
     setBusy(true); const form = new FormData(event.currentTarget);
     const { error } = await supabase.rpc("request_table_closure", {
       requested_session_id: selectedSession.id,
@@ -167,25 +210,16 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
     setBusy(false);
   }
   async function generatePix() {
-    if (!selectedSession) return; setBusy(true); setMessage("");
-    const { data, error } = await supabase.rpc("get_table_pix_data", { requested_session_id: selectedSession.id });
-    if (error) { setMessage(error.message); setBusy(false); return; }
-    const info = data as PixData;
-    const payload = createPixPayload({
-      key: info.pix_key, name: info.receiver_name, city: info.receiver_city, amountCents: info.amount_cents,
-      txid: info.session_id.replaceAll("-", "").slice(0, 25), description: `MESA ${info.table_number}`,
-    });
-    const qr = await QRCode.toDataURL(payload, { width: 600, margin: 2, errorCorrectionLevel: "M" });
-    setPix({ ...info, payload, qr }); setBusy(false);
+    if (selectedSession) { setMessage(""); setPix(true); }
   }
   async function registerPayment(method: string, options?: {
     proofPath?: string | null; machine?: string; reference?: string; cashReceivedCents?: number | null; notes?: string;
   }) {
-    if (!selectedSession || !confirm("Você conferiu e recebeu o pagamento?")) return false;
+    if (busy || !selectedSession) return false;
     setBusy(true);
     const { data, error } = await supabase.rpc("register_table_payment", {
       requested_session_id: selectedSession.id, requested_payment_method: method,
-      requested_pix_payload: method === "pix" ? pix?.payload || null : null,
+      requested_pix_payload: null,
       requested_proof_path: options?.proofPath || null,
       requested_card_machine: options?.machine || null,
       requested_transaction_reference: options?.reference || null,
@@ -231,7 +265,8 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
     event.preventDefault(); if (!selectedSession || !cardMethod) return;
     setBusy(true); setMessage("");
     const data = new FormData(event.currentTarget);
-    const photo = data.get("proof");
+    const photo = cardProof;
+    if (!photo) { setMessage("Fotografe o comprovante com a câmera antes de confirmar."); setBusy(false); return; }
     let path: string | null = null;
     if (photo instanceof File && photo.size > 0) {
       if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) { setMessage("Envie uma imagem JPG, PNG ou WebP."); setBusy(false); return; }
@@ -242,23 +277,28 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
       if (uploadError) { setMessage(uploadError.message); setBusy(false); return; }
     }
     setBusy(false);
-    await registerPayment(cardMethod, {
+    const registered = await registerPayment(cardMethod, {
       proofPath: path, machine: String(data.get("machine") || ""), reference: String(data.get("reference") || ""), notes: String(data.get("notes") || ""),
     });
-    setCardMethod(null);
+    if (registered) setCardMethod(null);
   }
   async function releaseTable() {
-    if (!selectedSession || !confirm("Liberar a mesa para uma nova conta?")) return;
+    if (busy || !selectedSession) return;
+    setBusy(true);
     const { error } = await supabase.rpc("release_table_session", { requested_session_id: selectedSession.id });
-    if (error) setMessage(error.message); else { setPaymentOpen(false); setSelectedTableId(null); setReceipt(null); setPix(null); await refresh(); }
+    if (error) setMessage(error.message); else { setPaymentOpen(false); setSelectedTableId(null); setReceipt(null); setPix(false); await refresh(); }
+    setBusy(false);
   }
   async function openPayment() {
     if (!selectedSession) return;
     setPaymentOpen(true);
     if (selectedSession.status !== "paid") return;
+    await loadReceipt(selectedSession.id);
+  }
+  async function loadReceipt(sessionId: string) {
     const { data } = await supabase.from("table_payments")
       .select("payment_method,amount_cents,confirmed_at,waiter_name,cash_received_cents,cash_change_cents")
-      .eq("table_session_id", selectedSession.id)
+      .eq("table_session_id", sessionId)
       .eq("status", "confirmed")
       .order("confirmed_at", { ascending: false })
       .limit(1)
@@ -309,7 +349,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
     </section>
     {!operationalTables.length && <div className="empty"><b>Nenhum atendimento aberto.</b><span>Clique em “Abrir atendimento” quando uma pessoa ocupar uma mesa.</span></div>}
 
-    {selectedTable && selectedSession && <div className="waiter-workspace" ref={workspaceRef}>
+    {selectedTable && selectedSession && <div className="waiter-workspace" ref={workspaceRef} tabIndex={-1} aria-label={`Conta da mesa ${selectedTable.table_number}`}>
       <section className="panel table-account-head">
         <div><small>MESA {selectedTable.table_number}</small><h2>{selectedSession.customer_name || "Cliente não informado"}</h2><p>Aberta há {openedFor} min · {selectedSession.people_count} pessoa(s) · {labels[selectedTable.status]}</p></div>
         <div><small>PARCIAL</small><strong>{money(selectedSession.total_cents || selectedSession.subtotal_cents)}</strong><button className="button outline" onClick={() => setSelectedTableId(null)}>Trocar mesa</button></div>
@@ -326,7 +366,7 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
         <aside className="panel waiter-cart"><h2>Pedido da mesa</h2>{cart.length ? <div>{cart.map(item => <article key={item.key}><span>{item.quantity}× {item.product.name}</span><b>{money(itemPrice(item))}</b><button onClick={() => setCart(current => current.filter(value => value.key !== item.key))}>Remover</button>{item.notes && <small>{item.notes}</small>}</article>)}</div> : <div className="empty compact"><span>Adicione itens do cardápio.</span></div>}<footer><span>Total do envio</span><strong>{money(cartTotal)}</strong></footer><button className="button dark wide" disabled={!cart.length || busy} onClick={sendOrder}>Enviar para cozinha</button></aside>
       </div>}
       {selectedSession.status === "open" && serviceMode.bill_closing_enabled && <form className="panel close-account" onSubmit={closeAccount}>
-        <div><h2>Fechar conta</h2><p>O valor só será marcado como pago após sua confirmação manual.</p></div>
+        <div><h2>Fechar conta</h2><p>Pix: confirmação automática pelo provedor. Dinheiro e cartão presencial: registre somente após receber.</p></div>
         <div className="payment-operator closing-operator"><small>RESPONSÁVEL PELO FECHAMENTO</small><strong>{operatorName}</strong><span>O nome será registrado automaticamente no histórico da conta.</span></div>
         <div className="field"><label>TAXA DE SERVIÇO</label><select name="service" defaultValue="10"><option value="0">Sem taxa</option><option value="10">10%</option><option value="12">12%</option></select></div>
         {role !== "attendant" && <div className="field"><label>DESCONTO (R$)</label><input name="discount" inputMode="decimal" defaultValue="0,00" /></div>}
@@ -338,11 +378,11 @@ export function WaiterConsole({ establishmentId, establishmentName, userId, oper
     {openTableId && <div className="checkout-overlay"><form className="waiter-modal form" onSubmit={openTable}><button type="button" className="checkout-close" onClick={() => setOpenTableId(null)}>×</button><small>NOVO ATENDIMENTO</small><h2>Identificar a mesa</h2><p>Não é necessário cadastrar a mesa antes.</p><div className="field"><label>NÚMERO OU NOME DA MESA</label><input name="table_label" required maxLength={40} placeholder="Ex.: 12, Varanda 3 ou Mesa Família" /></div><div className="field"><label>NOME E SOBRENOME DO CLIENTE</label><input name="customer" required maxLength={120} autoComplete="name" placeholder="Ex.: Maria Oliveira" /></div><div className="field"><label>QUANTIDADE DE PESSOAS</label><input name="people" type="number" min="1" max="99" defaultValue="1" /></div><div className="field"><label>OBSERVAÇÃO INICIAL</label><textarea name="note" /></div><button className="button dark wide" disabled={busy}>{busy ? "Abrindo..." : "Abrir atendimento"}</button></form></div>}
     {customProduct && <div className="checkout-overlay"><form className="waiter-modal form product-customizer" onSubmit={addCustomized}><button type="button" className="checkout-close" onClick={() => setCustomProduct(null)}>×</button><small>PERSONALIZAR ITEM</small><h2>{customProduct.name}</h2>{(customProduct.product_variations || []).filter(value => value.active).length > 0 && <div className="field"><label>VARIAÇÃO</label><select name="variation"><option value="">Padrão</option>{customProduct.product_variations?.filter(value => value.active).map(value => <option key={value.id} value={value.id}>{value.name} {value.price_delta_cents ? `+ ${money(value.price_delta_cents)}` : ""}</option>)}</select></div>}{addonsFor(customProduct).length > 0 && <div className="field"><label>ADICIONAIS</label><div className="addon-options">{addonsFor(customProduct).map(addon => <label key={addon.id}><input type="checkbox" name="addons" value={addon.id} /> {addon.name} · {money(addon.price_cents)}</label>)}</div></div>}<div className="field"><label>RETIRAR INGREDIENTES</label><input name="removed" placeholder="Ex.: cebola, tomate" /></div><div className="field"><label>OBSERVAÇÃO</label><textarea name="notes" placeholder="Ex.: ponto da carne" /></div><div className="field"><label>QUANTIDADE</label><input name="quantity" type="number" min="1" max="99" defaultValue="1" /></div><button className="button dark wide">Adicionar ao pedido</button></form></div>}
     {paymentOpen && selectedSession && selectedTable && <div className="checkout-overlay"><section className="waiter-modal payment-modal"><button className="checkout-close" onClick={() => setPaymentOpen(false)}>×</button><small>PAGAMENTO · MESA {selectedTable.table_number}</small><h2>{money(selectedSession.total_cents)}</h2><div className="account-values"><span>Subtotal <b>{money(selectedSession.subtotal_cents)}</b></span><span>Taxa de serviço <b>{money(selectedSession.service_fee_cents)}</b></span><span>Desconto <b>- {money(selectedSession.discount_cents)}</b></span></div><div className="payment-operator"><small>GARÇOM RESPONSÁVEL</small><strong>{operatorName}</strong><span>Este nome ficará salvo no fechamento e no relatório administrativo.</span></div>
-      {selectedSession.status === "awaiting_payment" && <>{!pix ? <div className="payment-methods">{serviceMode.accepted_payment_methods.includes("pix") && <button className="button dark" disabled={busy} onClick={generatePix}>Gerar Pix oficial</button>}{serviceMode.accepted_payment_methods.includes("cash") && <button className="button outline" onClick={() => { setCashReceived((selectedSession.total_cents / 100).toFixed(2).replace(".", ",")); setCashOpen(true); }}>Pagar em dinheiro e calcular troco</button>}{serviceMode.accepted_payment_methods.includes("credit_card") && <button className="button outline" onClick={() => setCardMethod("credit_card")}>Crédito presencial</button>}{serviceMode.accepted_payment_methods.includes("debit_card") && <button className="button outline" onClick={() => setCardMethod("debit_card")}>Débito presencial</button>}</div> : <div className="pix-payment"><img src={pix.qr} alt="QR Code Pix" /><h3>{pix.receiver_name}</h3><p>{pix.receiver_document_masked} {pix.institution_name && `· ${pix.institution_name}`}</p><div className="security-warning">Confira no aplicativo do banco se o destinatário é: <b>{pix.receiver_name}</b>.</div><textarea readOnly value={pix.payload} /><button className="button outline wide" onClick={() => navigator.clipboard.writeText(pix.payload)}>Copiar Pix Copia e Cola</button><button className="button dark wide" disabled={busy} onClick={() => registerPayment("pix")}>Confirmar pagamento recebido</button><small>Gerar o QR Code não confirma o pagamento. Confira antes de continuar.</small></div>}</>}
-      {selectedSession.status === "paid" && <div className="receipt-box"><b>Pagamento confirmado</b><p>Conta paga e bloqueada para novos lançamentos.</p>{receipt && <div className="payment-operator"><small>CONTA FECHADA POR</small><strong>{receipt.waiterName}</strong>{receipt.method === "cash" && <span>Troco: {money(receipt.cashChange || 0)}</span>}</div>}<button className="button outline wide" disabled={!receipt} onClick={downloadReceipt}>Baixar comprovante</button><button className="button outline wide" onClick={() => window.print()}>Imprimir</button><button className="button dark wide" onClick={releaseTable}>Fechar e liberar mesa</button></div>}
+      {selectedSession.status === "awaiting_payment" && <>{!pix ? <div className="payment-methods">{serviceMode.accepted_payment_methods.includes("pix") && <button className="button dark" disabled={busy} onClick={generatePix}>Gerar Pix oficial</button>}{serviceMode.accepted_payment_methods.includes("cash") && <button className="button outline" onClick={() => { setCashReceived((selectedSession.total_cents / 100).toFixed(2).replace(".", ",")); setCashOpen(true); }}>Pagar em dinheiro e calcular troco</button>}{serviceMode.accepted_payment_methods.includes("credit_card") && <button className="button outline" onClick={() => setCardMethod("credit_card")}>Crédito presencial</button>}{serviceMode.accepted_payment_methods.includes("debit_card") && <button className="button outline" onClick={() => setCardMethod("debit_card")}>Débito presencial</button>}</div> : <PixPayment key={selectedSession.id} tableSessionId={selectedSession.id} onDismiss={() => setPix(false)} onConfirmed={() => { void refresh(); void loadReceipt(selectedSession.id); }} />}</>}
+      {["paid", "closed"].includes(selectedSession.status) && <div className="receipt-box"><b>Pagamento confirmado</b><p>Conta paga e bloqueada para novos lançamentos.</p>{receipt && <div className="payment-operator"><small>CONTA FECHADA POR</small><strong>{receipt.waiterName}</strong>{receipt.method === "cash" && <span>Troco: {money(receipt.cashChange || 0)}</span>}</div>}<button className="button outline wide" disabled={!receipt} onClick={downloadReceipt}>Baixar comprovante</button><button className="button outline wide" onClick={() => window.print()}>Imprimir</button>{selectedSession.status === "paid" && <button className="button dark wide" disabled={busy} onClick={releaseTable}>Fechar e liberar mesa</button>}</div>}
     </section></div>}
     {cashOpen && selectedSession && <div className="checkout-overlay"><form className="waiter-modal form cash-payment-form" onSubmit={registerCash}><button type="button" className="checkout-close" onClick={() => setCashOpen(false)}>×</button><span className="kicker">PAGAMENTO EM DINHEIRO</span><h2>Troco para quanto?</h2><div className="cash-total"><span>Valor da conta</span><strong>{money(selectedSession.total_cents)}</strong></div><div className="field cash-received-field"><label>CLIENTE PRECISA DE TROCO PARA (R$)</label><input value={cashReceived} onChange={event => setCashReceived(event.target.value)} onFocus={event => event.currentTarget.select()} inputMode="decimal" autoFocus required placeholder="Ex.: 200,00" /><small>Exemplo: conta de R$ 100,00 e troco para R$ 200,00 = devolver R$ 100,00.</small></div><div className="cash-change"><span>VALOR CERTO DO TROCO</span><strong>{money(Math.max(0, moneyInputToCents(cashReceived) - selectedSession.total_cents || 0))}</strong><small>Pegue este valor no caixa e leve ao cliente.</small></div><button className="button dark wide" disabled={busy || !Number.isFinite(moneyInputToCents(cashReceived)) || moneyInputToCents(cashReceived) < selectedSession.total_cents}>{busy ? "Registrando..." : "Confirmar pagamento e troco"}</button></form></div>}
-    {cardMethod && selectedSession && <div className="checkout-overlay"><form className="waiter-modal form card-payment-form" onSubmit={registerCard}><button type="button" className="checkout-close" onClick={() => setCardMethod(null)}>×</button><span className="kicker">PAGAMENTO PRESENCIAL</span><h2>{cardMethod === "credit_card" ? "Cartão de crédito" : "Cartão de débito"}</h2><div className="security-warning"><b>Atenção:</b> envie apenas a foto do comprovante da maquininha. Nunca fotografe o cartão do cliente.</div><label className="photo-picker card-proof-picker"><input name="proof" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" required={serviceMode.card_proof_required} /><span className="photo-picker-icon">▣</span><span><b>Abrir câmera e fotografar comprovante</b><small>{serviceMode.card_proof_required ? "Obrigatório neste estabelecimento" : "Opcional"} · câmera traseira · até 5 MB</small></span></label><div className="field"><label>MÁQUINA UTILIZADA (OPCIONAL)</label><input name="machine" placeholder="Ex.: Stone 02" /></div><div className="field"><label>REFERÊNCIA DA TRANSAÇÃO (OPCIONAL)</label><input name="reference" maxLength={80} /></div><div className="field"><label>OBSERVAÇÃO</label><textarea name="notes" /></div><button className="button dark wide" disabled={busy}>{busy ? "Registrando..." : `Confirmar ${money(selectedSession.total_cents)}`}</button></form></div>}
+    {cardMethod && selectedSession && <div className="checkout-overlay"><form className="waiter-modal form card-payment-form" onSubmit={registerCard}><button type="button" className="checkout-close" onClick={() => setCardMethod(null)}>×</button><span className="kicker">PAGAMENTO PRESENCIAL</span><h2>{cardMethod === "credit_card" ? "Cartão de crédito" : "Cartão de débito"}</h2><div className="security-warning"><b>Atenção:</b> envie apenas a foto do comprovante da maquininha. Nunca fotografe o cartão do cliente.</div><CameraProof key={selectedSession.id + cardMethod} onCapture={setCardProof} /><div className="field"><label>MÁQUINA UTILIZADA (OPCIONAL)</label><input name="machine" placeholder="Ex.: Stone 02" /></div><div className="field"><label>REFERÊNCIA DA TRANSAÇÃO (OPCIONAL)</label><input name="reference" maxLength={80} /></div><div className="field"><label>OBSERVAÇÃO</label><textarea name="notes" /></div><button className="button dark wide" disabled={busy || !cardProof}>{busy ? "Registrando..." : `Confirmar ${money(selectedSession.total_cents)}`}</button></form></div>}
     {message && <div className={message.includes("enviado") ? "form-message form-success sticky-message" : "form-message sticky-message"}>{message}</div>}
   </div>;
 }

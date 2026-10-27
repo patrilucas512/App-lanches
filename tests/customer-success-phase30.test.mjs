@@ -1,0 +1,28 @@
+import test from"node:test";import assert from"node:assert/strict";import{readFileSync}from"node:fs";
+const core=await import(new URL("../lib/customer-success/core.ts",import.meta.url).href),migration=readFileSync(new URL("../supabase/migrations/20261013003022_customer_success_phase30.sql",import.meta.url),"utf8"),api=readFileSync(new URL("../app/api/customer-success/route.ts",import.meta.url),"utf8"),ui=readFileSync(new URL("../components/customer-success-center.tsx",import.meta.url),"utf8");
+test("01 profile",()=>assert.match(migration,/create table public\.customer_success_profiles/));
+test("02 portfolio",()=>assert.match(ui,/Carteira[\s\S]*MRR GERENCIADO/));
+test("03 ownership",()=>assert.match(migration,/owner_user_id uuid references auth\.users/));
+test("04 health integration",()=>{assert.match(api,/customer_health_scores/);assert.doesNotMatch(migration,/create table public\.customer_health_scores/)});
+test("05 risk event",()=>assert.match(migration,/create table public\.customer_risk_events/));
+test("06 playbook",()=>assert.match(migration,/Novo cliente[\s\S]*Detrator NPS/));
+test("07 task reuse",()=>{assert.match(migration,/alter table public\.customer_success_tasks/);assert.doesNotMatch(migration,/create table public\.customer_success_tasks/)});
+test("08 success plan",()=>assert.match(migration,/create table public\.customer_success_plans/));
+test("09 goal",()=>assert.equal(core.goalProgress({baseline:0,current_value:5,target_value:10,is_estimated:true}).label,"Estimado"));
+test("10 meeting",()=>assert.match(migration,/kickoff','review','training','renewal','escalation','qbr/));
+test("11 onboarding monitor",()=>assert.match(api,/onboarding_sessions/));
+test("12 adoption",()=>assert.deepEqual(core.adoptionGap([{key:"voice",name:"Voz",entitled:true,used:false}])[0].feature,"voice"));
+test("13 renewal",()=>assert.equal(core.renewalWindow(new Date(Date.now()+25*86400000).toISOString()).alert,"30"));
+test("14 expansion",()=>assert.match(migration,/customer_expansion_opportunities/));
+test("15 sales handoff",()=>{assert.match(api,/handoff_sales[\s\S]*sales_opportunities/);assert.match(api,/plan_changed:false/)});
+test("16 NPS",()=>{assert.equal(core.npsCategory(6),"detractor");assert.equal(core.npsCategory(9),"promoter")});
+test("17 churn",()=>{assert.match(migration,/cancellation/);assert.match(ui,/cancelamento nunca é bloqueado/)});
+test("18 permissions",()=>assert.ok(core.CUSTOMER_SUCCESS_PERMISSIONS.includes("customer_success:renewals")));
+test("19 audit",()=>assert.match(api,/customer_success_audit_events/));
+test("20 multi-user",()=>assert.match(migration,/customer_success_permissions[\s\S]*permissions text\[\]/));
+test("21 dashboard",()=>assert.match(ui,/CLIENTES ATIVOS[\s\S]*NPS[\s\S]*ONBOARDING ATRASADO/));
+test("copilot is advisory",()=>{assert.match(api,/requires_human_confirmation:true,external_action:false/);assert.doesNotMatch(api,/sendEmail|sendMessage|cancelSubscription/)});
+test("retention metrics",()=>{const x=core.retentionMetrics({openingMrr:100,churnedMrr:10,contractionMrr:5,expansionMrr:20});assert.equal(x.grr,.85);assert.equal(x.nrr,1.05)});
+test("feature flags",()=>assert.match(migration,/customer_success_enabled[\s\S]*expansion_management_enabled/));
+test("RLS uses scoped policies",()=>{assert.match(migration,/private\.customer_success_allowed/);assert.doesNotMatch(migration,/for all to authenticated/)});
+

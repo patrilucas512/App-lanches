@@ -20,7 +20,7 @@ export default async function AttendancePage() {
     salesCents: (payments || []).filter(payment => payment.waiter_id === waiter.id).reduce((sum, payment) => sum + payment.amount_cents, 0),
     payments: (payments || []).filter(payment => payment.waiter_id === waiter.id).length,
   }));
-  return <DashboardShell active="attendance" storeSlug={establishment.slug} role={member.role}>
+  return <DashboardShell brand={establishment} active="attendance" storeSlug={establishment.slug} role={member.role}>
     <header className="dashboard-head"><div><small>OPERAÇÃO PERSONALIZADA</small><h1>Modo de atendimento.</h1></div><span className="status-pill">Configurável</span></header>
     <AttendanceManager establishmentId={establishment.id} slug={establishment.slug} initialMode={mode as never} initialWaiters={(waiters || []) as never[]} metrics={metrics} section="mode" />
   </DashboardShell>;

@@ -1,0 +1,58 @@
+import { randomBytes } from "node:crypto";
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { API_SCOPES } from "@/lib/integrations/types";
+import { sha256, validateWebhookUrl } from "@/lib/integrations/security";
+
+async function adminContext(organizationId: string) {
+  const supabase = await createClient(); const { data: claims } = await (supabase.auth as any).getClaims(); const userId = claims?.claims?.sub;
+  if (!userId) throw new Error("Não autenticado.");
+  const { data: member } = await supabase.from("organization_members").select("role,active").eq("organization_id", organizationId).eq("user_id", userId).maybeSingle();
+  if (!member?.active || !["owner", "admin"].includes(member.role)) throw new Error("Somente proprietários e administradores podem gerenciar integrações.");
+  return { admin: createAdminClient(), userId };
+}
+function selectScopes(value: unknown) { const values = Array.isArray(value) ? value.map(String) : []; return values.filter(scope => (API_SCOPES as readonly string[]).includes(scope)); }
+async function audit(admin: ReturnType<typeof createAdminClient>, organizationId: string, eventType: string, message: string, userId: string, metadata: object = {}) { await admin.from("integration_logs").insert({ organization_id: organizationId, event_type: eventType, message, metadata: { ...metadata, actor_user_id: userId } }); }
+async function validateStoreIds(admin: ReturnType<typeof createAdminClient>, organizationId: string, values: unknown[]) { const ids = [...new Set(values.map(String).filter(Boolean))]; if (!ids.length) return []; const { data } = await admin.from("establishments").select("id").eq("organization_id", organizationId).in("id", ids); if ((data || []).length !== ids.length) throw new Error("Uma ou mais unidades não pertencem à organização."); return ids; }
+async function planEntitlements(admin: ReturnType<typeof createAdminClient>, organizationId: string) {
+  const { data } = await admin.from("establishments").select("subscriptions(status,plans(public_api_enabled,webhooks_enabled,marketplace_integrations_enabled,developer_portal_enabled,max_api_clients,max_webhook_endpoints))").eq("organization_id", organizationId);
+  for (const store of data || []) for (const subscription of (store as any).subscriptions || []) if (["active", "trialing", "past_due"].includes(subscription.status) && subscription.plans?.length) return subscription.plans[0];
+  return null;
+}
+function requireEntitlement(plan: any, key: string, label: string) { if (plan && plan[key] !== true) throw new Error(`${label} não está incluído no plano atual.`); }
+async function requireCapacity(admin: ReturnType<typeof createAdminClient>, organizationId: string, table: "api_clients" | "webhook_endpoints", limit: unknown, label: string) { if (limit == null) return; const { count } = await admin.from(table).select("id", { count: "exact", head: true }).eq("organization_id", organizationId).neq("status", "revoked"); if ((count || 0) >= Number(limit)) throw new Error(`Limite de ${label} atingido para o plano atual.`); }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json(); const organizationId = String(body.organization_id || ""); const { admin, userId } = await adminContext(organizationId); const action = String(body.action || ""); const plan = await planEntitlements(admin, organizationId);
+    if (action === "create_api_client") {
+      requireEntitlement(plan, "public_api_enabled", "API pública"); await requireCapacity(admin, organizationId, "api_clients", plan?.max_api_clients, "clientes de API");
+      const environment = body.environment === "sandbox" ? "sandbox" : "production"; const clientId = `cli_${randomBytes(18).toString("base64url")}`; const secret = randomBytes(32).toString("base64url"); const raw = `ma_${environment === "sandbox" ? "test" : "live"}_${clientId}.${secret}`; const scopes = selectScopes(body.scopes);
+      if (!scopes.length) throw new Error("Selecione ao menos um scope."); const storeIds = body.all_stores ? [] : await validateStoreIds(admin, organizationId, Array.isArray(body.store_ids) ? body.store_ids : []); if (!body.all_stores && !storeIds.length) throw new Error("Selecione ao menos uma unidade ou marque todas.");
+      const { data: client, error } = await admin.from("api_clients").insert({ organization_id: organizationId, name: String(body.name || "").trim(), client_id: clientId, secret_hash: sha256(raw), secret_prefix: raw.slice(0, 24), scopes, all_stores: Boolean(body.all_stores), environment, rate_limit_per_minute: Math.min(Math.max(Number(body.rate_limit_per_minute || 120), 10), 3000), created_by: userId }).select("id,client_id,name").single();
+      if (error) throw error; if (!body.all_stores) await admin.from("api_client_store_access").insert(storeIds.map((store_id: string) => ({ api_client_id: client.id, store_id })));
+      await audit(admin, organizationId, "credential_created", "API key criada.", userId, { api_client_id: client.id, scopes }); return NextResponse.json({ ok: true, api_client: client, secret: raw, warning: "Copie agora. O secret não será exibido novamente." });
+    }
+    if (action === "rotate_api_client") {
+      const { data: client } = await admin.from("api_clients").select("id,client_id,environment,secret_hash").eq("id", body.id).eq("organization_id", organizationId).single(); if (!client) throw new Error("Credencial não encontrada.");
+      const secret = randomBytes(32).toString("base64url"); const raw = `ma_${client.environment === "sandbox" ? "test" : "live"}_${client.client_id}.${secret}`;
+      await admin.from("api_clients").update({ previous_secret_hash: client.secret_hash, previous_secret_expires_at: new Date(Date.now() + 24 * 3600_000).toISOString(), secret_hash: sha256(raw), secret_prefix: raw.slice(0, 24), last_rotated_at: new Date().toISOString() }).eq("id", client.id);
+      await audit(admin, organizationId, "credential_rotated", "API key rotacionada com janela de 24 horas.", userId, { api_client_id: client.id }); return NextResponse.json({ ok: true, secret: raw, warning: "A chave anterior funciona por 24 horas. Copie a nova agora." });
+    }
+    if (action === "revoke_api_client") { await admin.from("api_clients").update({ status: "revoked", previous_secret_hash: null, previous_secret_expires_at: null }).eq("id", body.id).eq("organization_id", organizationId); await audit(admin, organizationId, "credential_revoked", "API key revogada.", userId, { api_client_id: body.id }); return NextResponse.json({ ok: true }); }
+    if (action === "create_webhook") {
+      requireEntitlement(plan, "webhooks_enabled", "Webhooks"); await requireCapacity(admin, organizationId, "webhook_endpoints", plan?.max_webhook_endpoints, "destinos de webhook");
+      const url = validateWebhookUrl(String(body.url || "")); const secret = `whsec_${randomBytes(32).toString("base64url")}`; const events = Array.isArray(body.events) ? body.events.map(String).filter((event: string) => /^[a-z]+\.[a-z_]+$/.test(event)) : []; const storeIds = await validateStoreIds(admin, organizationId, body.store_id ? [body.store_id] : []);
+      if (!events.length) throw new Error("Selecione ao menos um evento."); const { data: endpoint, error } = await admin.from("webhook_endpoints").insert({ organization_id: organizationId, store_id: storeIds[0] || null, name: String(body.name || "").trim(), url, vault_secret_id: null, secret_prefix: secret.slice(0, 12), subscribed_events: events, environment: body.environment === "sandbox" ? "sandbox" : "production", created_by: userId }).select("id,name,url").single(); if (error) throw error;
+      const { error: vaultError } = await admin.rpc("create_webhook_endpoint_secret", { requested_endpoint_id: endpoint.id, requested_secret: secret }); if (vaultError) { await admin.from("webhook_endpoints").delete().eq("id", endpoint.id); throw vaultError; }
+      await audit(admin, organizationId, "credential_created", "Webhook criado com secret protegido no Vault.", userId, { endpoint_id: endpoint.id, events }); return NextResponse.json({ ok: true, endpoint, secret, warning: "Copie o secret agora. Ele não será exibido novamente." });
+    }
+    if (action === "rotate_webhook") { const { data: endpoint } = await admin.from("webhook_endpoints").select("id").eq("id",body.id).eq("organization_id",organizationId).maybeSingle(); if(!endpoint)throw new Error("Webhook não encontrado."); const secret = `whsec_${randomBytes(32).toString("base64url")}`; const { error } = await admin.rpc("rotate_webhook_endpoint_secret", { requested_endpoint_id: body.id, requested_secret: secret }); if (error) throw error; await audit(admin, organizationId, "credential_rotated", "Secret do webhook rotacionado.", userId, { endpoint_id: body.id }); return NextResponse.json({ ok: true, secret, warning: "Atualize o consumidor com este novo secret." }); }
+    if (action === "test_webhook") { const { data: endpoint } = await admin.from("webhook_endpoints").select("id,store_id,environment").eq("id", body.id).eq("organization_id", organizationId).single(); if (!endpoint) throw new Error("Webhook não encontrado."); const { data: eventId, error } = await admin.rpc("enqueue_integration_event", { requested_organization_id: organizationId, requested_store_id: endpoint.store_id, requested_type: "integration.test", requested_aggregate_type: "webhook", requested_aggregate_id: endpoint.id, requested_payload: { message: "Evento de teste do MasterApp", endpoint_id: endpoint.id }, requested_origin: "masterapp", requested_correlation_id: `test_${crypto.randomUUID()}`, requested_environment: endpoint.environment }); if (error) throw error; return NextResponse.json({ ok: true, event_id: eventId }); }
+    if (action === "retry_webhook") { await admin.from("webhook_deliveries").update({ status: "retrying", next_attempt_at: new Date().toISOString(), error_message: null }).eq("id", body.id).eq("organization_id", organizationId); await audit(admin, organizationId, "manual_reprocess", "Entrega de webhook enviada para reprocessamento.", userId, { delivery_id: body.id }); return NextResponse.json({ ok: true }); }
+    if (action === "save_integration") { if (["marketplace","accounting","logistics"].includes(String(body.integration_type))) requireEntitlement(plan, "marketplace_integrations_enabled", "Conectores avançados"); const storeIds=await validateStoreIds(admin,organizationId,body.store_id?[body.store_id]:[]); const payload = { organization_id: organizationId, store_id: storeIds[0] || null, provider: String(body.provider || "custom"), integration_type: String(body.integration_type || "other"), name: String(body.name || "").trim(), status: "pending", scopes: selectScopes(body.scopes), sync_mode: body.sync_mode || "inbound", environment: body.environment === "sandbox" ? "sandbox" : "production", created_by: userId }; const { data, error } = await admin.from("integrations").insert(payload).select("id,name,status").single(); if (error) throw error; if (body.config && Object.keys(body.config).length) { const stored = await admin.rpc("set_integration_config", { requested_integration_id: data.id, requested_config: JSON.stringify(body.config) }); if (stored.error) throw stored.error; } await audit(admin, organizationId, "integration_connected", "Integração cadastrada.", userId, { integration_id: data.id }); return NextResponse.json({ ok: true, integration: data }); }
+    throw new Error("Ação inválida.");
+  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Falha ao gerenciar integração." }, { status: 400 }); }
+}
+

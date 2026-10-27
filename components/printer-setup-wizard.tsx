@@ -94,7 +94,7 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
   async function printDirectTest() {
     setTestingConnector(true);
     setMessage("Enviando teste para a impressora...");
-    const receipt = `${establishmentName}\n\nTESTE DA IMPRESSORA\n------------------------------\nCONEXAO DIRETA: ATIVA\nPAPEL: ${paperWidth} mm\nDATA: ${new Date().toLocaleString("pt-BR")}\n------------------------------\nCONFIGURACAO CONCLUIDA\nMesa Viva`;
+    const receipt = `${establishmentName}\n\nTESTE DA IMPRESSORA\n------------------------------\nCONEXAO DIRETA: ATIVA\nPAPEL: ${paperWidth} mm\nDATA: ${new Date().toLocaleString("pt-BR")}\n------------------------------\nCONFIGURACAO CONCLUIDA\nMasterApp`;
     const { error } = await supabase.rpc("queue_printer_test", { requested_establishment_id: establishmentId, requested_text: receipt });
     setTestingConnector(false);
     setMessage(error ? error.message : "Teste enviado diretamente para a impressora.");
@@ -115,7 +115,7 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
       printWindow.focus();
       printWindow.print();
     };
-    frame.srcdoc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Teste da impressora</title><style>@page{size:${paperWidth}mm ${paperWidth === 58 ? 100 : 120}mm;margin:2mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:${paperWidth - 4}mm;font:12px/1.45 monospace;text-align:center}h1{font-size:16px;margin:0 0 14px}h2{font-size:14px;margin:10px 0}p{margin:7px 0}b,span{display:block}.label{font-size:9px;text-transform:uppercase}.line{border-top:1px dashed #000;margin:11px 0;width:100%}small{font-size:10px}</style></head><body><h1>${safeName}</h1><b>TESTE DA IMPRESSORA</b><div class="line"></div><p><b class="label">Conexão</b><span>${connectionLabel}</span></p><p><b class="label">Papel</b><span>${paperWidth} mm</span></p><p><b class="label">Data</b><span>${new Date().toLocaleString("pt-BR")}</span></p><div class="line"></div><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>Mesa Viva</small></body></html>`;
+    frame.srcdoc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Teste da impressora</title><style>@page{size:${paperWidth}mm ${paperWidth === 58 ? 100 : 120}mm;margin:2mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:${paperWidth - 4}mm;font:12px/1.45 monospace;text-align:center}h1{font-size:16px;margin:0 0 14px}h2{font-size:14px;margin:10px 0}p{margin:7px 0}b,span{display:block}.label{font-size:9px;text-transform:uppercase}.line{border-top:1px dashed #000;margin:11px 0;width:100%}small{font-size:10px}</style></head><body><h1>${safeName}</h1><b>TESTE DA IMPRESSORA</b><div class="line"></div><p><b class="label">Conexão</b><span>${connectionLabel}</span></p><p><b class="label">Papel</b><span>${paperWidth} mm</span></p><p><b class="label">Data</b><span>${new Date().toLocaleString("pt-BR")}</span></p><div class="line"></div><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>MasterApp</small></body></html>`;
     document.body.appendChild(frame);
   }
 
@@ -134,7 +134,7 @@ export function PrinterSetupWizard({ establishmentId, establishmentName, initial
           <p><b>Conexão</b><span>{connection === "usb" ? "USB" : connection === "bluetooth" ? "Bluetooth" : "Wi-Fi / rede"}</span></p>
           <p><b>Papel</b><span>{paperWidth} mm</span></p>
           <p><b>Data</b><span>{new Date().toLocaleString("pt-BR")}</span></p>
-          <hr /><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>Mesa Viva</small>
+          <hr /><h2>CONFIGURAÇÃO CONCLUÍDA</h2><small>MasterApp</small>
         </div>
         <div className="printer-preview-actions"><button type="button" className="button dark wide" onClick={printReceipt}>Imprimir</button><p>Escolha a impressora instalada no computador e confirme.</p></div>
       </div>

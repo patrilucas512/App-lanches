@@ -1,0 +1,3 @@
+-- Mantém escrita financeira e versionamento exclusivamente nas RPCs autorizadas.
+drop policy if exists customer_subscription_plans_write on public.customer_subscription_plans;
+revoke insert,update,delete on public.customer_subscription_plans,public.customer_subscription_plan_versions,public.customer_subscription_benefits,public.customer_subscriptions,public.customer_subscription_usage,public.customer_subscription_billing_events from authenticated;
