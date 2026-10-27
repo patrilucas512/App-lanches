@@ -26,6 +26,7 @@ const links = [
   ["/superadmin/qualidade", "✓", "Qualidade"],
   ["/superadmin/feature-management", "⚑", "Feature Management"],
   ["/superadmin/finops", "◒", "FinOps"],
+  ["/superadmin/politicas", "⌘", "Políticas e Regras"],
   ["/superadmin/busca", "⌕", "Saúde da busca"],
   ["/superadmin/produto", "◉", "Produto"],
   ["/superadmin/growth", "↗", "Growth / Clientes"],
