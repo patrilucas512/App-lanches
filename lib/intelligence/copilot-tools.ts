@@ -279,3 +279,5 @@ export function answerManagerQuestion(question: string, snapshot: ManagerSnapsho
   if (snapshot.forecast?.revenue_cents != null) result.facts.push(`Estimativa de fechamento pelo ritmo atual: ${brl(snapshot.forecast.revenue_cents)} — não é garantia.`);
   result.action = { label: "Abrir vendas", href: "/painel/inteligencia?tab=vendas" }; return result;
 }
+export const FEATURE_MANAGEMENT_COPILOT_TOOLS=["getFeatureDefinition","explainFeatureDecision","simulateFeatureEvaluation","getRolloutHealth","listExpiringOverrides","listCleanupOverdue"] as const;
+export const FEATURE_MANAGEMENT_COPILOT_GUARDRAILS={canPublish:false,canAdvanceRollout:false,canActivateKillSwitch:false,actionLabel:"Abrir Feature Management",actionHref:"/superadmin/feature-management"} as const;

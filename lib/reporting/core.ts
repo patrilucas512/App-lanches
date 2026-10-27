@@ -5,6 +5,8 @@ export type ReportFilter={field:string;operator:"equals"|"not_equals"|"contains"
 export type ReportDefinition={datasetId:string;metrics:string[];dimensions:string[];filters?:ReportFilter[];period:{preset?:string;from?:string;to?:string;relative?:boolean};groupBy?:string[];sort?:{field:string;direction:"asc"|"desc"}[];limit?:number;comparison?:"previous_period"|"same_period_last_year"|"target"|"network_benchmark";visualization?:"table"|"line"|"bar"|"area"|"donut"|"kpi";subtotals?:boolean;grandTotal?:boolean;topN?:number};
 export type DatasetDefinition={id:string;name:string;description:string;source:"warehouse"|"hybrid"|"operational";metrics:string[];dimensions:string[];filters:string[];timeGranularity:string[];permissions:string[];sensitivity:"normal"|"pii"|"financial"|"restricted";realtime:boolean;maxDays:number};
 export type MetricDefinition={key:string;label:string;unit:string;aggregation:"sum"|"count"|"avg"|"ratio"|"semantic";additive:boolean;dimensions:string[]};
+export const FEATURE_MANAGEMENT_REPORT_DATASETS=["feature_definitions","feature_evaluations_aggregated","feature_rollouts","feature_rollout_health","feature_overrides","feature_changes","configuration_values"] as const;
+export const FEATURE_MANAGEMENT_REPORT_TEMPLATES=["Feature adoption","Rollout health","Override expiry","Kill switch history","Feature cleanup debt"] as const;
 
 const BASE_DIMENSIONS=["date","hour","weekday","store","region","brand","channel","product","category","customer_segment","waiter","payment_method","supplier","campaign"];
 export const REPORT_METRICS:Record<string,MetricDefinition>={

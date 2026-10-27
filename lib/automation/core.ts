@@ -4,6 +4,9 @@ export type WorkflowNodeType="trigger"|"condition"|"action"|"delay"|"approval"|"
 export type WorkflowNode={id:string;node_type:WorkflowNodeType;config:Record<string,unknown>;position?:Record<string,number>};
 export type WorkflowEdge={source_node_id:string;target_node_id:string;branch_key?:string|null};
 
+export const FEATURE_MANAGEMENT_AUTOMATION_TRIGGERS=["feature.rollout_started","feature.rollout_paused","feature.rollout_health_degraded","feature.override_expiring","feature.override_expired","feature.kill_switch_activated","feature.cleanup_overdue"] as const;
+export const FEATURE_MANAGEMENT_AUTOMATION_ACTIONS={pause_rollout:{risk:"high",permission:"feature_management:manage_rollouts",humanApproval:true},advance_rollout:{risk:"high",permission:"feature_management:manage_rollouts",humanApproval:true},rollback_rollout:{risk:"critical",permission:"feature_management:manage_rollouts",humanApproval:true},activate_kill_switch:{risk:"critical",permission:"feature_management:kill_switch",humanApproval:true},revoke_override:{risk:"high",permission:"feature_management:manage_overrides",humanApproval:true}} as const;
+
 export const AUTOMATION_PERMISSIONS=["automation:view","automation:create","automation:edit","automation:publish","automation:pause","automation:execute_manual","automation:view_history","automation:manage_critical_actions","automation:manage_templates","automation:manage_network"] as const;
 export const CONDITION_OPERATORS=["equals","not_equals","greater_than","less_than","contains","in","not_in","exists","boolean","date_before","date_after","time_window"] as const;
 export const EVENT_REGISTRY={
