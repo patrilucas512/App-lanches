@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
-        with: { version: 2.109.1 }
+        with: { version: 2.122.0 }
       - name: Initialize local config when absent
         run: test -f supabase/config.toml || supabase init
       - name: Start isolated database
