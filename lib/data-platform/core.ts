@@ -26,4 +26,6 @@ export const analyticsCopilotTools=[...copilotTools];
 export const TRANSPORT_FACTS=["fact_transport_orders","fact_transport_loads","fact_transport_trips","fact_transport_stops","fact_transport_pod","fact_transport_occurrences","fact_transport_costs"] as const;
 export const TRANSPORT_DIMENSIONS=["dim_transport_carrier","dim_transport_lane","dim_transport_vehicle","dim_transport_status","dim_transport_occurrence_type"] as const;
 export const IBP_FACTS=['fact_ibp_demand_plan','fact_ibp_supply_plan','fact_ibp_capacity_plan','fact_ibp_financial_plan','fact_ibp_constraints','fact_ibp_decisions','fact_ibp_scenarios','fact_ibp_variances']as const;
+export const MDM_DIMENSIONS=['dim_master_entity','dim_data_source','dim_data_quality_rule','dim_master_merge']as const;
+export const MDM_FACTS=['fact_master_data_quality','fact_master_match_decisions','fact_master_merges','fact_master_change_requests','fact_master_reconciliation']as const;
 export const IBP_DIMENSIONS=['dim_ibp_cycle','dim_ibp_plan_version','dim_ibp_scenario','dim_ibp_constraint_type','dim_ibp_assumption_category']as const;

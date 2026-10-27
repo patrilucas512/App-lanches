@@ -6,6 +6,7 @@ import { SUPPLY_CHAIN_COPILOT_TOOLS } from "@/lib/supply-chain-planning/core";
 import { WMS_COPILOT_TOOLS } from "@/lib/warehouse-management/core";
 import { TRANSPORT_COPILOT_TOOLS } from "@/lib/transport-management/core";
 import { IBP_COPILOT_TOOLS } from "@/lib/integrated-business-planning/core";
+import { MDM_COPILOT_TOOLS } from "@/lib/master-data/core";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const integer = new Intl.NumberFormat("pt-BR");
@@ -38,6 +39,7 @@ export const managerCopilotTools = [
   ...WMS_COPILOT_TOOLS,
   ...TRANSPORT_COPILOT_TOOLS,
   ...IBP_COPILOT_TOOLS,
+  ...MDM_COPILOT_TOOLS,
 ] as const;
 
 function base(intent: string, title: string, answer: string, tools: string[], sources: string[]): CopilotAnswer {
@@ -53,6 +55,13 @@ function periodComparison(snapshot: ManagerSnapshot) {
 export function answerManagerQuestion(question: string, snapshot: ManagerSnapshot): CopilotAnswer {
   const text = normalize(question);
   const sales = snapshot.sales; const support = snapshot.support; const ai = snapshot.ai; const delivery = snapshot.delivery as Record<string, number>;
+  if (/\bmdm\b|dados mestres|golden record|registro oficial|sku pertence|identificador externo|produto duplicado|fornecedor duplicado|qualidade de dados|linhagem de dados/.test(text)) {
+    const result=base("master_data_management","Dados Mestres","O MDM resolve identidade, identificadores, qualidade, duplicidades e linhagem sem substituir os cadastros operacionais oficiais.",[...MDM_COPILOT_TOOLS],["master_entity_registry","master_entity_identifiers","master_source_records","master_match_candidates","master_golden_records","master_data_quality_issues","master_merges"]);
+    result.facts=["Catalog/PIM, Customer 360, Compras, Workforce, Ativos e Organização continuam como fontes oficiais.","Matching probabilístico mostra score, regras e conflitos; ele não prova identidade.","Merges preservam histórico e usam alias para o registro canônico."];
+    result.hypotheses=["Similaridade de nome ou descrição gera somente candidato para revisão humana."];
+    result.recommendations=["Revise identificadores verificados, fontes, conflitos e impacto antes de aprovar qualquer merge.","Use Change Request quando o campo pertence a outro domínio."];
+    result.action={label:"Abrir Dados Mestres",href:"/painel/dados-mestres"};return result;
+  }
   if (/\bibp\b|s&op|planejamento integrado|consensus forecast|demand review|supply review|plan vs actual/.test(text)) {
     const result=base('integrated_business_planning','Planejamento Integrado','O IBP coordena versões do forecast, metas, orçamento, supply, capacidade e finanças sem substituir os módulos oficiais nem executar o plano automaticamente.',[...IBP_COPILOT_TOOLS],['ibp_planning_cycles','ibp_plan_versions','ibp_input_snapshots','ibp_plan_cube','ibp_supply_gaps','ibp_constraints','ibp_variances']);
     result.facts=['Target, Forecast, Plan, Budget e Actual permanecem conceitos separados.','Toda versão histórica usa snapshots e lineage; dados vivos não substituem planos aprovados.','Cenários são dry runs e sinais de execução continuam dependentes de confirmação e ActionEngine.'];

@@ -73,6 +73,7 @@ const allLinks: DashboardLink[] = [
   { key: "warehouse", href: "/painel/armazem", label: "Armazém WMS", icon: "▦", group: "operacao" },
   { key: "transport", href: "/painel/transporte", label: "Transporte TMS", icon: "⇄", group: "operacao" },
   { key: "ibp", href: "/painel/planejamento/ibp", label: "Planejamento IBP", icon: "◎", group: "gestao" },
+  { key: "master-data", href: "/painel/dados-mestres", label: "Dados Mestres", icon: "◈", group: "gestao" },
   { key: "orders", href: "/painel/pedidos", label: "Pedidos", icon: "≡", group: "operacao" },
   { key: "dining", href: "/painel/salao", label: "Salão", icon: "▦", group: "operacao" },
   { key: "self-service", href: "/painel/autoatendimento", label: "Autoatendimento", icon: "▣", group: "operacao" },
