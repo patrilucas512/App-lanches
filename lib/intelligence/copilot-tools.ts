@@ -7,6 +7,7 @@ import { WMS_COPILOT_TOOLS } from "@/lib/warehouse-management/core";
 import { TRANSPORT_COPILOT_TOOLS } from "@/lib/transport-management/core";
 import { IBP_COPILOT_TOOLS } from "@/lib/integrated-business-planning/core";
 import { MDM_COPILOT_TOOLS } from "@/lib/master-data/core";
+import { DATA_GOVERNANCE_COPILOT_TOOLS } from "@/lib/data-governance/core";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const integer = new Intl.NumberFormat("pt-BR");
@@ -40,6 +41,7 @@ export const managerCopilotTools = [
   ...TRANSPORT_COPILOT_TOOLS,
   ...IBP_COPILOT_TOOLS,
   ...MDM_COPILOT_TOOLS,
+  ...DATA_GOVERNANCE_COPILOT_TOOLS,
 ] as const;
 
 function base(intent: string, title: string, answer: string, tools: string[], sources: string[]): CopilotAnswer {
@@ -55,6 +57,13 @@ function periodComparison(snapshot: ManagerSnapshot) {
 export function answerManagerQuestion(question: string, snapshot: ManagerSnapshot): CopilotAnswer {
   const text = normalize(question);
   const sales = snapshot.sales; const support = snapshot.support; const ai = snapshot.ai; const delivery = snapshot.delivery as Record<string, number>;
+  if (/governanca de dados|data contract|contrato de dados|linhagem|lineage|schema drift|breaking change|freshness|catalogo de dados/.test(text)) {
+    const result=base("data_governance","Governança de Dados","O catálogo empresarial explica ownership, contratos, linhagem, qualidade, freshness e impacto usando somente metadados registrados.",[...DATA_GOVERNANCE_COPILOT_TOOLS],["data_assets","data_contracts","data_contract_versions","data_lineage_edges","data_consumers","data_observability_results","data_schema_changes","data_incidents"]);
+    result.facts=["Relações inferidas são sinalizadas e não provam dependência.","Breaking changes usam diff determinístico antes de qualquer resumo de IA.","A IA não publica contrato, aprova exceção nem altera schema."];
+    result.hypotheses=["Dependências não registradas permanecem desconhecidas até descoberta ou confirmação humana."];
+    result.recommendations=["Revise consumidores e criticidade antes de publicar mudanças incompatíveis.","Confirme ownership e sensibilidade de assets descobertos automaticamente."];
+    result.action={label:"Abrir Governança de Dados",href:"/painel/governanca-dados"};return result;
+  }
   if (/\bmdm\b|dados mestres|golden record|registro oficial|sku pertence|identificador externo|produto duplicado|fornecedor duplicado|qualidade de dados|linhagem de dados/.test(text)) {
     const result=base("master_data_management","Dados Mestres","O MDM resolve identidade, identificadores, qualidade, duplicidades e linhagem sem substituir os cadastros operacionais oficiais.",[...MDM_COPILOT_TOOLS],["master_entity_registry","master_entity_identifiers","master_source_records","master_match_candidates","master_golden_records","master_data_quality_issues","master_merges"]);
     result.facts=["Catalog/PIM, Customer 360, Compras, Workforce, Ativos e Organização continuam como fontes oficiais.","Matching probabilístico mostra score, regras e conflitos; ele não prova identidade.","Merges preservam histórico e usam alias para o registro canônico."];

@@ -28,4 +28,7 @@ export const TRANSPORT_DIMENSIONS=["dim_transport_carrier","dim_transport_lane",
 export const IBP_FACTS=['fact_ibp_demand_plan','fact_ibp_supply_plan','fact_ibp_capacity_plan','fact_ibp_financial_plan','fact_ibp_constraints','fact_ibp_decisions','fact_ibp_scenarios','fact_ibp_variances']as const;
 export const MDM_DIMENSIONS=['dim_master_entity','dim_data_source','dim_data_quality_rule','dim_master_merge']as const;
 export const MDM_FACTS=['fact_master_data_quality','fact_master_match_decisions','fact_master_merges','fact_master_change_requests','fact_master_reconciliation']as const;
+export const DATA_GOVERNANCE_DIMENSIONS=['dim_data_asset','dim_data_domain','dim_data_contract','dim_data_owner','dim_data_check','dim_schema_change']as const;
+export const DATA_GOVERNANCE_FACTS=['fact_data_quality_results','fact_data_freshness','fact_schema_changes','fact_data_incidents','fact_contract_compatibility','fact_data_consumers']as const;
+export const DATA_GOVERNANCE_INTEGRATIONS={dataPlatform:'phase34',masterData:'phase75',semanticMetrics:'SemanticMetricsService',incidents:'phase59',metadataOnly:true}as const;
 export const IBP_DIMENSIONS=['dim_ibp_cycle','dim_ibp_plan_version','dim_ibp_scenario','dim_ibp_constraint_type','dim_ibp_assumption_category']as const;

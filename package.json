@@ -58,6 +58,7 @@
     "test:phase73": "node --test tests/transport-management-phase73.test.mjs",
     "test:phase74": "node --test tests/integrated-business-planning-phase74.test.mjs",
     "test:phase75": "node --test tests/master-data-phase75.test.mjs",
+    "test:phase76": "node --test tests/data-governance-phase76.test.mjs",
     "qa:migration-safety": "node scripts/quality/migration-safety.mjs",
     "qa:secret-scan": "node scripts/quality/secret-scan.mjs",
     "qa:smoke": "node scripts/quality/smoke-test.mjs",

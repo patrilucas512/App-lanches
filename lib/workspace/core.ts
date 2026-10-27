@@ -4,6 +4,11 @@ export const MDM_WIDGET_DEFINITIONS=[
  {id:"mdm_duplicate_review_queue",title:"Revisão de Duplicidades",category:"governance",widget_type:"status_list",required_permissions:["mdm:review_duplicates"],supported_scopes:["store","network"],refresh_strategy:"realtime",configuration_schema:{},default_settings:{},route:"/painel/dados-mestres?tab=duplicidades",display_safe:false,sensitive:true},
  {id:"mdm_reconciliation_status",title:"Reconciliação MDM",category:"governance",widget_type:"status_list",required_permissions:["mdm:run_reconciliation"],supported_scopes:["store","network"],refresh_strategy:"hourly",configuration_schema:{},default_settings:{},route:"/painel/dados-mestres?tab=reconciliação",display_safe:true,sensitive:false}
 ]as const;
+export const DATA_GOVERNANCE_WIDGET_DEFINITIONS=[
+ {id:"data_health_summary",title:"Saúde dos Dados",category:"governance",widget_type:"metric",required_permissions:["data_governance:view"],supported_scopes:["store","network"],refresh_strategy:"hourly",configuration_schema:{},default_settings:{},route:"/painel/governanca-dados?tab=observabilidade",display_safe:true,sensitive:false},
+ {id:"breaking_changes_pending",title:"Breaking Changes",category:"governance",widget_type:"status_list",required_permissions:["data_governance:review_changes"],supported_scopes:["store","network"],refresh_strategy:"realtime",configuration_schema:{},default_settings:{},route:"/painel/governanca-dados?tab=mudanças",display_safe:false,sensitive:true},
+ {id:"data_incidents_open",title:"Incidentes de Dados",category:"governance",widget_type:"status_list",required_permissions:["data_governance:view"],supported_scopes:["store","network"],refresh_strategy:"realtime",configuration_schema:{},default_settings:{},route:"/painel/governanca-dados?tab=incidentes",display_safe:true,sensitive:false}
+]as const;
 export type WorkspaceRole = "owner"|"manager"|"attendant"|"cashier"|"kitchen"|"driver"|"inventory"|"finance"|"marketing"|"support"|"sales"|string;
 export type WidgetDefinition = {id:string;title:string;category:string;widget_type:string;required_permissions:string[];supported_scopes:string[];refresh_strategy:string;configuration_schema:Record<string,unknown>;default_settings:Record<string,unknown>;route?:string|null;display_safe:boolean;sensitive:boolean};
 const ROLE_PERMISSIONS:Record<string,string[]>={
