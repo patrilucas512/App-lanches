@@ -65,6 +65,7 @@
     "test:phase80": "node --test tests/ai-governance-phase80.test.mjs",
     "test:phase81": "node --test tests/integration-orchestration-phase81.test.mjs",
     "test:phase82": "node --test tests/digital-twin-phase82.test.mjs",
+    "test:phase83": "node --test tests/revenue-management-phase83.test.mjs",
     "qa:migration-safety": "node scripts/quality/migration-safety.mjs",
     "qa:secret-scan": "node scripts/quality/secret-scan.mjs",
     "qa:smoke": "node scripts/quality/smoke-test.mjs",

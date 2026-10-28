@@ -7,6 +7,7 @@ import { WMS_COPILOT_TOOLS } from "@/lib/warehouse-management/core";
 import { TRANSPORT_COPILOT_TOOLS } from "@/lib/transport-management/core";
 import { IBP_COPILOT_TOOLS } from "@/lib/integrated-business-planning/core";
 import { DIGITAL_TWIN_COPILOT_TOOLS } from "@/lib/digital_twin/core";
+import { REVENUE_MANAGEMENT_COPILOT_TOOLS } from "@/lib/revenue-management/core";
 import { MDM_COPILOT_TOOLS } from "@/lib/master-data/core";
 import { DATA_GOVERNANCE_COPILOT_TOOLS } from "@/lib/data-governance/core";
 
@@ -42,6 +43,7 @@ export const managerCopilotTools = [
   ...TRANSPORT_COPILOT_TOOLS,
   ...IBP_COPILOT_TOOLS,
   ...DIGITAL_TWIN_COPILOT_TOOLS,
+  ...REVENUE_MANAGEMENT_COPILOT_TOOLS,
   ...MDM_COPILOT_TOOLS,
   ...DATA_GOVERNANCE_COPILOT_TOOLS,
 ] as const;
