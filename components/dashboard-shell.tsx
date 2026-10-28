@@ -94,6 +94,7 @@ const allLinks: DashboardLink[] = [
   { key: "store-opening", href: "/painel/novas-unidades", label: "Expansão · Novas Unidades", icon: "↗", group: "gestao" },
   { key: "fiscal", href: "/painel/fiscal", label: "Fiscal", icon: "▧", group: "gestao" },
   { key: "integrations", href: "/painel/integracoes", label: "Integrações", icon: "↔", group: "gestao" },
+  { key: "integration-orchestration", href: "/painel/integracoes/orquestracao", label: "Orquestração iPaaS", icon: "⌘", group: "gestao" },
   { key: "marketplace-integrations", href: "/painel/integracoes/marketplaces", label: "Canais de delivery", icon: "⇄", group: "gestao" },
   { key: "marketplace", href: "/painel/marketplace", label: "Marketplace", icon: "▦", group: "gestao" },
   { key: "developers", href: "/painel/desenvolvedores", label: "Desenvolvedores", icon: "</>", group: "gestao" },
