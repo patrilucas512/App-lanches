@@ -62,6 +62,7 @@
     "test:phase77": "node --test tests/feature-management-phase77.test.mjs",
     "test:phase78": "node --test tests/platform-finops-phase78.test.mjs",
     "test:phase79": "node --test tests/policy-engine-phase79.test.mjs",
+    "test:phase80": "node --test tests/ai-governance-phase80.test.mjs",
     "qa:migration-safety": "node scripts/quality/migration-safety.mjs",
     "qa:secret-scan": "node scripts/quality/secret-scan.mjs",
     "qa:smoke": "node scripts/quality/smoke-test.mjs",
