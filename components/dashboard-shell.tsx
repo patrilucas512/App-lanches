@@ -33,7 +33,7 @@ type StoreOpeningEntitlements = { store_opening_enabled?:boolean; expansion_pipe
 type GeoEntitlements = { geo_management_enabled?:boolean; territory_management_enabled?:boolean; geo_analytics_enabled?:boolean; expansion_geo_analysis_enabled?:boolean; franchise_territories_enabled?:boolean };
 type AuditEntitlements = { operational_audits_enabled?:boolean; audit_offline_enabled?:boolean; audit_scoring_enabled?:boolean; audit_followups_enabled?:boolean; audit_ai_assistant_enabled?:boolean };
 type KnowledgeEntitlements = { knowledge_base_enabled?:boolean; knowledge_semantic_search_enabled?:boolean; knowledge_ai_assistant_enabled?:boolean; knowledge_offline_enabled?:boolean; knowledge_customer_safe_content_enabled?:boolean; central_production_enabled?:boolean; internal_requisitions_enabled?:boolean; interstore_transfers_enabled?:boolean; production_batch_traceability_enabled?:boolean; production_planning_enabled?:boolean; supply_chain_planning_enabled?:boolean; multi_echelon_inventory_enabled?:boolean; redistribution_recommendations_enabled?:boolean; supply_scenarios_enabled?:boolean; dynamic_safety_stock_enabled?:boolean; wms_enabled?:boolean; wms_directed_putaway_enabled?:boolean; wms_wave_picking_enabled?:boolean; wms_handling_units_enabled?:boolean; wms_offline_enabled?:boolean; wms_slotting_enabled?:boolean };
-type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean; data_catalog_enabled?:boolean; data_contracts_enabled?:boolean; data_lineage_enabled?:boolean; data_observability_enabled?:boolean };
+type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean; digital_twin_enabled?:boolean; data_catalog_enabled?:boolean; data_contracts_enabled?:boolean; data_lineage_enabled?:boolean; data_observability_enabled?:boolean };
 
 const allLinks: DashboardLink[] = [
   { key: "overview", href: "/home", label: "Minha Home", icon: "⌂", group: "principal" },
@@ -73,6 +73,7 @@ const allLinks: DashboardLink[] = [
   { key: "warehouse", href: "/painel/armazem", label: "Armazém WMS", icon: "▦", group: "operacao" },
   { key: "transport", href: "/painel/transporte", label: "Transporte TMS", icon: "⇄", group: "operacao" },
   { key: "ibp", href: "/painel/planejamento/ibp", label: "Planejamento IBP", icon: "◎", group: "gestao" },
+  { key: "digital-twin", href: "/painel/planejamento/digital-twin", label: "Digital Twin", icon: "◇", group: "gestao" },
   { key: "master-data", href: "/painel/dados-mestres", label: "Dados Mestres", icon: "◈", group: "gestao" },
   { key: "data-governance", href: "/painel/governanca-dados", label: "Governança de Dados", icon: "⌘", group: "gestao" },
   { key: "orders", href: "/painel/pedidos", label: "Pedidos", icon: "≡", group: "operacao" },
@@ -170,6 +171,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     if (link.key === "warehouse") return plan.wms_enabled !== false && plan.inventory_enabled !== false;
     if (link.key === "transport") return plan.transport_management_enabled !== false;
     if (link.key === "ibp") return plan.ibp_enabled !== false;
+    if (link.key === "digital-twin") return plan.digital_twin_enabled !== false;
     if (link.key === "data-governance") return plan.data_catalog_enabled !== false;
     if (link.key === "voice") return plan.voice_ai_enabled === true;
     if (link.key === "subscriptions") return plan.subscriptions_enabled !== false;

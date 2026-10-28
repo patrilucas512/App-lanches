@@ -1,5 +1,6 @@
 -- Fase 81: Enterprise Integration Orchestration / iPaaS control plane.
 -- Additive only. Domain writes remain delegated to ActionEngine and credentials to Secret Management.
+-- quality: allow-nonconcurrent-index reason=new-empty-phase81-tables
 
 create table if not exists public.integration_orchestration_permissions(
  id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id) on delete cascade,
