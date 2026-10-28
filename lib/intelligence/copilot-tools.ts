@@ -10,6 +10,7 @@ import { DIGITAL_TWIN_COPILOT_TOOLS } from "@/lib/digital_twin/core";
 import { REVENUE_MANAGEMENT_COPILOT_TOOLS } from "@/lib/revenue-management/core";
 import { MDM_COPILOT_TOOLS } from "@/lib/master-data/core";
 import { DATA_GOVERNANCE_COPILOT_TOOLS } from "@/lib/data-governance/core";
+import { NOC_COPILOT_TOOLS } from "@/lib/network-operations/core";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const integer = new Intl.NumberFormat("pt-BR");
@@ -46,6 +47,7 @@ export const managerCopilotTools = [
   ...REVENUE_MANAGEMENT_COPILOT_TOOLS,
   ...MDM_COPILOT_TOOLS,
   ...DATA_GOVERNANCE_COPILOT_TOOLS,
+  ...NOC_COPILOT_TOOLS,
 ] as const;
 
 function base(intent: string, title: string, answer: string, tools: string[], sources: string[]): CopilotAnswer {
@@ -61,6 +63,13 @@ function periodComparison(snapshot: ManagerSnapshot) {
 export function answerManagerQuestion(question: string, snapshot: ManagerSnapshot): CopilotAnswer {
   const text = normalize(question);
   const sales = snapshot.sales; const support = snapshot.support; const ai = snapshot.ai; const delivery = snapshot.delivery as Record<string, number>;
+  if (/central da rede|noc|lojas? com problema|unidades? cr[ií]ticas?|rede offline|problema.*sist[eê]mico|pedidos em risco/.test(text)) {
+    const result=base("network_operations","Central da Rede","O NOC consolida sinais atuais dos domínios oficiais, correlaciona escopo e impacto e mantém freshness explícita. Correlação não confirma causa raiz.",[...NOC_COPILOT_TOOLS],["network_operation_signals","store_operational_health","network_correlated_events","network_alerts","operational_incidents"]);
+    result.facts=["Incident Management continua sendo a autoridade de incidentes e war room.","Dados stale aparecem como desconhecidos, nunca como saudáveis.","Riscos projetados ficam separados de indisponibilidades atuais."];
+    result.hypotheses=["Fator comum só é exibido como possível ou suspeito até confirmação com evidência no incidente."];
+    result.recommendations=["Abra a Central da Rede para conferir escopo, impacto, sinais, freshness e ações disponíveis. A IA não executa ações críticas."];
+    result.action={label:"Abrir Central da Rede",href:"/painel/operacoes/central-da-rede"};return result;
+  }
   if (/governanca de dados|data contract|contrato de dados|linhagem|lineage|schema drift|breaking change|freshness|catalogo de dados/.test(text)) {
     const result=base("data_governance","Governança de Dados","O catálogo empresarial explica ownership, contratos, linhagem, qualidade, freshness e impacto usando somente metadados registrados.",[...DATA_GOVERNANCE_COPILOT_TOOLS],["data_assets","data_contracts","data_contract_versions","data_lineage_edges","data_consumers","data_observability_results","data_schema_changes","data_incidents"]);
     result.facts=["Relações inferidas são sinalizadas e não provam dependência.","Breaking changes usam diff determinístico antes de qualquer resumo de IA.","A IA não publica contrato, aprova exceção nem altera schema."];

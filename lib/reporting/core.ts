@@ -7,6 +7,8 @@ export type DatasetDefinition={id:string;name:string;description:string;source:"
 export type MetricDefinition={key:string;label:string;unit:string;aggregation:"sum"|"count"|"avg"|"ratio"|"semantic";additive:boolean;dimensions:string[]};
 export const FEATURE_MANAGEMENT_REPORT_DATASETS=["feature_definitions","feature_evaluations_aggregated","feature_rollouts","feature_rollout_health","feature_overrides","feature_changes","configuration_values"] as const;
 export const FEATURE_MANAGEMENT_REPORT_TEMPLATES=["Feature adoption","Rollout health","Override expiry","Kill switch history","Feature cleanup debt"] as const;
+export const NETWORK_OPERATIONS_REPORT_DATASETS=["network_health","store_operational_health","network_signals","network_alerts","network_correlated_events","network_operational_risks","noc_response_actions","network_recovery"] as const;
+export const NETWORK_OPERATIONS_REPORT_TEMPLATES=["Network Availability","Critical Store History","Operational Alert Volume","Incident Impact","Recovery Time","Offline Store History","Integration Operational Health","Kitchen Bottleneck History","Orders at Risk","Projected Operational Risks"] as const;
 
 const BASE_DIMENSIONS=["date","hour","weekday","store","region","brand","channel","product","category","customer_segment","waiter","payment_method","supplier","campaign"];
 export const REPORT_METRICS:Record<string,MetricDefinition>={
