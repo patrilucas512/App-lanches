@@ -11,6 +11,8 @@ export const NETWORK_OPERATIONS_REPORT_DATASETS=["network_health","store_operati
 export const NETWORK_OPERATIONS_REPORT_TEMPLATES=["Network Availability","Critical Store History","Operational Alert Volume","Incident Impact","Recovery Time","Offline Store History","Integration Operational Health","Kitchen Bottleneck History","Orders at Risk","Projected Operational Risks"] as const;
 export const SERVICE_RELIABILITY_REPORT_DATASETS=["reliability_services","reliability_journeys","service_level_indicators","service_level_objectives","slo_evaluations","error_budgets","burn_rates","reliability_alerts","reliability_reviews","reliability_dependencies"] as const;
 export const SERVICE_RELIABILITY_REPORT_TEMPLATES=["SLO Compliance","Error Budget Status","Burn Rate Report","Reliability by Service","Reliability by Journey","Incident Budget Impact","Dependency Reliability","Release Reliability Risk","SLO Breach History","SLO Coverage"] as const;
+export const BUSINESS_CONTINUITY_REPORT_DATASETS=["continuity_service_profiles","business_impact_assessments","recovery_objectives","recovery_capabilities","continuity_plans","recovery_dependencies","restore_validation_results","continuity_exercises","continuity_exercise_findings","continuity_activations","continuity_risks"] as const;
+export const BUSINESS_CONTINUITY_REPORT_TEMPLATES=["Continuity Readiness","RTO and RPO Compliance","Restore Validation","Failover Capability","Exercise Findings","Active Recovery Status","Continuity Risk Register","Store Continuity Coverage"] as const;
 
 const BASE_DIMENSIONS=["date","hour","weekday","store","region","brand","channel","product","category","customer_segment","waiter","payment_method","supplier","campaign"];
 export const REPORT_METRICS:Record<string,MetricDefinition>={
