@@ -33,7 +33,7 @@ type StoreOpeningEntitlements = { store_opening_enabled?:boolean; expansion_pipe
 type GeoEntitlements = { geo_management_enabled?:boolean; territory_management_enabled?:boolean; geo_analytics_enabled?:boolean; expansion_geo_analysis_enabled?:boolean; franchise_territories_enabled?:boolean };
 type AuditEntitlements = { operational_audits_enabled?:boolean; audit_offline_enabled?:boolean; audit_scoring_enabled?:boolean; audit_followups_enabled?:boolean; audit_ai_assistant_enabled?:boolean };
 type KnowledgeEntitlements = { knowledge_base_enabled?:boolean; knowledge_semantic_search_enabled?:boolean; knowledge_ai_assistant_enabled?:boolean; knowledge_offline_enabled?:boolean; knowledge_customer_safe_content_enabled?:boolean; central_production_enabled?:boolean; internal_requisitions_enabled?:boolean; interstore_transfers_enabled?:boolean; production_batch_traceability_enabled?:boolean; production_planning_enabled?:boolean; supply_chain_planning_enabled?:boolean; multi_echelon_inventory_enabled?:boolean; redistribution_recommendations_enabled?:boolean; supply_scenarios_enabled?:boolean; dynamic_safety_stock_enabled?:boolean; wms_enabled?:boolean; wms_directed_putaway_enabled?:boolean; wms_wave_picking_enabled?:boolean; wms_handling_units_enabled?:boolean; wms_offline_enabled?:boolean; wms_slotting_enabled?:boolean };
-type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean; digital_twin_enabled?:boolean; revenue_management_enabled?:boolean; commercial_recommendations_enabled?:boolean; network_operations_center_enabled?:boolean; noc_network_view_enabled?:boolean; service_reliability_enabled?:boolean; reliability_release_guardrails_enabled?:boolean; reliability_network_view_enabled?:boolean; reliability_backtesting_enabled?:boolean; business_continuity_enabled?:boolean; continuity_advanced_failover_enabled?:boolean; continuity_exercises_enabled?:boolean; enterprise_risk_management_enabled?:boolean; third_party_risk_enabled?:boolean; risk_kri_monitoring_enabled?:boolean; risk_concentration_analysis_enabled?:boolean; data_catalog_enabled?:boolean; data_contracts_enabled?:boolean; data_lineage_enabled?:boolean; data_observability_enabled?:boolean };
+type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean; digital_twin_enabled?:boolean; revenue_management_enabled?:boolean; commercial_recommendations_enabled?:boolean; network_operations_center_enabled?:boolean; noc_network_view_enabled?:boolean; service_reliability_enabled?:boolean; reliability_release_guardrails_enabled?:boolean; reliability_network_view_enabled?:boolean; reliability_backtesting_enabled?:boolean; business_continuity_enabled?:boolean; continuity_advanced_failover_enabled?:boolean; continuity_exercises_enabled?:boolean; enterprise_risk_management_enabled?:boolean; third_party_risk_enabled?:boolean; risk_kri_monitoring_enabled?:boolean; risk_concentration_analysis_enabled?:boolean; enterprise_change_management_enabled?:boolean; change_advisory_enabled?:boolean; change_conflict_detection_enabled?:boolean; post_change_validation_enabled?:boolean; data_catalog_enabled?:boolean; data_contracts_enabled?:boolean; data_lineage_enabled?:boolean; data_observability_enabled?:boolean };
 
 const allLinks: DashboardLink[] = [
   { key: "overview", href: "/home", label: "Minha Home", icon: "⌂", group: "principal" },
@@ -81,6 +81,7 @@ const allLinks: DashboardLink[] = [
   { key: "master-data", href: "/painel/dados-mestres", label: "Dados Mestres", icon: "◈", group: "gestao" },
   { key: "data-governance", href: "/painel/governanca-dados", label: "Governança de Dados", icon: "⌘", group: "gestao" },
   { key: "enterprise-risk", href: "/painel/governanca/riscos", label: "Riscos Empresariais", icon: "△", group: "gestao" },
+  { key: "change-management", href: "/painel/governanca/mudancas", label: "Mudanças", icon: "⇄", group: "gestao" },
   { key: "orders", href: "/painel/pedidos", label: "Pedidos", icon: "≡", group: "operacao" },
   { key: "dining", href: "/painel/salao", label: "Salão", icon: "▦", group: "operacao" },
   { key: "self-service", href: "/painel/autoatendimento", label: "Autoatendimento", icon: "▣", group: "operacao" },
@@ -182,6 +183,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     if (link.key === "service-reliability") return plan.service_reliability_enabled !== false;
     if (link.key === "business-continuity") return plan.business_continuity_enabled !== false;
     if (link.key === "enterprise-risk") return plan.enterprise_risk_management_enabled !== false;
+    if (link.key === "change-management") return plan.enterprise_change_management_enabled !== false;
     if (link.key === "data-governance") return plan.data_catalog_enabled !== false;
     if (link.key === "voice") return plan.voice_ai_enabled === true;
     if (link.key === "subscriptions") return plan.subscriptions_enabled !== false;

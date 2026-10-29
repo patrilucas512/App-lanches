@@ -37,3 +37,4 @@ export function workspaceCacheKey(input:{organizationId:string;userId:string;sto
 export function normalizedLayout(items:any[]){return items.slice(0,40).sort((a,b)=>Number(a.order_index)-Number(b.order_index)).map((x,i)=>({...x,position_x:i%4,position_y:Math.floor(i/4),order_index:i,width:Math.min(4,Math.max(1,Number(x.width||2))),height:Math.min(4,Math.max(1,Number(x.height||1))) }))}
 export const WORKSPACE_COPILOT_TOOLS=["getMyWorkspace","getAvailableWidgets","getWorkspaceHealth","getRecommendedRoleWorkspace"] as const;
 export const FEATURE_MANAGEMENT_WORKSPACE_WIDGETS=["feature_rollouts_active","feature_health_alerts","feature_overrides_expiring","feature_cleanup_overdue"] as const;
+export const CHANGE_MANAGEMENT_WORKSPACE_WIDGETS=["changes_today","change_approvals","high_risk_changes","change_conflicts","emergency_changes","change_observations","recent_rollbacks"]as const;

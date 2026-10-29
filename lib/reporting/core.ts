@@ -15,6 +15,8 @@ export const BUSINESS_CONTINUITY_REPORT_DATASETS=["continuity_service_profiles",
 export const BUSINESS_CONTINUITY_REPORT_TEMPLATES=["Continuity Readiness","RTO and RPO Compliance","Restore Validation","Failover Capability","Exercise Findings","Active Recovery Status","Continuity Risk Register","Store Continuity Coverage"] as const;
 export const ENTERPRISE_RISK_REPORT_DATASETS=["enterprise_risks","risk_assessments","risk_controls","control_tests","risk_evidence","risk_treatments","risk_acceptances","risk_appetite","key_risk_indicators","risk_events","third_party_risks","risk_concentrations"] as const;
 export const ENTERPRISE_RISK_REPORT_TEMPLATES=["Enterprise Risk Register","Critical Risk Report","Risk Heatmap","Residual Risk Report","Control Effectiveness","Control Testing Status","Risk Treatment Progress","Risk Acceptance Register","Third-party Risk","Risk Concentration","KRI Breaches","Risks Outside Appetite"] as const;
+export const CHANGE_MANAGEMENT_REPORT_DATASETS=["change_requests","change_risk_assessments","change_impacts","change_conflicts","change_approvals","change_execution_steps","change_validations","change_rollbacks","emergency_changes","post_change_reviews"]as const;
+export const CHANGE_MANAGEMENT_REPORT_TEMPLATES=["Change Calendar","Change Success Rate","Failed Changes","Emergency Change Report","Rollback Report","Change Conflict Report","High-Risk Changes","Change Lead Time","Post-Change Validation","Change-Related Incident Review"]as const;
 
 const BASE_DIMENSIONS=["date","hour","weekday","store","region","brand","channel","product","category","customer_segment","waiter","payment_method","supplier","campaign"];
 export const REPORT_METRICS:Record<string,MetricDefinition>={

@@ -69,6 +69,8 @@
     "test:phase84": "node --test tests/network-operations-phase84.test.mjs",
     "test:phase85": "node --test tests/service-reliability-phase85.test.mjs",
     "test:phase86": "node --test tests/business-continuity-phase86.test.mjs",
+    "test:phase87": "node --test tests/enterprise-risk-phase87.test.mjs",
+    "test:phase88": "node --test tests/change-management-phase88.test.mjs",
     "qa:migration-safety": "node scripts/quality/migration-safety.mjs",
     "qa:secret-scan": "node scripts/quality/secret-scan.mjs",
     "qa:smoke": "node scripts/quality/smoke-test.mjs",
