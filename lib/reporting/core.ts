@@ -9,6 +9,8 @@ export const FEATURE_MANAGEMENT_REPORT_DATASETS=["feature_definitions","feature_
 export const FEATURE_MANAGEMENT_REPORT_TEMPLATES=["Feature adoption","Rollout health","Override expiry","Kill switch history","Feature cleanup debt"] as const;
 export const NETWORK_OPERATIONS_REPORT_DATASETS=["network_health","store_operational_health","network_signals","network_alerts","network_correlated_events","network_operational_risks","noc_response_actions","network_recovery"] as const;
 export const NETWORK_OPERATIONS_REPORT_TEMPLATES=["Network Availability","Critical Store History","Operational Alert Volume","Incident Impact","Recovery Time","Offline Store History","Integration Operational Health","Kitchen Bottleneck History","Orders at Risk","Projected Operational Risks"] as const;
+export const SERVICE_RELIABILITY_REPORT_DATASETS=["reliability_services","reliability_journeys","service_level_indicators","service_level_objectives","slo_evaluations","error_budgets","burn_rates","reliability_alerts","reliability_reviews","reliability_dependencies"] as const;
+export const SERVICE_RELIABILITY_REPORT_TEMPLATES=["SLO Compliance","Error Budget Status","Burn Rate Report","Reliability by Service","Reliability by Journey","Incident Budget Impact","Dependency Reliability","Release Reliability Risk","SLO Breach History","SLO Coverage"] as const;
 
 const BASE_DIMENSIONS=["date","hour","weekday","store","region","brand","channel","product","category","customer_segment","waiter","payment_method","supplier","campaign"];
 export const REPORT_METRICS:Record<string,MetricDefinition>={

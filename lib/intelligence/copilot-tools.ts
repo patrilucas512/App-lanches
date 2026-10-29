@@ -294,3 +294,5 @@ export function answerManagerQuestion(question: string, snapshot: ManagerSnapsho
 }
 export const FEATURE_MANAGEMENT_COPILOT_TOOLS=["getFeatureDefinition","explainFeatureDecision","simulateFeatureEvaluation","getRolloutHealth","listExpiringOverrides","listCleanupOverdue"] as const;
 export const FEATURE_MANAGEMENT_COPILOT_GUARDRAILS={canPublish:false,canAdvanceRollout:false,canActivateKillSwitch:false,actionLabel:"Abrir Feature Management",actionHref:"/superadmin/feature-management"} as const;
+export const SERVICE_RELIABILITY_COPILOT_TOOLS=["getReliabilityOverview","getServiceReliability","getJourneyReliability","getSLOStatus","getErrorBudget","getBurnRate","getRecentReliabilityIncidents","getServiceDependencies","analyzeReleaseReliabilityRisk","backtestSLO"] as const;
+export const SERVICE_RELIABILITY_COPILOT_GUARDRAILS={canPublishSLO:false,canFreezeReleases:false,canChangeThresholds:false,canDeclareRootCause:false,actionLabel:"Abrir Confiabilidade",actionHref:"/painel/operacoes/confiabilidade"} as const;
