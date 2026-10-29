@@ -1,0 +1,28 @@
+-- Phase 87 follow-up: covering indexes for Enterprise Risk Management foreign keys.
+-- These indexes keep tenant, ownership and review lookups efficient as the risk
+-- register grows, while preserving the service-role-only access model.
+
+create index if not exists control_tests_organization_idx on public.control_tests(organization_id);
+create index if not exists control_tests_tester_idx on public.control_tests(tester_id);
+create index if not exists enterprise_risks_created_by_idx on public.enterprise_risks(created_by);
+create index if not exists enterprise_risks_owner_user_idx on public.enterprise_risks(owner_user_id);
+create index if not exists key_risk_indicators_owner_user_idx on public.key_risk_indicators(owner_user_id);
+create index if not exists risk_acceptances_accepted_by_idx on public.risk_acceptances(accepted_by);
+create index if not exists risk_appetite_statements_approved_by_idx on public.risk_appetite_statements(approved_by);
+create index if not exists risk_assessments_assessed_by_idx on public.risk_assessments(assessed_by);
+create index if not exists risk_assessments_organization_idx on public.risk_assessments(organization_id);
+create index if not exists risk_audit_events_actor_idx on public.risk_audit_events(actor_id);
+create index if not exists risk_candidates_reviewed_by_idx on public.risk_candidates(reviewed_by);
+create index if not exists risk_control_mappings_organization_idx on public.risk_control_mappings(organization_id);
+create index if not exists risk_controls_owner_user_idx on public.risk_controls(owner_user_id);
+create index if not exists risk_dependencies_organization_idx on public.risk_dependencies(organization_id);
+create index if not exists risk_evidence_links_organization_idx on public.risk_evidence_links(organization_id);
+create index if not exists risk_matrix_definitions_published_by_idx on public.risk_matrix_definitions(published_by);
+create index if not exists risk_member_permissions_updated_by_idx on public.risk_member_permissions(updated_by);
+create index if not exists risk_member_permissions_user_idx on public.risk_member_permissions(user_id);
+create index if not exists risk_reviews_organization_idx on public.risk_reviews(organization_id);
+create index if not exists risk_reviews_reviewer_idx on public.risk_reviews(reviewer_id);
+create index if not exists risk_reviews_risk_idx on public.risk_reviews(risk_id);
+create index if not exists risk_treatments_owner_user_idx on public.risk_treatments(owner_user_id);
+create index if not exists third_party_risk_assessments_assessed_by_idx on public.third_party_risk_assessments(assessed_by);
+create index if not exists third_party_risk_assessments_organization_idx on public.third_party_risk_assessments(organization_id);
