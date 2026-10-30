@@ -191,4 +191,6 @@ export const ENTERPRISE_RISK_AUTOMATION_TRIGGERS=['risk.became_critical','risk.o
 export const ENTERPRISE_RISK_AUTOMATION_ACTIONS=['risk_notify','risk_create_task','risk_request_review','risk_create_treatment_draft','risk_create_incident_candidate']as const;
 export const CHANGE_MANAGEMENT_AUTOMATION_TRIGGERS=['change.created','change.approval_required','change.conflict_detected','change.started','change.validation_failed','change.rollback_started','change.completed','change.emergency_created','change.review_overdue']as const;
 export const CHANGE_MANAGEMENT_AUTOMATION_ACTIONS=['change_notify','change_create_task','change_request_approval','change_create_incident_candidate','change_schedule_post_review']as const;
+export const PROCESS_INTELLIGENCE_AUTOMATION_TRIGGERS=['process.coverage_degraded','process.bottleneck_detected','process.rework_spike','process.major_deviation','process.analysis_completed','process.improvement_accepted']as const;
+export const PROCESS_INTELLIGENCE_AUTOMATION_ACTIONS=['process_notify_owner','process_create_review_task','process_create_improvement_draft','process_request_data_quality_review','process_create_change_draft']as const;
 export const IBP_AUTOMATION_ACTIONS=['ibp_notify','ibp_create_task','ibp_request_approval','ibp_create_meeting_agenda_draft','ibp_create_attention_item','ibp_create_execution_draft']as const;
