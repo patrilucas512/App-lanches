@@ -72,6 +72,7 @@
     "test:phase87": "node --test tests/enterprise-risk-phase87.test.mjs",
     "test:phase88": "node --test tests/change-management-phase88.test.mjs",
     "test:phase89": "node --test tests/process-intelligence-phase89.test.mjs",
+    "test:phase90": "node --test tests/enterprise-architecture-phase90.test.mjs",
     "qa:migration-safety": "node scripts/quality/migration-safety.mjs",
     "qa:secret-scan": "node scripts/quality/secret-scan.mjs",
     "qa:smoke": "node scripts/quality/smoke-test.mjs",

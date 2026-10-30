@@ -39,3 +39,4 @@ export const WORKSPACE_COPILOT_TOOLS=["getMyWorkspace","getAvailableWidgets","ge
 export const FEATURE_MANAGEMENT_WORKSPACE_WIDGETS=["feature_rollouts_active","feature_health_alerts","feature_overrides_expiring","feature_cleanup_overdue"] as const;
 export const CHANGE_MANAGEMENT_WORKSPACE_WIDGETS=["changes_today","change_approvals","high_risk_changes","change_conflicts","emergency_changes","change_observations","recent_rollbacks"]as const;
 export const PROCESS_INTELLIGENCE_WORKSPACE_WIDGETS=["process_bottlenecks","process_rework_trend","process_cycle_time","process_major_deviations","process_improvement_opportunities","process_data_coverage"]as const;
+export const ENTERPRISE_ARCHITECTURE_WORKSPACE_WIDGETS=["critical_capability_gaps","architecture_risks","deprecated_systems","architecture_technical_debt","single_dependency_exposure","architecture_reviews_due","modernization_initiatives"]as const;
