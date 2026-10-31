@@ -31,7 +31,7 @@ Este branch (`claude/sync-supabase-phase92`) parte da fase 75 e adiciona 22 migr
 ## Lacunas conhecidas
 1. **O front-end das fases 76–92 não está no GitHub.** No banco estão as tabelas, RPCs e políticas, mas faltam as telas e os arquivos `lib/` correspondentes, que nunca receberam push. Se existirem em outro lugar (ambiente do Codex/ChatGPT, máquina local), precisam ser trazidos. Se não existirem, terão de ser reconstruídos a partir do schema.
 2. **Não há fases 83 nem 57** no banco nem no repositório.
-3. **Fase 71 (`supply_chain_planning`)** está no repositório mas **não foi aplicada** no Supabase.
+3. **Fase 71 (`supply_chain_planning`)** não tinha sido aplicada no Supabase. **Aplicada em 31/10/2026** (versão `20261031054928`); o arquivo foi renomeado para essa versão.
 4. **Fase 75:** o arquivo do repositório (41.088 bytes) difere levemente do que foi aplicado no banco (41.067 bytes), provavelmente por causa do commit "fix: correct phase 75 metric seed syntax".
 5. **Timestamps:** os nomes de arquivo das fases 1–75 no repositório usam timestamps diferentes das versões registradas no banco. Os arquivos das fases 76–92 usam as versões reais do banco. Antes de rodar `supabase db push`, alinhe isso (por exemplo, com `supabase migration repair`).
 6. Os arquivos exportados terminam com `\n\r\n`, exatamente como estão no banco.
