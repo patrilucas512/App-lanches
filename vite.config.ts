@@ -1,6 +1,7 @@
 import vinext from "vinext";
 import { defineConfig, loadEnv } from "vite";
 import hostingConfig from "./.openai/hosting.json";
+import { assertSafeDevEnvironment } from "./build/dev-environment-guard";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -49,6 +50,8 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async ({ command, mode }) => {
+  // The dev server must never read or write production data.
+  if (command === "serve") assertSafeDevEnvironment(process.cwd());
   // NEXT_PUBLIC values are compiled into browser assets, not supplied by the
   // Worker's runtime environment. Refuse an unusable production build.
   if (command === "build") {
