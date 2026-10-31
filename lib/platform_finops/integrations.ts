@@ -1,0 +1,12 @@
+import { FINOPS_AUTOMATION_EVENTS,FINOPS_COPILOT_TOOLS } from "./core";
+export const FINOPS_REPORTING_DATASETS=["platform_cost","platform_usage","provider_statements","cost_allocations","cost_reconciliation","unit_economics","cost_budgets","cost_forecasts","cost_anomalies","optimization_recommendations"] as const;
+export const FINOPS_REPORT_TEMPLATES=["Custo da Plataforma por Mês","Custo por Provider","Custo por Feature","Custo por Tenant","Unit Economics por Plano","Margem Técnica","Custo de IA","Custo de WhatsApp/Voz","Provider Reconciliation","Budget vs Actual","Cost Forecast","Cost Anomalies","Unallocated/Unknown Cost","Optimization Opportunities"] as const;
+export const FINOPS_WORKSPACE_WIDGETS=["Platform Cost MTD","Cost vs Budget","Technical Margin","AI Cost","Provider Variance","Cost Anomalies","Forecasted Month End","Negative Margin Tenants"] as const;
+export const FINOPS_EXECUTIVE_SIGNALS=["platform_cost_trend","technical_margin","projected_budget_overrun","major_provider_cost_anomaly","high_cost_feature"] as const;
+export const FINOPS_FEATURE_MANAGEMENT_INTEGRATION={actualCost:true,estimatedCost:true,costTrend:true,rolloutCostPreview:true,costGuardrailOptional:true,automaticCostOnlyStop:false} as const;
+export const FINOPS_BILLING_INTEGRATION={phase:22,reusesUsageMeters:true,reusesUsageEvents:true,changesInvoices:false,changesEntitlements:false,changesPrices:false} as const;
+export const FINOPS_FINANCE_INTEGRATION={managerialFinancePhase:17,revenueOpsPhase:31,ownsAP:false,ownsAccounting:false,referencesProviderInvoices:true} as const;
+export const FINOPS_OBSERVABILITY_INTEGRATION={phase:26,aggregatedMeters:true,highCardinalityTelemetry:false,failOpen:true} as const;
+export const FINOPS_DATA_PLATFORM={facts:["fact_platform_usage","fact_platform_cost","fact_provider_cost_statement","fact_cost_allocation","fact_cost_reconciliation","fact_cost_anomaly","fact_unit_economics"],dimensions:["dim_cost_provider","dim_cost_service","dim_cost_meter","dim_cost_center","dim_feature","dim_subscription_plan","dim_cost_quality","dim_cost_status"],lineagePhase:76} as const;
+export const FINOPS_AUTOMATION={triggers:FINOPS_AUTOMATION_EVENTS,actions:["notify","create_task","create_attention_item","create_incident_candidate","request_review"],automaticPricing:false} as const;
+export const FINOPS_COPILOT={tools:FINOPS_COPILOT_TOOLS,canExplain:true,canSuggest:true,canSimulate:true,canChangePrice:false,canCancelProvider:false,canThrottleCoreTenant:false,canPublishRate:false} as const;

@@ -1,0 +1,3 @@
+import{PROCESS_ADAPTERS}from"./core";
+export const PROCESS_PILOTS={order_to_kitchen:{source:"orders+kds",caseKey:"order_id",subtypes:["dine_in","pickup","delivery","marketplace","waiter","whatsapp"]},incident_to_recovery:{source:"phase59",caseKey:"incident_id"},change_to_validation:{source:"phase88",caseKey:"change_id"},integration_to_reconciliation:{source:"phase81",caseKey:"integration_run_id"}}as const;
+export const PROCESS_BOUNDARIES={...PROCESS_ADAPTERS,operationalExecution:false,synchronousCoreDependency:false,rawPayloadReplication:false,correlationIsNotCausality:true,employeeRanking:false,improvementsAreDrafts:true}as const;

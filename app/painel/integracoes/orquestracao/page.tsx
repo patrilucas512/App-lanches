@@ -1,0 +1,5 @@
+import{redirect}from"next/navigation";
+import{DashboardShell}from"@/components/dashboard-shell";
+import{IntegrationOrchestrationCenter}from"@/components/integration-orchestration-center";
+import{getDashboardContext}from"@/lib/dashboard";
+export default async function IntegrationOrchestrationPage(){const{establishment,member,organizationMember}=await getDashboardContext();if(!["owner","manager"].includes(member.role)&&!["owner","admin","manager"].includes(organizationMember?.role||""))redirect("/painel");return <DashboardShell brand={establishment} active="integration-orchestration" storeSlug={establishment.slug} role={member.role}><header className="admin-page-heading"><div><small>INTEGRAÇÕES · ORQUESTRAÇÃO EMPRESARIAL</small><h1>Orquestração iPaaS</h1><p>Fluxos declarativos, contratos, retries, DLQ e reconciliação sem código arbitrário.</p></div><span className="status-pill">Core independente</span></header><IntegrationOrchestrationCenter storeId={establishment.id}/></DashboardShell>}

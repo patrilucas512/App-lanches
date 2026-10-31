@@ -111,6 +111,7 @@ export function safeNotificationEvent(input: NotificationEvent) {
 export const NOTIFICATION_COPILOT_TOOLS = [
   "getMyNotifications", "summarizeCriticalNotifications", "explainNotification", "findNotificationSource", "draftActionPlanFromNotification",
 ] as const;
+export const ENTERPRISE_ARCHITECTURE_NOTIFICATION_EVENTS=["architecture.critical_gap_detected","architecture.deprecated_system_in_use","architecture.single_dependency_exposure","architecture.owner_missing","architecture.standard_violation","architecture.review_due","architecture.drift_detected"]as const;
 
 export function fatigueScore(metrics: { unread: number; critical: number; repeated: number; oldestMinutes: number }) {
   return Math.min(100, Math.round(metrics.unread * 1.2 + metrics.critical * 8 + metrics.repeated * 2 + Math.min(30, metrics.oldestMinutes / 60)));
