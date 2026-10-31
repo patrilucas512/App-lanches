@@ -40,7 +40,7 @@ export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; noti
       } else {
         const email=String(data.get("email")).trim().toLowerCase();
         const preflight=await fetch("/api/security/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
-        const guard=await preflight.json();
+        const guard=await preflight.json().catch(()=>({}));
         if(!preflight.ok)throw new Error(guard.error||"Acesso temporariamente limitado.");
         if(Number(guard.delay_ms)>0)await new Promise(resolve=>setTimeout(resolve,Number(guard.delay_ms)));
         const { error } = await supabase.auth.signInWithPassword({ email, password: String(data.get("password")) });

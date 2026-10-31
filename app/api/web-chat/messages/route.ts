@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { processWebChatAutomation } from "@/lib/omnichannel/web-chat";
 
-export async function GET(request: Request) {
+export const GET = withAdminCredentials(async (request: Request) => {
   const url = new URL(request.url); const publicKey = url.searchParams.get("public_key") || ""; const token = url.searchParams.get("token") || ""; const origin = url.searchParams.get("origin") || "";
   if (!publicKey || !token || !origin) return NextResponse.json({ error: "Sessão inválida." }, { status: 400 });
   const { data, error } = await createAdminClient().rpc("get_web_chat_history", { requested_public_key: publicKey, requested_token: token, requested_origin: origin });
   return error ? NextResponse.json({ error: error.message }, { status: 403 }) : NextResponse.json({ messages: data }, { headers: { "Cache-Control": "no-store" } });
-}
+});
 
 export async function POST(request: Request) {
   try {

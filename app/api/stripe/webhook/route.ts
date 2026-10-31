@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 
 function mapStatus(status: Stripe.Subscription.Status) {
   if (status === "trialing" || status === "active" || status === "past_due" || status === "canceled" || status === "unpaid" || status === "incomplete") return status;
   return status === "incomplete_expired" ? "canceled" : "past_due";
 }
 
-export async function POST(request: Request) {
+export const POST = withAdminCredentials(async (request: Request) => {
   const signature = request.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!signature || !secret) return NextResponse.json({ error: "Webhook não configurado." }, { status: 400 });
@@ -54,4 +54,4 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Webhook falhou." }, { status: 500 });
   }
-}
+});

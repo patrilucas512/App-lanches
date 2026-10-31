@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { assertSameOrigin, requestIp, secureDigest } from "@/lib/security/core";
 
-export async function POST(request: Request) {
+export const POST = withAdminCredentials(async (request: Request) => {
   try { assertSameOrigin(request); } catch { return NextResponse.json({ error: "Origem não autorizada." }, { status: 403 }); }
   const body = await request.json().catch(() => ({})) as { email?: string; success?: boolean };
   const email = String(body.email || "").trim().toLowerCase();
@@ -19,4 +19,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Muitas tentativas. Aguarde antes de tentar novamente.", retry_after_seconds: data.retry_after_seconds }, { status: 429, headers: { "Retry-After": String(data.retry_after_seconds || 900) } });
   }
   return NextResponse.json({ allowed: true, delay_ms: data.delay_ms || 0 });
-}
+});

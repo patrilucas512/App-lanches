@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { processWhatsAppAutomation } from "@/lib/ai-attendant/orchestrator";
 import { correlationId, structuredLog, withTrace } from "@/lib/observability/core";
 
-export async function POST(request: Request) {
+export const POST = withAdminCredentials(async (request: Request) => {
   const admin = createAdminClient(); const token = request.headers.get("x-masterapp-worker") || "";
   const { data: allowed } = await admin.rpc("verify_integration_worker_token", { requested_token: token });
   if (!allowed) return NextResponse.json({ error: "Worker não autorizado." }, { status: 401 });
@@ -26,4 +26,4 @@ export async function POST(request: Request) {
   }
   structuredLog("info", "worker", "batch_completed", { correlation_id: correlationId(request.headers.get("x-correlation-id")), queue, worker, processed: results.length });
   return NextResponse.json({ processed: results.length, results });
-}
+});

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { payloadHash, redactMarketplacePayload, verifyMarketplaceWebhook } from "@/lib/marketplace-integrations/core";
 
-export async function POST(request: Request, context: { params: Promise<{ provider: string }> }) {
+export const POST = withAdminCredentials(async (request: Request, context: { params: Promise<{ provider: string }> }) => {
   const rawBody = await request.text();
   if (Buffer.byteLength(rawBody) > 524288) return NextResponse.json({ ok: false, error: "payload_too_large" }, { status: 413 });
   const { provider } = await context.params; const connectionId = request.headers.get("x-masterapp-connection") || "";
@@ -28,4 +28,4 @@ export async function POST(request: Request, context: { params: Promise<{ provid
   const { error: storeError } = await admin.rpc("store_marketplace_webhook_payload", { requested_event: event.id, requested_raw: rawBody });
   if (storeError) { await admin.from("marketplace_webhook_events").update({ status: "failed", last_error: "payload_storage_failed" }).eq("id", event.id); return NextResponse.json({ ok: false, error: "payload_storage_failed" }, { status: 500 }); }
   return NextResponse.json({ ok: true, accepted: true, event_id: event.id }, { status: 202 });
-}
+});
