@@ -75,6 +75,7 @@
     "test:phase90": "node --test tests/enterprise-architecture-phase90.test.mjs",
     "test:phase91": "node --test tests/enterprise-portfolio-phase91.test.mjs",
     "test:phase92": "node --test tests/vendor-management-phase92.test.mjs",
+    "test:phase94": "node --test tests/security-operations-phase94.test.mjs",
     "qa:migration-safety": "node scripts/quality/migration-safety.mjs",
     "qa:secret-scan": "node scripts/quality/secret-scan.mjs",
     "qa:smoke": "node scripts/quality/smoke-test.mjs",
