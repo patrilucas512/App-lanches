@@ -71,5 +71,5 @@ export const ENTERPRISE_PORTFOLIO_FACTS=['fact_portfolio_demands','fact_portfoli
 export const ENTERPRISE_PORTFOLIO_DIMENSIONS=['dim_portfolio_initiative','dim_strategic_theme','dim_initiative_type','dim_portfolio_status','dim_priority_class','dim_benefit_type','dim_investment_decision']as const;
 export const ENTERPRISE_PORTFOLIO_SEMANTIC_METRICS=['Active Initiative Count','Funded Initiative Count','Portfolio Requested Investment','Portfolio Approved Investment','Portfolio Budget Utilization','Critical Initiative Blocked Count','Capacity Gap Count','Strategic Goal Coverage','Critical Capability Investment Coverage','Critical Risk Investment Coverage','Expected Benefit Value','Realized Benefit Value','Benefit Realization Rate','Initiatives Delivering Expected Benefits','Deferred Initiative Count','Mandatory Initiative Coverage']as const;
 export const ENTERPRISE_PORTFOLIO_LINEAGE={projects:'phase32',goals:'phase55',budgets:'phase55',ibp:'phase74',capacity:'phases32_58_63',risks:'phase87',changes:'phase88',architecture:'phase90',qualitativeBenefitsNeverMonetized:true,scenarioNeverChangesBaseline:true}as const;
-export {VENDOR_FACTS,VENDOR_DIMENSIONS,VENDOR_METRICS} from "@/lib/vendor-management/integrations";
-export {SOC_FACTS,SOC_DIMENSIONS,SOC_METRICS} from "@/lib/security-operations/integrations";
+export {VENDOR_FACTS,VENDOR_DIMENSIONS,VENDOR_METRICS} from "../vendor-management/integrations.ts";
+export {SOC_FACTS,SOC_DIMENSIONS,SOC_METRICS} from "../security-operations/integrations.ts";
