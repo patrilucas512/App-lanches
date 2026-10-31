@@ -40,3 +40,5 @@ export const FEATURE_MANAGEMENT_WORKSPACE_WIDGETS=["feature_rollouts_active","fe
 export const CHANGE_MANAGEMENT_WORKSPACE_WIDGETS=["changes_today","change_approvals","high_risk_changes","change_conflicts","emergency_changes","change_observations","recent_rollbacks"]as const;
 export const PROCESS_INTELLIGENCE_WORKSPACE_WIDGETS=["process_bottlenecks","process_rework_trend","process_cycle_time","process_major_deviations","process_improvement_opportunities","process_data_coverage"]as const;
 export const ENTERPRISE_ARCHITECTURE_WORKSPACE_WIDGETS=["critical_capability_gaps","architecture_risks","deprecated_systems","architecture_technical_debt","single_dependency_exposure","architecture_reviews_due","modernization_initiatives"]as const;
+export const ENTERPRISE_PORTFOLIO_WORKSPACE_WIDGETS=["portfolio_decisions_pending","critical_initiatives","portfolio_capacity_conflicts","portfolio_funding_requests","portfolio_benefits_at_risk","strategic_coverage_gaps","portfolio_dependency_blockers"]as const;
+export {VENDOR_WIDGETS as VENDOR_MANAGEMENT_WORKSPACE_WIDGETS} from "@/lib/vendor-management/integrations";
