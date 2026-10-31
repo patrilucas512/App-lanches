@@ -40,7 +40,7 @@ Este branch (`claude/sync-supabase-phase92`) parte da fase 75 e adiciona 22 migr
 - **SaaS em produção:** https://mesa-viva-patrilucas.patricklucas512.chatgpt.site (hospedado pelo ChatGPT/Codex; `/painel` redireciona para `/login`).
 - **Landing page:** Vercel, projeto `delivery-land-page` (time `lucas-patrick`). O acesso ao time pela integração do Claude ainda precisa de autorização.
 - **Banco:** fases 1–92 aplicadas, incluindo a 71. Nenhum alerta de segurança novo.
-- **GitHub:** o branch `claude/sync-supabase-phase92` (commits `53aad84` e `3f67962`) está pronto, mas o **push foi recusado**: falta instalar o app do Claude no GitHub (https://github.com/apps/claude/installations/select_target).
+- **GitHub:** o branch `claude/sync-supabase-phase92` foi publicado. **PR #2** (https://github.com/patrilucas512/App-lanches/pull/2) aguarda merge no `main`.
 - **Build/typecheck:** não foi possível rodar no ambiente do Claude (sem acesso ao registro do npm).
 
 ## Agente IA (Atendente IA)
