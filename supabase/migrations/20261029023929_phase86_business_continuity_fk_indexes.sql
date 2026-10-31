@@ -1,0 +1,42 @@
+-- Fase 86: covering indexes for foreign keys reported by Supabase Performance Advisor.
+-- quality: allow-nonconcurrent-index reason=new-empty-business-continuity-tables
+create index if not exists bia_org_idx on public.business_impact_assessments(organization_id);
+create index if not exists bia_approved_by_idx on public.business_impact_assessments(approved_by);
+create index if not exists bia_created_by_idx on public.business_impact_assessments(created_by);
+create index if not exists continuity_permissions_user_idx on public.continuity_member_permissions(user_id);
+create index if not exists continuity_permissions_updated_by_idx on public.continuity_member_permissions(updated_by);
+create index if not exists continuity_profiles_service_idx on public.continuity_service_profiles(service_id);
+create index if not exists continuity_profiles_owner_idx on public.continuity_service_profiles(owner_user_id);
+create index if not exists recovery_objectives_bia_idx on public.recovery_objectives(bia_id);
+create index if not exists recovery_objectives_owner_idx on public.recovery_objectives(owner_user_id);
+create index if not exists continuity_plan_steps_org_idx on public.continuity_plan_steps(organization_id);
+create index if not exists continuity_plans_objective_idx on public.continuity_plans(objective_id);
+create index if not exists continuity_plans_owner_idx on public.continuity_plans(owner_user_id);
+create index if not exists continuity_plans_publisher_idx on public.continuity_plans(published_by);
+create index if not exists failover_strategies_org_idx on public.failover_strategies(organization_id);
+create index if not exists failover_strategies_service_idx on public.failover_strategies(service_id);
+create index if not exists restore_validation_org_idx on public.restore_validation_results(organization_id);
+create index if not exists restore_validation_job_idx on public.restore_validation_results(restore_job_id);
+create index if not exists restore_validation_user_idx on public.restore_validation_results(validated_by);
+create index if not exists continuity_exercises_org_idx on public.continuity_exercises(organization_id);
+create index if not exists continuity_exercises_plan_idx on public.continuity_exercises(plan_id);
+create index if not exists continuity_exercises_facilitator_idx on public.continuity_exercises(facilitator_id);
+create index if not exists continuity_findings_org_idx on public.continuity_exercise_findings(organization_id);
+create index if not exists continuity_findings_exercise_idx on public.continuity_exercise_findings(exercise_id);
+create index if not exists continuity_findings_owner_idx on public.continuity_exercise_findings(owner_user_id);
+create index if not exists continuity_evidence_service_idx on public.continuity_evidence(service_id);
+create index if not exists continuity_risks_org_idx on public.continuity_risks(organization_id);
+create index if not exists continuity_risks_service_idx on public.continuity_risks(service_id);
+create index if not exists continuity_risks_owner_idx on public.continuity_risks(owner_user_id);
+create index if not exists continuity_activations_plan_idx on public.continuity_activations(plan_id);
+create index if not exists continuity_activations_incident_idx on public.continuity_activations(incident_id);
+create index if not exists continuity_activations_user_idx on public.continuity_activations(activated_by);
+create index if not exists continuity_activation_steps_org_idx on public.continuity_activation_steps(organization_id);
+create index if not exists continuity_activation_steps_plan_step_idx on public.continuity_activation_steps(plan_step_id);
+create index if not exists continuity_activation_steps_user_idx on public.continuity_activation_steps(executed_by);
+create index if not exists continuity_reconciliation_org_idx on public.continuity_reconciliation_runs(organization_id);
+create index if not exists continuity_reconciliation_activation_idx on public.continuity_reconciliation_runs(activation_id);
+create index if not exists continuity_reconciliation_signoff_idx on public.continuity_reconciliation_runs(signoff_by);
+create index if not exists store_continuity_store_idx on public.store_continuity_profiles(store_id);
+create index if not exists continuity_audit_actor_idx on public.continuity_audit_events(actor_id);
+
