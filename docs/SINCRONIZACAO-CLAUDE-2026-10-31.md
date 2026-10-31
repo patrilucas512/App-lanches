@@ -36,5 +36,12 @@ Este branch (`claude/sync-supabase-phase92`) parte da fase 75 e adiciona 22 migr
 5. **Timestamps:** os nomes de arquivo das fases 1–75 no repositório usam timestamps diferentes das versões registradas no banco. Os arquivos das fases 76–92 usam as versões reais do banco. Antes de rodar `supabase db push`, alinhe isso (por exemplo, com `supabase migration repair`).
 6. Os arquivos exportados terminam com `\n\r\n`, exatamente como estão no banco.
 
+## Hospedagem e status (31/10/2026, 02h50)
+- **SaaS em produção:** https://mesa-viva-patrilucas.patricklucas512.chatgpt.site (hospedado pelo ChatGPT/Codex; `/painel` redireciona para `/login`).
+- **Landing page:** Vercel, projeto `delivery-land-page` (time `lucas-patrick`). O acesso ao time pela integração do Claude ainda precisa de autorização.
+- **Banco:** fases 1–92 aplicadas, incluindo a 71. Nenhum alerta de segurança novo.
+- **GitHub:** o branch `claude/sync-supabase-phase92` (commits `53aad84` e `3f67962`) está pronto, mas o **push foi recusado**: falta instalar o app do Claude no GitHub (https://github.com/apps/claude/installations/select_target).
+- **Build/typecheck:** não foi possível rodar no ambiente do Claude (sem acesso ao registro do npm).
+
 ## Agente IA (Atendente IA)
 Faz parte do mesmo app: painel em `app/painel/atendente-ia`, `components/ai-attendant-manager.tsx` e `lib/ai-attendant/`, além das fases de WhatsApp/IA (`whatsapp_ai_attendant_phase2`, `whatsapp_ai_management_phase6`, `manager_copilot_phase9`, `phase80_ai_governance`). As edge functions de WhatsApp estão em `supabase/functions/`.
