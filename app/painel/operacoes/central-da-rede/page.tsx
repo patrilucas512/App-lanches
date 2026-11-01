@@ -1,0 +1,7 @@
+import {redirect} from "next/navigation";
+import {DashboardShell} from "@/components/dashboard-shell";
+import {NetworkOperationsCenter} from "@/components/network-operations-center";
+import {getDashboardContext} from "@/lib/dashboard";
+import "./network-operations.css";
+export const dynamic="force-dynamic";
+export default async function NetworkOperationsPage(){const{establishment,member,organizationMember}=await getDashboardContext();if((establishment.plan as{network_operations_center_enabled?:boolean}|null)?.network_operations_center_enabled===false)redirect("/painel");if(!["owner","manager"].includes(member.role)&&!["owner","admin","manager","supervisor","analyst"].includes(organizationMember?.role||""))redirect("/painel");return <DashboardShell brand={establishment} active="network-operations" storeSlug={establishment.slug} role={member.role}><header className="dashboard-head noc-head"><div><small>OPERAÇÕES · TEMPO REAL</small><h1>Central da Rede</h1><p>Saúde operacional, impacto e resposta coordenada — com fontes oficiais, freshness e correlação explicável.</p><p><a href="/painel/operacoes/confiabilidade">Confiabilidade histórica: SLO, error budget e burn rate</a> · <a href="/painel/operacoes/continuidade-negocio">Continuidade: recuperação ativa, RTO e RPO</a></p></div><div className="noc-live"><i/>Saúde atual · NOC OPERACIONAL<small>Ordering independente</small></div></header><NetworkOperationsCenter storeId={establishment.id}/></DashboardShell>}

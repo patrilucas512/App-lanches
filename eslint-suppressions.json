@@ -58,9 +58,6 @@
     }
   },
   "app/api/global-search/route.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 44
-    },
     "prefer-const": {
       "count": 5
     }
@@ -835,11 +832,6 @@
       "count": 1
     }
   },
-  "lib/executive-command/core.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 3
-    }
-  },
   "lib/food_quality/core.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 4
@@ -858,11 +850,6 @@
   "lib/integrations/auth.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 8
-    }
-  },
-  "lib/integrations/public-api.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 5
     }
   },
   "lib/kitchen_orchestration/core.ts": {

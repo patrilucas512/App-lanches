@@ -33,7 +33,7 @@ type StoreOpeningEntitlements = { store_opening_enabled?:boolean; expansion_pipe
 type GeoEntitlements = { geo_management_enabled?:boolean; territory_management_enabled?:boolean; geo_analytics_enabled?:boolean; expansion_geo_analysis_enabled?:boolean; franchise_territories_enabled?:boolean };
 type AuditEntitlements = { operational_audits_enabled?:boolean; audit_offline_enabled?:boolean; audit_scoring_enabled?:boolean; audit_followups_enabled?:boolean; audit_ai_assistant_enabled?:boolean };
 type KnowledgeEntitlements = { knowledge_base_enabled?:boolean; knowledge_semantic_search_enabled?:boolean; knowledge_ai_assistant_enabled?:boolean; knowledge_offline_enabled?:boolean; knowledge_customer_safe_content_enabled?:boolean; central_production_enabled?:boolean; internal_requisitions_enabled?:boolean; interstore_transfers_enabled?:boolean; production_batch_traceability_enabled?:boolean; production_planning_enabled?:boolean; supply_chain_planning_enabled?:boolean; multi_echelon_inventory_enabled?:boolean; redistribution_recommendations_enabled?:boolean; supply_scenarios_enabled?:boolean; dynamic_safety_stock_enabled?:boolean; wms_enabled?:boolean; wms_directed_putaway_enabled?:boolean; wms_wave_picking_enabled?:boolean; wms_handling_units_enabled?:boolean; wms_offline_enabled?:boolean; wms_slotting_enabled?:boolean };
-type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean };
+type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean; digital_twin_enabled?:boolean; revenue_management_enabled?:boolean; commercial_recommendations_enabled?:boolean; network_operations_center_enabled?:boolean; noc_network_view_enabled?:boolean; service_reliability_enabled?:boolean; reliability_release_guardrails_enabled?:boolean; reliability_network_view_enabled?:boolean; reliability_backtesting_enabled?:boolean; business_continuity_enabled?:boolean; continuity_advanced_failover_enabled?:boolean; continuity_exercises_enabled?:boolean; enterprise_risk_management_enabled?:boolean; third_party_risk_enabled?:boolean; risk_kri_monitoring_enabled?:boolean; risk_concentration_analysis_enabled?:boolean; enterprise_change_management_enabled?:boolean; change_advisory_enabled?:boolean; change_conflict_detection_enabled?:boolean; post_change_validation_enabled?:boolean; data_catalog_enabled?:boolean; data_contracts_enabled?:boolean; data_lineage_enabled?:boolean; data_observability_enabled?:boolean; process_intelligence_enabled?:boolean; enterprise_architecture_enabled?:boolean; enterprise_portfolio_management_enabled?:boolean; vendor_management_enabled?:boolean; vendor_due_diligence_enabled?:boolean; vendor_renewal_management_enabled?:boolean; vendor_exit_planning_enabled?:boolean; vendor_sla_management_enabled?:boolean; security_operations_center_enabled?:boolean; security_detection_engine_enabled?:boolean; security_investigation_workbench_enabled?:boolean; security_response_orchestration_enabled?:boolean; security_threat_hunting_enabled?:boolean; security_ai_assistance_enabled?:boolean };
 
 const allLinks: DashboardLink[] = [
   { key: "overview", href: "/home", label: "Minha Home", icon: "⌂", group: "principal" },
@@ -43,8 +43,10 @@ const allLinks: DashboardLink[] = [
   { key: "menu-engineering", href: "/painel/engenharia-cardapio", label: "Engenharia de Cardápio", icon: "◫", group: "principal" },
   { key: "marketing-intelligence", href: "/painel/marketing-inteligencia", label: "Marketing · Inteligência", icon: "◎", group: "principal" },
   { key: "analytics", href: "/painel/analytics", label: "Analytics & Dados", icon: "⌁", group: "principal" },
+  { key: "process-intelligence", href: "/painel/analytics/processos", label: "Process Intelligence", icon: "⇢", group: "principal" },
   { key: "reports", href: "/painel/relatorios", label: "Relatórios", icon: "▥", group: "principal" },
   { key: "performance-management", href: "/painel/metas", label: "Metas e Performance", icon: "◎", group: "principal" },
+  { key: "enterprise-portfolio", href: "/painel/estrategia/portfolio", label: "Portfólio Estratégico", icon: "◫", group: "principal" },
   { key: "my-learning", href: "/painel/aprendizado", label: "Meu aprendizado", icon: "◫", group: "principal" },
   { key: "knowledge", href: "/painel/conhecimento", label: "Conhecimento", icon: "▧", group: "principal" },
   { key: "units", href: "/painel/unidades", label: "Unidades", icon: "▣", group: "principal" },
@@ -73,6 +75,18 @@ const allLinks: DashboardLink[] = [
   { key: "warehouse", href: "/painel/armazem", label: "Armazém WMS", icon: "▦", group: "operacao" },
   { key: "transport", href: "/painel/transporte", label: "Transporte TMS", icon: "⇄", group: "operacao" },
   { key: "ibp", href: "/painel/planejamento/ibp", label: "Planejamento IBP", icon: "◎", group: "gestao" },
+  { key: "digital-twin", href: "/painel/planejamento/digital-twin", label: "Digital Twin", icon: "◇", group: "gestao" },
+  { key: "revenue-management", href: "/painel/comercial/revenue-management", label: "Revenue Management", icon: "↗", group: "gestao" },
+  { key: "network-operations", href: "/painel/operacoes/central-da-rede", label: "Central da Rede", icon: "◉", group: "operacao" },
+  { key: "service-reliability", href: "/painel/operacoes/confiabilidade", label: "Confiabilidade", icon: "◌", group: "operacao" },
+  { key: "business-continuity", href: "/painel/operacoes/continuidade-negocio", label: "Continuidade de Negócios", icon: "↻", group: "operacao" },
+  { key: "master-data", href: "/painel/dados-mestres", label: "Dados Mestres", icon: "◈", group: "gestao" },
+  { key: "data-governance", href: "/painel/governanca-dados", label: "Governança de Dados", icon: "⌘", group: "gestao" },
+  { key: "enterprise-risk", href: "/painel/governanca/riscos", label: "Riscos Empresariais", icon: "△", group: "gestao" },
+  { key: "change-management", href: "/painel/governanca/mudancas", label: "Mudanças", icon: "⇄", group: "gestao" },
+  { key: "enterprise-architecture", href: "/painel/governanca/arquitetura", label: "Arquitetura Empresarial", icon: "⌬", group: "gestao" },
+  { key: "vendor-management", href: "/painel/governanca/terceiros", label: "Terceiros & Fornecedores", icon: "◇", group: "gestao" },
+  { key: "security-operations", href: "/painel/seguranca/soc", label: "Security Operations Center", icon: "◆", group: "gestao" },
   { key: "orders", href: "/painel/pedidos", label: "Pedidos", icon: "≡", group: "operacao" },
   { key: "dining", href: "/painel/salao", label: "Salão", icon: "▦", group: "operacao" },
   { key: "self-service", href: "/painel/autoatendimento", label: "Autoatendimento", icon: "▣", group: "operacao" },
@@ -92,6 +106,7 @@ const allLinks: DashboardLink[] = [
   { key: "store-opening", href: "/painel/novas-unidades", label: "Expansão · Novas Unidades", icon: "↗", group: "gestao" },
   { key: "fiscal", href: "/painel/fiscal", label: "Fiscal", icon: "▧", group: "gestao" },
   { key: "integrations", href: "/painel/integracoes", label: "Integrações", icon: "↔", group: "gestao" },
+  { key: "integration-orchestration", href: "/painel/integracoes/orquestracao", label: "Orquestração iPaaS", icon: "⌘", group: "gestao" },
   { key: "marketplace-integrations", href: "/painel/integracoes/marketplaces", label: "Canais de delivery", icon: "⇄", group: "gestao" },
   { key: "marketplace", href: "/painel/marketplace", label: "Marketplace", icon: "▦", group: "gestao" },
   { key: "developers", href: "/painel/desenvolvedores", label: "Desenvolvedores", icon: "</>", group: "gestao" },
@@ -167,6 +182,19 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     if (link.key === "warehouse") return plan.wms_enabled !== false && plan.inventory_enabled !== false;
     if (link.key === "transport") return plan.transport_management_enabled !== false;
     if (link.key === "ibp") return plan.ibp_enabled !== false;
+    if (link.key === "digital-twin") return plan.digital_twin_enabled !== false;
+    if (link.key === "revenue-management") return plan.revenue_management_enabled !== false;
+    if (link.key === "network-operations") return plan.network_operations_center_enabled !== false;
+    if (link.key === "service-reliability") return plan.service_reliability_enabled !== false;
+    if (link.key === "business-continuity") return plan.business_continuity_enabled !== false;
+    if (link.key === "enterprise-risk") return plan.enterprise_risk_management_enabled !== false;
+    if (link.key === "change-management") return plan.enterprise_change_management_enabled !== false;
+    if (link.key === "process-intelligence") return plan.process_intelligence_enabled !== false;
+    if (link.key === "enterprise-architecture") return plan.enterprise_architecture_enabled !== false;
+    if (link.key === "enterprise-portfolio") return plan.enterprise_portfolio_management_enabled !== false;
+    if (link.key === "vendor-management") return plan.vendor_management_enabled !== false;
+    if (link.key === "security-operations") return plan.security_operations_center_enabled !== false;
+    if (link.key === "data-governance") return plan.data_catalog_enabled !== false;
     if (link.key === "voice") return plan.voice_ai_enabled === true;
     if (link.key === "subscriptions") return plan.subscriptions_enabled !== false;
     if (link.key === "dining") return plan.reservations_enabled !== false && plan.advanced_dining_room_enabled !== false;
