@@ -127,6 +127,7 @@ A enquete é anônima por padrão, com mínimo de respostas (padrão 5, nunca me
 | Migration safety | aprovada nos 7 arquivos |
 | Build de produção | aprovado |
 | Rotas HTTP e telas na pré-visualização com sessão real | ver abaixo |
+| CI do PR #13, incluindo `migration-dry-run` (banco sem a Fase 38) e lint completo | 11 de 11 verificações aprovadas no commit `0bbd875` |
 
 Na pré-visualização foram exercidos: criar rascunho pelo editor, prévia do público, publicar pela rota real com o publicador da Fase 52, "Li e entendi" com clique real em 375 px, widget no Workspace, rascunho pela rota de incidentes e rota da Fase 46.
 
@@ -142,9 +143,7 @@ Defeitos encontrados nessas verificações e já corrigidos:
 
 ## 14. O que não foi verificado
 
-- **Dry-run de migrations do CI (`supabase db reset`):** não foi rodado; roda no PR. As migrations foram aplicadas no dev, sobre um banco que já tem a Fase 38. A aplicação sobre um banco sem ela não foi testada.
 - **`vinext dev`:** caiu duas vezes com erro interno do `workerd` ao carregar a entrada do Worker, antes de executar qualquer rota. O relatório da Fase 38 registra a mesma falha intermitente. A causa não foi investigada e não dá para afirmar que é anterior a esta fase. O teste de tela foi feito no build de produção.
-- **Lint do repositório inteiro:** a execução local acusa milhares de problemas e não foi comparada com a `main`. Só os arquivos alterados foram conferidos; a resposta final é a do CI.
 - **Worker com segredo real:** a rota só foi testada sem segredo (401). As funções da fila rodaram direto no banco, mas não o laço completo do worker nem `?enqueue=1`.
 - **Com a janela do app minimizada:** a maior parte das telas foi conferida por leitura de texto, sem revisão visual. O botão de anexo não foi clicado; o envio foi testado direto na URL assinada.
 - **Duas pessoas reais na tela:** aprovação, recusa e permissões foram testadas nos serviços e no banco, não com duas sessões no navegador.
@@ -152,7 +151,7 @@ Defeitos encontrados nessas verificações e já corrigidos:
 
 ## 15. O que precisa de aprovação
 
-1. Revisar e mesclar o PR.
+1. Revisar e mesclar o [PR #13](https://github.com/patrilucas512/App-lanches/pull/13).
 2. Decidir quando aplicar em produção. As migrations não foram aplicadas lá, por ordem do documento da fase.
 3. Agendar o worker, fora das migrations: `POST /api/internal-communications/worker`, com um job frequente e outro com `?enqueue=1`. Sem ele, não há lembretes, agendados, expiração nem novos membros, e crises dependem da tentativa imediata feita na publicação.
 4. Configurar `INTERNAL_COMMUNICATIONS_WORKER_SECRET` ou `CRON_SECRET`.
