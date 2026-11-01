@@ -1,6 +1,6 @@
 # Fase 38 — Reputação, Avaliações, NPS/CSAT e Experiência do Cliente
 
-Branch `claude/fase-38-reputacao-experiencia`, a partir de `2853a22`. As 7 migrations foram aplicadas no `masterapp-dev`. Produção não foi consultada nem alterada.
+Branch `claude/fase-38-reputacao-experiencia`, a partir de `2853a22`. As 7 migrations da fase foram aplicadas no `masterapp-dev` e não estão em produção. Em produção foi aplicada só a correção de `usage_events`, descrita na seção 16.
 
 ## 1. Diagnóstico
 
@@ -169,14 +169,14 @@ Os 17 cenários obrigatórios estão em `tests/customer-experience-phase38.test.
 
 1. Testar o painel com login na pré-visualização.
 2. Abrir o PR e fazer o merge depois da confirmação do dono do projeto.
-3. Aplicar em produção, o que esta fase proíbe sem nova instrução. Inclui `20261101180810_usage_events_metering_columns`, se lá houver o mesmo defeito.
+3. Aplicar em produção, o que esta fase proíbe sem nova instrução.
 4. Agendar o worker e definir `CUSTOMER_EXPERIENCE_WORKER_SECRET`, ou usar `CRON_SECRET`.
 5. Ligar as flags por plano ou loja. Todas nascem desligadas.
 6. Registrar o agente `customer_experience_assistant` na Fase 80, caso queira usar IA.
 
 ## 16. Limitações
 
-- **Corrigido nesta branch, anterior à fase:** desde a Fase 22, `usage_events` guarda eventos do cardápio e de medição, mas `event_type` e `establishment_id` continuavam obrigatórios. Toda medição falhava e, pelos gatilhos, impedia criar pedidos, mensagens de WhatsApp e registros de uso de IA e voz. `20261101180810_usage_events_metering_columns` torna as duas colunas opcionais e exige que cada linha seja de um dos dois tipos. Produção não foi consultada, então lá o efeito não foi confirmado.
+- **Corrigido nesta branch, anterior à fase:** desde a Fase 22, `usage_events` guarda eventos do cardápio e de medição, mas `event_type` e `establishment_id` continuavam obrigatórios. Toda medição falhava e, pelos gatilhos, impedia criar pedidos, mensagens de WhatsApp e registros de uso de IA e voz. `20261101180810_usage_events_metering_columns` torna as duas colunas opcionais e exige que cada linha seja de um dos dois tipos. O mesmo defeito foi confirmado em produção por leitura, e a correção foi aplicada lá com aprovação do dono do projeto. Nenhum pedido de teste foi criado em produção.
 - O dev continua sem `20261101160259_phase93_review_adjustments`, que não é desta fase.
 - WhatsApp fora da janela de 24 horas não recebe pesquisa, porque não há template aprovado ligado a este fluxo.
 - O envio de e-mail está no catálogo de origens, mas não foi implementado; a pesquisa é pulada com `channel_not_supported`.
