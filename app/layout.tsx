@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { headers } from "next/headers";
 import { StaffInstallPrompt } from "@/components/app-install-prompt";
 import { ConnectivityBanner } from "@/components/connectivity-banner";
+import { DevEnvironmentBanner } from "@/components/dev-environment-banner";
 import "./globals.css";
 import "./continuity.css";
 import "./hardware.css";
@@ -37,6 +38,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <meta name="theme-color" content="#080806" />
       <script dangerouslySetInnerHTML={{ __html: `window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__masterAppInstallPrompt=e;window.dispatchEvent(new Event("masterappinstallready"));});if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/push-sw.js");});}` }} />
     </head>
-    <body className={`${display.variable} ${sans.variable}`}><ConnectivityBanner />{children}<StaffInstallPrompt /></body>
+    <body className={`${display.variable} ${sans.variable}`}><DevEnvironmentBanner /><ConnectivityBanner />{children}<StaffInstallPrompt /></body>
   </html>;
 }
