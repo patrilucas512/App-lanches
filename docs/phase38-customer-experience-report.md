@@ -151,15 +151,16 @@ Os 17 cenários obrigatórios estão em `tests/customer-experience-phase38.test.
 | Varredura de segredos | Passou |
 | Rotas sem login, no servidor local | API e worker respondem 401; origem inválida e loja inexistente, 404; nota fora da escala, 422; painel redireciona para o login |
 | Migrations no `masterapp-dev` | 7 de 7 aplicadas; 17 tabelas e 7 views, com RLS e sem acesso direto para `anon` e `authenticated` |
-| Fluxo real no banco (`cx-smoke`) | 50 de 50 |
-| Gatilhos de pedido, em transação desfeita | Uma pesquisa por pedido, sem duplicar; `on conflict` do portal funciona; com a pesquisa quebrada de propósito, o pedido fecha |
+| Fluxo real no banco (`cx-smoke`) | 61 de 61, com pedido real, medição e recompra |
+| Falha da pesquisa, em transação desfeita | Com a pesquisa quebrada de propósito, o pedido fecha |
+| Testes com a pasta `tests/security` | 3.798 de 3.798 |
 | Página pública em tela de celular | Respondida até a confirmação, sem rolagem lateral; notas 0 e 10 recebem o mesmo convite |
 
 ## 14. O que não foi verificado
 
 - **O painel `/painel/clientes/experiencia` não foi aberto no navegador**, porque exige login. Os dados que ele usa foram lidos no banco real, mas abas, botões e formulários não foram usados.
 - **`migration-dry-run` do CI:** só roda no PR. As migrations rodaram sobre o dev, não sobre um banco vazio, e o `db reset` local não rodou porque o Docker não iniciou nesta máquina.
-- **Pedido real de ponta a ponta:** bloqueado pelo problema da seção 16. Os gatilhos de pedido só rodaram em transação desfeita, com o gatilho `orders_saas_usage` desligado, e a medição de recompra só foi testada por leitura do código.
+- **Pedido pelas telas:** o pedido real do teste foi gravado direto na tabela, com os gatilhos ativos. Cardápio, checkout e pagamento não foram usados.
 - **Worker pela rota HTTP:** a rota só foi testada sem segredo (401). A fila foi processada chamando as funções diretamente.
 - **Provedores reais:** WhatsApp, modelo de IA e provedores de avaliação não foram usados.
 - **Servidor de desenvolvimento:** na branch, a partida falhou de forma intermitente, com erro interno do `workerd` ou sem responder a tempo. Na `main` foi feita uma única tentativa, que funcionou, então essa amostra não prova nem descarta relação com a fase. O build de produção passa.
@@ -168,14 +169,14 @@ Os 17 cenários obrigatórios estão em `tests/customer-experience-phase38.test.
 
 1. Testar o painel com login na pré-visualização.
 2. Abrir o PR e fazer o merge depois da confirmação do dono do projeto.
-3. Aplicar em produção, o que esta fase proíbe sem nova instrução.
+3. Aplicar em produção, o que esta fase proíbe sem nova instrução. Inclui `20261101180810_usage_events_metering_columns`, se lá houver o mesmo defeito.
 4. Agendar o worker e definir `CUSTOMER_EXPERIENCE_WORKER_SECRET`, ou usar `CRON_SECRET`.
 5. Ligar as flags por plano ou loja. Todas nascem desligadas.
 6. Registrar o agente `customer_experience_assistant` na Fase 80, caso queira usar IA.
 
 ## 16. Limitações
 
-- **Problema anterior a esta fase:** no `masterapp-dev`, nenhum pedido pode ser criado, porque o gatilho `orders_saas_usage` grava em `usage_events` sem `event_type`, coluna obrigatória. A mesma função de gatilho é usada em `whatsapp_messages`, `ai_usage_events` e `voice_cost_usage`. A causa está nas migrations do repositório. Produção não foi consultada, então lá o efeito não foi confirmado. Até a correção, as pesquisas por pedido não têm como disparar neste banco.
+- **Corrigido nesta branch, anterior à fase:** desde a Fase 22, `usage_events` guarda eventos do cardápio e de medição, mas `event_type` e `establishment_id` continuavam obrigatórios. Toda medição falhava e, pelos gatilhos, impedia criar pedidos, mensagens de WhatsApp e registros de uso de IA e voz. `20261101180810_usage_events_metering_columns` torna as duas colunas opcionais e exige que cada linha seja de um dos dois tipos. Produção não foi consultada, então lá o efeito não foi confirmado.
 - O dev continua sem `20261101160259_phase93_review_adjustments`, que não é desta fase.
 - WhatsApp fora da janela de 24 horas não recebe pesquisa, porque não há template aprovado ligado a este fluxo.
 - O envio de e-mail está no catálogo de origens, mas não foi implementado; a pesquisa é pulada com `channel_not_supported`.

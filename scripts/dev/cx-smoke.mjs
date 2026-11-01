@@ -40,7 +40,6 @@ const submit = (token, score, comment, source = "qr_table") => admin.rpc("cx_sub
 const jobsFor = async feedbackId => must(await admin.from("cx_jobs").select("*").eq("organization_id", org).eq("job_type", "analyze_feedback").contains("payload", { feedback_id: feedbackId }).eq("status", "queued"), "fila");
 const runJobs = async feedbackId => { for (const job of await jobsFor(feedbackId)) { await runCxJob({ admin, notify }, job); await admin.from("cx_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id); } };
 
-// Order triggers are not exercised here: orders cannot be inserted on this project while orders_saas_usage writes usage_events without event_type.
 const dispatchFor = async customerId => must(await admin.from("cx_survey_dispatches").insert({ organization_id: org, store_id: store.id, definition_id: nps.id, definition_version: nps.version, customer_id: customerId, trigger_type: "manual", channel: "whatsapp", idempotency_key: `smoke:${randomUUID()}`, expires_at: new Date(Date.now() + 864e5).toISOString() }).select("*").single(), "disparo");
 const customerA = await newCustomer(`A ${tag}`);
 const skipped = await processDispatch({ admin, siteUrl: "https://dev.test", send: async () => { throw new Error("não deveria enviar"); } }, await dispatchFor(customerA));
@@ -135,6 +134,35 @@ const reviewed = await reviewRiskSignal(ctx, { signalId: signal.id, decision: "c
 check("revisão humana registrada", reviewed.status === "confirmed" && reviewed.reviewed_by === owner, JSON.stringify(reviewed));
 const staff = await logStaffFeedback(ctx, { type: "complaint", comment: "Cliente reclamou da demora no balcão" });
 check("equipe registra reclamação sem nota", Boolean(staff.id));
+
+// Real orders: survey trigger, metering and repurchase
+const newOrder = async customerId => must(await admin.from("orders").insert({ establishment_id: store.id, organization_id: org, store_id: store.id, customer_id: customerId, fulfillment_type: "pickup", customer_name: "Cliente Fictício", subtotal_cents: 1000, total_cents: 1000 }).select("id,order_number").single(), "pedido");
+const complete = async id => must(await admin.from("orders").update({ status: "completed" }).eq("id", id).select("id"), "concluir pedido");
+const customerO = await newCustomer(`O ${tag}`), orderO = await newOrder(customerO);
+const metering = must(await admin.from("usage_events").select("meter_key,event_type,quantity").eq("organization_id", org).eq("idempotency_key", `order:${orderO.id}`), "medição");
+check("pedido real é criado e medido", metering.length === 1 && metering[0].meter_key === "orders" && metering[0].event_type === null, JSON.stringify(metering));
+await complete(orderO.id);
+const orderDispatches = must(await admin.from("cx_survey_dispatches").select("*").eq("order_id", orderO.id), "disparos");
+check("pedido concluído cria uma pesquisa", orderDispatches.length === 1 && orderDispatches[0].trigger_type === "order_picked_up", JSON.stringify(orderDispatches));
+await admin.from("orders").update({ status: "ready" }).eq("id", orderO.id); await complete(orderO.id);
+check("concluir de novo não duplica", must(await admin.from("cx_survey_dispatches").select("id").eq("order_id", orderO.id), "disparos").length === 1);
+const portalWrite = { establishment_id: store.id, customer_id: customerO, order_id: orderO.id, rating: 5, comment: "Muito bom", answered_at: new Date().toISOString() };
+must(await admin.from("crm_feedback").upsert(portalWrite, { onConflict: "order_id" }), "portal 1");
+must(await admin.from("crm_feedback").upsert({ ...portalWrite, rating: 2 }, { onConflict: "order_id" }), "portal 2");
+const portalRow = must(await admin.from("crm_feedback").select("rating,score,source").eq("order_id", orderO.id), "portal");
+check("um pedido continua com uma avaliação", portalRow.length === 1 && portalRow[0].rating === 2 && Number(portalRow[0].score) === 2, JSON.stringify(portalRow));
+check("resposta pelo portal fecha a pesquisa", must(await admin.from("cx_survey_dispatches").select("status").eq("order_id", orderO.id).single(), "disparo").status === "answered");
+const repeat = await newOrder(customerB); await complete(repeat.id); await slaScan({ admin, organizationId: org, notify });
+check("recompra medida depois do caso", must(await admin.from("service_recovery_cases").select("repurchased_order_id").eq("id", recoveryCase.id).single(), "caso").repurchased_order_id === repeat.id);
+const usage = await admin.rpc("record_saas_usage", { requested_organization_id: org, requested_establishment_id: null, requested_meter: "api_requests", requested_quantity: 1, requested_idempotency_key: `smoke:${tag}` });
+check("RPC de medição não quebra em coluna obrigatória", !usage.error || /Limite do plano/.test(usage.error.message), usage.error?.message);
+const orgUsage = await admin.from("usage_events").insert({ organization_id: org, meter_key: "api_requests", idempotency_key: `smoke-direct:${tag}` });
+check("medição por organização aceita sem loja", !orgUsage.error, orgUsage.error?.message);
+const aiUsage = await admin.from("ai_usage_events").insert({ establishment_id: store.id, event_type: "ai_message_processed" }).select("id").single();
+check("gatilho de uso de IA grava a medição", !aiUsage.error && must(await admin.from("usage_events").select("meter_key").eq("organization_id", org).eq("idempotency_key", `ai:${aiUsage.data?.id}`), "medição de IA").length === 1, aiUsage.error?.message);
+await refuses("linha sem tipo nenhum é recusada", () => admin.from("usage_events").insert({ organization_id: org }), /usage_events_kind_check/);
+const menuEvent = await admin.rpc("record_public_event", { requested_slug: store.slug, requested_event: "menu_view" });
+check("evento do cardápio continua funcionando", !menuEvent.error, menuEvent.error?.message);
 
 // Read models on the real schema
 const from = new Date(Date.now() - 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
