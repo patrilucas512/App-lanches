@@ -3,7 +3,7 @@ export const SOC_ADAPTERS={
   incidents:"Phase59IncidentBridge",policy:"Phase79PolicyEngineAdapter",actions:"CopilotActionEngineAdapter",
   ai:"Phase80AIGovernanceAdapter",integrations:"Phase81IntegrationHubAdapter",noc:"Phase84NOCAdapter",
   continuity:"Phase86ContinuityAdapter",risk:"Phase87EnterpriseRiskAdapter",changes:"Phase88ChangeAdapter",
-  architecture:"Phase90ArchitectureImpactAdapter",vendors:"Phase92VendorAdapter",identity:"IdentityGovernanceReferenceAdapter"
+  architecture:"Phase90ArchitectureImpactAdapter",vendors:"Phase92VendorAdapter",identity:"Phase93IdentityGovernanceAdapter"
 } as const;
 export const SOC_REPORT_DATASETS=["security_events","security_detection_rules","security_alerts","security_correlated_events","security_investigations","security_response_actions","security_source_health","security_detection_coverage","security_alert_dispositions"] as const;
 export const SOC_REPORT_TEMPLATES=["Security Alert Overview","Critical Security Alerts","Detection Rule Performance","False Positive Analysis","Identity Security Events","Privileged Activity","API Security","Integration Security","Vendor Security Events","Security Response Actions","Detection Coverage","Security Source Health","Investigation Aging","Confirmed Security Incident Summary"] as const;

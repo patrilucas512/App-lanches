@@ -77,3 +77,4 @@ export const ENTERPRISE_PORTFOLIO_REPORT_DATASETS=['portfolio_demands','portfoli
 export const ENTERPRISE_PORTFOLIO_REPORT_TEMPLATES=['Strategic Portfolio Overview','Initiative Prioritization','Funding Allocation','Capacity Constraints','Initiative Dependencies','Strategic Coverage','Capability Investment Coverage','Risk Investment Coverage','Benefit Realization','Portfolio Scenario Comparison','Deferred Initiative Report','Investment Decision History']as const;
 export {VENDOR_REPORT_DATASETS,VENDOR_REPORT_TEMPLATES} from "../vendor-management/integrations.ts";
 export {SOC_REPORT_DATASETS,SOC_REPORT_TEMPLATES} from "../security-operations/integrations.ts";
+export {IDGOV_REPORT_DATASETS,IDGOV_REPORT_TEMPLATES} from "../identity-governance/integrations.ts";
