@@ -53,7 +53,7 @@ export function isMaterialChange(before:{title:string;body:string},after:{title:
 }
 
 const validCpf=(raw:string)=>{const d=raw.replace(/\D/g,"");if(d.length!==11||/^(\d)\1+$/.test(d))return false;const check=(n:number)=>{let sum=0;for(let i=0;i<n;i++)sum+=Number(d[i])*(n+1-i);const r=(sum*10)%11;return(r===10?0:r)===Number(d[n])};return check(9)&&check(10)};
-const validCard=(raw:string)=>{const d=raw.replace(/\D/g,"");if(d.length<13||d.length>19)return false;let sum=0,alt=false;for(let i=d.length-1;i>=0;i--){let n=Number(d[i]);if(alt){n*=2;if(n>9)n-=9}sum+=n;alt=!alt}return sum%10===0};
+const validCard=(raw:string)=>{const d=raw.replace(/\D/g,"");if(![15,16].includes(d.length)||!/^[3-6]/.test(d))return false;/* Lots, barcodes and long codes pass Luhn by chance, so length and brand prefix must match a real card. */let sum=0,alt=false;for(let i=d.length-1;i>=0;i--){let n=Number(d[i]);if(alt){n*=2;if(n>9)n-=9}sum+=n;alt=!alt}return sum%10===0};
 
 // A document number never leaves in an announcement. A sensitive word can be legitimate ("como entregar o atestado"), so it asks a person to confirm.
 export function checkContent(text:string){
@@ -130,6 +130,15 @@ export function reachMetrics(rows:Array<{recipients:number;delivered:number;open
     overdueAcknowledgements:sum("overdue",required),
     medianHoursToAcknowledge:medians.length?(medians.length%2?medians[mid]:(medians[mid-1]+medians[mid])/2):null,
   };
+}
+
+// The Phase 46 screen reads this table too. It keeps seeing what was published for the store in view, and nothing targeted at someone else.
+export function networkGovernanceAnnouncements(rows:any[]|null|undefined,access:{allStores:boolean;allowedStores:string[]}){
+  return(rows||[]).filter(x=>access.allStores||(!Object.values(x.audience_definition?.filters||{}).some((v:any)=>v?.length)&&(x.scope_type==="organization"||(x.scope_type==="store"&&access.allowedStores.includes(x.scope_id))))).map(x=>{const out={...x};delete out.audience_definition;return out});
+}
+
+export function mandatoryWidgetRows(rows:any[]|null|undefined){
+  return(rows||[]).map(x=>({id:x.announcement_id,title:x.network_announcements?.title,status:x.state==="overdue"?"Em atraso":"Confirmar leitura",route:`/painel/comunicados?id=${x.announcement_id}`}));
 }
 
 export const mustData=(result:{data:any;error:any},step:string):any=>{if(result.error)throw new Error(`${step}: ${result.error.message}`);return result.data};

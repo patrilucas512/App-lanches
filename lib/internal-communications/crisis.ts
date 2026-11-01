@@ -10,9 +10,14 @@ export const internalCommunicationsOn=async(admin:any,storeId:string)=>{const fl
 const audienceOfStore=(storeId:string|null|undefined)=>storeId?{scope:{type:"store",ids:[storeId]}}:{scope:{type:"organization",ids:[]}};
 
 export async function draftFromIncident(input:{admin:any;organizationId:string;actorId:string;storeId:string;notify?:any;incident:any;title?:string;description?:string}){
-  const{incident}=input,template=await activeTemplate(input.admin,input.organizationId,"crise");
+  const{incident}=input;
+  // An incident in progress needs more than one announcement. Only a draft nobody has sent yet is reused.
+  const{data:related}=await input.admin.from("network_announcements").select("*").eq("organization_id",input.organizationId).contains("related_refs",{incident:[incident.id]});
+  const open=(related||[]).find((x:any)=>["draft","pending_approval","approved","scheduled"].includes(x.status));
+  if(open)return{announcement:open,created:false};
+  const template=await activeTemplate(input.admin,input.organizationId,"crise");
   const rendered=renderTemplate(template,{situacao:incident.title,detalhes:input.description||incident.summary||"Em apuração.",instrucoes:"Siga as orientações do responsável pelo incidente."});
-  const{announcement,created}=await createDraft(crisisCtx(input),{type:"crisis",priority:template.priority,title:input.title||rendered.title,body:rendered.body,requiresAck:template.requires_ack,ackDeadline:deadlineFromTemplate(template),audience:audienceOfStore(incident.store_id),relatedRefs:{incident:[incident.id]},templateId:template.id,storeId:incident.store_id||input.storeId,sourceType:"incident",idempotencyKey:`incident:${incident.id}`});
+  const{announcement,created}=await createDraft(crisisCtx(input),{type:"crisis",priority:template.priority,title:input.title||rendered.title,body:rendered.body,requiresAck:template.requires_ack,ackDeadline:deadlineFromTemplate(template),audience:audienceOfStore(incident.store_id),relatedRefs:{incident:[incident.id]},templateId:template.id,storeId:incident.store_id||input.storeId,sourceType:"incident",idempotencyKey:`incident:${incident.id}:${(related||[]).length+1}`});
   await input.admin.from("incident_relations").upsert({incident_id:incident.id,relation_type:"communication",entity_type:"internal_communication",entity_id:announcement.id,visibility:incident.visibility==="confidential"?"confidential":"operational",created_by:input.actorId},{onConflict:"incident_id,relation_type,entity_type,entity_id"});
   return{announcement,created};
 }

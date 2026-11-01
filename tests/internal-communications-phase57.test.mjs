@@ -1,5 +1,5 @@
 import test from"node:test";import assert from"node:assert/strict";import{readFile,readdir}from"node:fs/promises";
-import{COMMS_FLAGS,COMMS_PERMISSIONS,CommsAccessService,approvalRequirement,canDecideApproval,canTransition,checkContent,emergencyGate,isMaterialChange,reachMetrics,reminderDue}from"../lib/internal-communications/core.ts";
+import{COMMS_FLAGS,COMMS_PERMISSIONS,CommsAccessService,networkGovernanceAnnouncements,approvalRequirement,canDecideApproval,canTransition,checkContent,emergencyGate,isMaterialChange,reachMetrics,reminderDue}from"../lib/internal-communications/core.ts";
 import{AudienceResolver,normalizeAudience}from"../lib/internal-communications/audiences.ts";
 import{createDraft,decideApproval,editAnnouncement,publishAnnouncement,publishDueAnnouncements,retractAnnouncement,scheduleAnnouncement,submitForApproval}from"../lib/internal-communications/announcements.ts";
 import{acknowledge,acknowledgementSummary,markOpened,myFeed,pendingPeople,publicAnnouncement}from"../lib/internal-communications/acknowledgements.ts";
@@ -17,7 +17,7 @@ const allLib=async()=>{const dir=new URL("../lib/internal-communications/",impor
 function fakeDb(seed={}){const tables=Object.fromEntries(Object.entries(seed).map(([k,v])=>[k,v.map(x=>({...x}))]));let serial=0;
  return{tables,from(table){tables[table]||=[];const q={op:"select",filters:[],row:null,opts:{},head:false,rangeFrom:null,rangeTo:null,
   select(_c,o){if(q.op==="select"&&o?.head)q.head=true;return q},eq(k,v){q.filters.push(x=>x[k]===v);return q},neq(k,v){q.filters.push(x=>x[k]!==v);return q},in(k,v){q.filters.push(x=>v.includes(x[k]));return q},is(k,v){q.filters.push(x=>(x[k]??null)===v);return q},gte(k,v){q.filters.push(x=>x[k]>=v);return q},gt(k,v){q.filters.push(x=>x[k]>v);return q},lte(k,v){q.filters.push(x=>x[k]<=v);return q},lt(k,v){q.filters.push(x=>x[k]!=null&&x[k]<v);return q},
-  not(k,op,v){q.filters.push(x=>op==="is"?(x[k]??null)!==v:!String(v).replace(/[()]/g,"").split(",").includes(String(x[k])));return q},or(){return q},order(){return q},limit(){return q},range(a,b){q.rangeFrom=a;q.rangeTo=b;return q},
+  not(k,op,v){q.filters.push(x=>op==="is"?(x[k]??null)!==v:!String(v).replace(/[()]/g,"").split(",").includes(String(x[k])));return q},contains(k,v){q.filters.push(x=>Object.entries(v).every(([key,ids])=>ids.every(id=>x[k]?.[key]?.includes(id))));return q},or(){return q},order(){return q},limit(){return q},range(a,b){q.rangeFrom=a;q.rangeTo=b;return q},
   insert(row){q.op="insert";q.row=row;return q},update(row){q.op="update";q.row=row;return q},upsert(row,o){q.op="upsert";q.row=row;q.opts=o||{};return q},delete(){q.op="delete";return q},
   run(){let match=tables[table].filter(x=>q.filters.every(f=>f(x)));
    if(q.op==="select"){const count=match.length;if(q.rangeFrom!=null)match=match.slice(q.rangeFrom,q.rangeTo+1);return{data:match,count,error:null}}
@@ -58,7 +58,11 @@ test("T01b Phase 46 route no longer exposes drafts, answers or other units",asyn
  const route=await file("../app/api/network-governance/route.ts");
  assert.match(route,/from\("network_announcements"\)\.select\("id,organization_id,scope_type[^"]*"\)\.eq\("organization_id",c\.organizationId\)\.eq\("status","published"\)/);
  assert.doesNotMatch(route.match(/from\("network_announcements"\)\.select\("[^"]*"\)/)[0],/verification|pending_edit/);
- assert.match(route,/c\.allStores\|\|\(/);
+ assert.match(route,/networkGovernanceAnnouncements\(announcements,c\)/);
+ const rows=[{id:"rede",scope_type:"organization",audience_definition:{filters:{}}},{id:"gerentes",scope_type:"organization",audience_definition:{filters:{roles:["manager"]}}},{id:"minha",scope_type:"store",scope_id:"s1",audience_definition:{}},{id:"outra",scope_type:"store",scope_id:"s2",audience_definition:{}},{id:"regiao",scope_type:"region",scope_id:"r1",audience_definition:{}}];
+ assert.deepEqual(networkGovernanceAnnouncements(rows,{allStores:false,allowedStores:["s1"]}).map(x=>x.id),["rede","minha"]);
+ assert.equal(networkGovernanceAnnouncements(rows,{allStores:true,allowedStores:[]}).length,5);
+ assert.equal(networkGovernanceAnnouncements(rows,{allStores:true,allowedStores:[]})[0].audience_definition,undefined);
 });
 test("T02 audience by scope",()=>{
  assert.deepEqual(users({scope:{type:"store",ids:["s1"]}}),["cozinha1","gerente1"]);
@@ -238,7 +242,9 @@ test("T10 Phase 59 relation stays compatible and the workaround is replaced",asy
  const db=fakeDb(seed()),incident={id:"inc",store_id:"s1",title:"Queda de energia",summary:"Sem luz",visibility:"operational"};
  const first=await draftFromIncident({admin:db,organizationId:"o",actorId:"dono",storeId:"s1",incident});
  assert.equal(first.created,true);assert.equal(first.announcement.status,"draft");assert.equal(first.announcement.announcement_type,"crisis");assert.deepEqual(first.announcement.related_refs,{incident:["inc"]});
- assert.equal((await draftFromIncident({admin:db,organizationId:"o",actorId:"dono",storeId:"s1",incident})).created,false,"same incident, same draft");
+ assert.equal((await draftFromIncident({admin:db,organizationId:"o",actorId:"dono",storeId:"s1",incident})).created,false,"an unsent draft is reused");
+ const sent=db.tables.network_announcements.find(x=>x.id===first.announcement.id);sent.status="published";
+ const update=await draftFromIncident({admin:db,organizationId:"o",actorId:"dono",storeId:"s1",incident});assert.equal(update.created,true,"an incident in progress can communicate again");assert.equal(update.announcement.status,"draft");assert.notEqual(update.announcement.id,first.announcement.id);
  assert.equal(db.tables.incident_relations[0].entity_type,"internal_communication");assert.equal(db.tables.incident_relations[0].entity_id,first.announcement.id);
 });
 test("T10b the incident timeline shows what was sent",async()=>{
@@ -339,6 +345,7 @@ test("T17c audit covers what the phase asks for",async()=>{
 });
 test("T18 sensitive data does not go out",async()=>{
  assert.deepEqual(checkContent("CPF 529.982.247-25").blocked,["CPF"]);assert.deepEqual(checkContent("Cartão 4111 1111 1111 1111").blocked,["CARD"]);assert.deepEqual(checkContent("escreva para fulano@exemplo.com").blocked,["EMAIL"]);assert.deepEqual(checkContent("ligue (11) 91234-5678").blocked,["PHONE"]);
+ assert.equal(checkContent("Lote 7891000100103 e pedido 1793562613565").ok,true,"a barcode or a long code is not a card");
  assert.equal(checkContent("Lote 123456 chega às 10:30 no dia 12/12/2026").ok,true,"ordinary numbers are not a document");
  assert.deepEqual(checkContent("Reajuste de salário").warnings,["SALARY"]);assert.deepEqual(checkContent("Como entregar o atestado").warnings,["HEALTH"]);
  const db=fakeDb(seed()),ctx=owner(db),a=await draft(ctx,{body:"CPF do cliente: 529.982.247-25"});
@@ -361,7 +368,7 @@ test("T20 schema is closed to clients and every foreign key is indexed",async()=
 });
 test("T21 integrations are wired",async()=>{
  const[report,reports,widgets,core,exec,shell,search,identity]=await Promise.all([file("../lib/reporting/core.ts"),file("../app/api/reports/route.ts"),file("../lib/workspace/widget-data.ts"),file("../lib/data-platform/core.ts"),file("../app/api/executive-command/route.ts"),file("../components/dashboard-shell.tsx"),migrations(),file("../lib/identity-governance/server.ts")]);
- assert.match(report,/COMMS_DATASET_DEFINITIONS/);assert.match(reports,/commsReportRows/);assert.match(widgets,/comms_my_mandatory/);assert.match(core,/COMMS_FACTS/);
+ assert.match(report,/COMMS_DATASET_DEFINITIONS/);assert.match(reports,/commsReportRows/);assert.match(widgets,/comms_my_mandatory/);assert.match(await file("../app/api/workspace/route.ts"),/commsOpen?["comms_my_mandatory"]/);assert.match(core,/COMMS_FACTS/);
  assert.match(exec,/commsCrisis[\s\S]*commsPending/);assert.match(exec,/"insights","flags","commsCrisis","commsPending"\]/);
  assert.match(shell,/internal-communications/);assert.match(shell,/my-announcements/);assert.match(search,/search_navigation_registry/);assert.match(search,/comms-new-announcement/);assert.match(identity,/comms:COMMS_PERMISSIONS/);
  const entitlements=new AccessCatalogService().compose({modulePermissions:{soc:[],vendor:[],idgov:[],comms:COMMS_PERMISSIONS},apiScopes:[]});

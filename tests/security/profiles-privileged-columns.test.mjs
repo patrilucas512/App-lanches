@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 const root=fileURLToPath(new URL("../../",import.meta.url));
 const migration=readFileSync(join(root,"supabase/migrations/20261101131915_profiles_privileged_columns_hardening.sql"),"utf8");
 const SAFE=new Set(["full_name","phone","last_login_at"]);
+// Written on the server for the person's own row, never granted to authenticated. It carries no privilege.
+const APP_WRITABLE=new Set([...SAFE,"preferred_language"]);
 const walk=dir=>readdirSync(dir).flatMap(name=>{const path=join(dir,name);return statSync(path).isDirectory()?walk(path):/\.(ts|tsx|mjs|js)$/.test(name)?[path]:[];});
 const sources=["app","lib","components","supabase/functions"].flatMap(dir=>walk(join(root,dir)));
 
@@ -26,6 +28,6 @@ test("application code only writes the safe profile columns",()=>{
   assert.ok(writes.length>0,"expected the after-login write to be found");
   for(const{path,method,payload}of writes){
     assert.equal(method,"update",`${path} must not ${method} profiles from the app`);
-    for(const[,column]of payload.matchAll(/(\w+)\s*:/g))assert.ok(SAFE.has(column),`${path} writes protected column ${column}`);
+    for(const[,column]of payload.matchAll(/(\w+)\s*:/g))assert.ok(APP_WRITABLE.has(column),`${path} writes protected column ${column}`);
   }
 });

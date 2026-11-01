@@ -12,6 +12,7 @@ import { draftFromAutomation, draftFromIncident, draftFromRecall, linkPublishedT
 import { commsDashboard } from "../../lib/internal-communications/dashboard.ts";
 import { reconcileLateJoiners, runDelivery, scanAcknowledgements } from "../../lib/internal-communications/delivery.ts";
 import { commsReportRows } from "../../lib/internal-communications/integrations.ts";
+import { attachmentLink, requestAttachmentUpload } from "../../lib/internal-communications/templates.ts";
 import { safeNotificationEvent } from "../../lib/notifications/core.ts";
 
 const DEV_REF = "bfmrcvjxbmxxmdustrgo";
@@ -142,6 +143,14 @@ check("resposta anônima não guarda pessoa nem hora", row.identified_user_id ==
 const shown = (await pollsFor(ctx(owner))).find((x) => x.id === poll.id);
 check("abaixo do mínimo não mostra resultado", shown.results.status === "insufficient_responses" && shown.results.options.every((x) => x.count === null), JSON.stringify(shown.results));
 
+const withFile = (await createDraft(ctx(owner), { title: title("anexo"), body: "Comunicado com anexo.", audience: STORE })).announcement;
+const upload = await requestAttachmentUpload(ctx(owner), { id: withFile.id, fileName: "aviso.pdf", mimeType: "application/pdf", sizeBytes: 5 });
+const put = await fetch(upload.uploadUrl, { method: "PUT", headers: { "content-type": "application/pdf" }, body: "%PDF-" });
+check("anexo sobe para o bucket privado", put.ok, put.status);
+await publishAnnouncement(ctx(owner), { id: withFile.id });
+const link = await attachmentLink(ctx(worker, []), { attachmentId: upload.attachment.id });
+check("quem recebeu abre o anexo", (await fetch(link.url)).ok);
+await refuses("quem está fora do público não abre o anexo", () => attachmentLink({ ...ctx(approver, []), allStores: false, storeIds: [] }, { attachmentId: upload.attachment.id }), /ATTACHMENT_NOT_FOUND/);
 await createBoardPost(ctx(owner), { title: title("aviso"), body: "Aviso rápido no mural.", post_type: "quick_notice" });
 const board = await boardFor(ctx(worker, []));
 check("mural mostra o aviso da unidade", board.some((x) => x.title === title("aviso")));

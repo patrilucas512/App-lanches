@@ -60,9 +60,6 @@ insert into public.workspace_widget_registry(id,title,description,category,widge
 ('comms_my_mandatory','Comunicados para confirmar','Comunicados obrigatórios que esperam a sua confirmação.','operations','status_list','{}','{store,network}','comms:my_mandatory','1m','{}','{}','/painel/comunicados',false,false)
 on conflict(id) do update set title=excluded.title,description=excluded.description,data_source=excluded.data_source,route=excluded.route,active=true,updated_at=now();
 
--- Each role opens its workspace already seeing what it must confirm.
-update public.workspace_templates set layout_schema=jsonb_build_array(jsonb_build_object('id','comms_my_mandatory','w',2,'mandatory',true))||layout_schema where organization_id is null and not layout_schema @> '[{"id":"comms_my_mandatory"}]';
-
 insert into public.search_navigation_registry(id,title,route,keywords,module,required_permission,icon,position) values
 ('internal-communications','Comunicação Interna','/painel/operacoes/comunicacao-interna',array['comunicado','comunicacao','mural','enquete','aviso','recall','crise'],'internal_communications',null,'megaphone',160),
 ('my-announcements','Meus comunicados','/painel/comunicados',array['comunicado','leitura','confirmar','mural'],'internal_communications',null,'megaphone',161)

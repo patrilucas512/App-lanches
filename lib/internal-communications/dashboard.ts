@@ -16,8 +16,23 @@ export async function visibleAnnouncements(ctx:any,limit=200){
   return data||[];
 }
 
+// What the editor offers by name. Everything is read inside this organization and within the stores this person has.
+async function audienceOptions(ctx:any){
+  const org=(table:string,columns="id,name")=>ctx.admin.from(table).select(columns).eq("organization_id",ctx.organizationId).limit(500);
+  const[stores,brands,regions,clusters,positions,shifts,articles,courses,incidents]=await Promise.all([
+    ctx.admin.from("establishments").select("id,name").eq("organization_id",ctx.organizationId).in("id",ctx.storeIds).limit(500),
+    org("network_brands"),org("network_regions"),org("network_clusters"),
+    ctx.admin.from("staff_roles").select("id,name,establishment_id").in("establishment_id",ctx.storeIds).limit(500),
+    org("work_shift_templates","id,name,store_id").in("store_id",ctx.storeIds),
+    org("knowledge_articles","id,title").eq("status","published"),org("learning_courses","id,title").eq("status","published"),
+    ctx.admin.from("operational_incidents").select("id,incident_number,title").eq("organization_id",ctx.organizationId).in("store_id",ctx.storeIds).neq("visibility","confidential").not("status","in",'("closed","cancelled")').limit(100),
+  ]);
+  const named=(result:any)=>result.data||[],titled=(result:any)=>(result.data||[]).map((x:any)=>({id:x.id,name:x.incident_number?`${x.incident_number} · ${x.title}`:x.title}));
+  return{stores:named(stores),brands:named(brands),regions:named(regions),clusters:named(clusters),positions:named(positions),shifts:named(shifts),articles:titled(articles),courses:titled(courses),incidents:titled(incidents)};
+}
+
 export async function commsDashboard(ctx:any){
-  const announcements=await visibleAnnouncements(ctx),ids=announcements.map((x:any)=>x.id);
+  const announcements=await visibleAnnouncements(ctx),ids=announcements.map((x:any)=>x.id),options=await audienceOptions(ctx);
   await ensureTemplates(ctx.admin,ctx.organizationId);
   let reachQuery=ctx.admin.from("fact_comms_reach").select("*").eq("organization_id",ctx.organizationId);
   if(!ctx.allStores)reachQuery=reachQuery.in("store_id",ctx.storeIds);
@@ -33,7 +48,7 @@ export async function commsDashboard(ctx:any){
   const metrics=reachMetrics(reachRows),crisis=announcements.filter((x:any)=>CRISIS_TYPES.includes(x.announcement_type));
   return{
     cards:{active:live.length,mandatoryWithPending:pending.length,acknowledgementRate:metrics.acknowledgementRate,scheduled:announcements.filter((x:any)=>x.status==="scheduled").length,activeCrises:crisis.filter((x:any)=>x.status==="published").length,awaitingApproval:announcements.filter((x:any)=>x.status==="pending_approval"||x.pending_edit_approval_id).length,emergencyReviewsDue:announcements.filter((x:any)=>x.emergency&&!x.reviewed_at).length},
-    metrics,announcements:announcements.map(withReach),pending,crisis:crisis.map(withReach),templates:templates||[],settings:{...COMMS_SETTINGS_DEFAULTS,...settings},permissions:ctx.permissions,flags:ctx.flags,storeIds:ctx.storeIds,allStores:ctx.allStores,
+    options,metrics,announcements:announcements.map(withReach),pending,crisis:crisis.map(withReach),templates:templates||[],settings:{...COMMS_SETTINGS_DEFAULTS,...settings},permissions:ctx.permissions,flags:ctx.flags,storeIds:ctx.storeIds,allStores:ctx.allStores,
     privacy:{individualMetrics:false,namedListOnlyFor:"comunicado obrigatório, com permissão e nas suas unidades"},
   };
 }
