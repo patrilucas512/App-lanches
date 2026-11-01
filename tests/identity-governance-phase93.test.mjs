@@ -43,3 +43,5 @@ test("RLS and direct access revoked",async()=>{const s=await migrations();assert
 test("Audit is immutable",async()=>assert.match(await migrations(),/identity_governance_audit_immutable before update or delete/));
 test("No plaintext secret columns",async()=>{const s=await migrations();assert.doesNotMatch(s,/\b(password|secret_value|token_value|raw_token|plain_token)\b/i)});
 test("Copilot confirm, cancel and undo refuse identity actions",async()=>assert.match(await migrations(),/if requested_action_type like 'IDGOV\\_%' then return false; end if;/));
+test("R13 store owner gets no governance over the whole organization",()=>{const{permissions}=new IdentityGovernanceAccessService().resolve({storeRole:"owner"});assert.deepEqual(permissions.sort(),["idgov:request_access","idgov:review_access","idgov:view"]);assert.ok(new IdentityGovernanceAccessService().resolve({orgRole:"owner"}).permissions.includes("idgov:manage_governance"))});
+test("R07 client cannot skip the privileged confirmation",async()=>{const route=await file("../app/api/identity-governance/route.ts");assert.doesNotMatch(route,/body\.confirmation\b/)});

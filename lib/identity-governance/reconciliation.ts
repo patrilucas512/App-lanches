@@ -65,7 +65,10 @@ export async function upsertThirdPartyProfile(ctx:GovernanceContext,input:{vendo
   if(!validation.valid)throw new Error(validation.issues.join(","));
   const{data:vendor}=await ctx.admin.from("vendor_profiles").select("id").eq("id",input.vendorProfileId).eq("organization_id",ctx.organizationId).maybeSingle();
   if(!vendor)throw new Error("VENDOR_NOT_IN_TENANT");
-  const{data,error}=await ctx.admin.from("third_party_access_profiles").upsert({organization_id:ctx.organizationId,vendor_profile_id:vendor.id,identity_id:input.identityId||null,sponsor_ref:input.sponsorRef,valid_until:input.validUntil,systems:input.systems||[],scope:input.scope||{},status:"active",updated_at:new Date().toISOString()},{onConflict:"vendor_profile_id,identity_id"}).select().single();
+  // A unique key never matches NULL, so a profile without identity is looked up first instead of duplicated on each save.
+  const row={organization_id:ctx.organizationId,vendor_profile_id:vendor.id,identity_id:input.identityId||null,sponsor_ref:input.sponsorRef,valid_until:input.validUntil,systems:input.systems||[],scope:input.scope||{},status:"active",updated_at:new Date().toISOString()};
+  let existing:any=null;if(!input.identityId)({data:existing}=await ctx.admin.from("third_party_access_profiles").select("id").eq("vendor_profile_id",vendor.id).is("identity_id",null).maybeSingle());
+  const{data,error}=existing?await ctx.admin.from("third_party_access_profiles").update(row).eq("id",existing.id).select().single():await ctx.admin.from("third_party_access_profiles").upsert(row,{onConflict:"vendor_profile_id,identity_id"}).select().single();
   if(error)throw new Error(error.message);
   if(input.identityId)await ctx.admin.from("governed_identities").update({sponsor_ref:input.sponsorRef,valid_until:input.validUntil,updated_at:new Date().toISOString()}).eq("id",input.identityId).eq("organization_id",ctx.organizationId);
   await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"third_party_profile_saved",resourceType:"third_party_access_profile",resourceId:data.id});
@@ -84,7 +87,10 @@ export async function processVendorEnd(ctx:GovernanceContext,input:{eventId:stri
 }
 
 export async function startImpersonation(ctx:GovernanceContext&{storeId:string},input:{caseRef:string;reason:string;minutes:number;mode?:string;approvedBy?:string|null;jitSessionId?:string|null}){
-  const{data:jit}=input.jitSessionId?await ctx.admin.from("jit_sessions").select("id,status,organization_id").eq("id",input.jitSessionId).eq("organization_id",ctx.organizationId).maybeSingle():{data:null},validation=new SupportAccessService().impersonation({caseRef:input.caseRef,reason:input.reason,minutes:input.minutes,mode:input.mode,approvedBy:input.approvedBy,actorId:ctx.actorId as string,jitActive:jit?.status==="active"});
+  const{data:jit}=input.jitSessionId?await ctx.admin.from("jit_sessions").select("id,status,organization_id,governed_identities(user_id)").eq("id",input.jitSessionId).eq("organization_id",ctx.organizationId).maybeSingle():{data:null as any};
+  if(jit&&jit.governed_identities?.user_id!==ctx.actorId)throw new Error("JIT_NOT_OWNED_BY_ACTOR");
+  if(input.approvedBy){const{data:approver}=await ctx.admin.from("profiles").select("is_superadmin").eq("id",input.approvedBy).maybeSingle();if(!approver?.is_superadmin)throw new Error("APPROVER_NOT_AUTHORIZED")}
+  const validation=new SupportAccessService().impersonation({caseRef:input.caseRef,reason:input.reason,minutes:input.minutes,mode:input.mode,approvedBy:input.approvedBy,actorId:ctx.actorId as string,jitActive:jit?.status==="active"});
   if(!validation.valid)throw new Error(validation.issues.join(","));
   const{data,error}=await ctx.admin.from("impersonation_sessions").insert({superadmin_user_id:ctx.actorId,establishment_id:ctx.storeId,organization_id:ctx.organizationId,reason:input.reason,case_ref:input.caseRef,mode:validation.mode,expires_at:new Date(Date.now()+input.minutes*60000).toISOString(),approved_by:input.approvedBy||null,jit_session_id:input.jitSessionId}).select().single();
   if(error)throw new Error(error.message);
@@ -101,7 +107,9 @@ export async function executeSocRequest(ctx:GovernanceContext,input:{responseId:
   if(!request)throw new Error("SOC_REQUEST_NOT_FOUND");
   if(!SOC_REQUEST_TYPES.includes(request.response_type))throw new Error("SOC_REQUEST_NOT_SUPPORTED");
   if(["completed","failed","reverted"].includes(request.state))throw new Error("SOC_REQUEST_CLOSED");
-  await ctx.admin.from("security_response_actions").update({state:"executing"}).eq("id",request.id);
+  if(request.state!=="approved")throw new Error("SOC_REQUEST_NOT_APPROVED");
+  const{data:claimed}=await ctx.admin.from("security_response_actions").update({state:"executing"}).eq("id",request.id).eq("state","approved").select("id").maybeSingle();
+  if(!claimed)throw new Error("SOC_REQUEST_CLOSED");
   let ok=false,detail:any=null;
   try{
     if(request.response_type==="revoke_temporary_access"){const r=await revokeGrant(ctx,{grantId:request.target_ref,reason:request.reason});ok=r.ok;detail=r.reason}

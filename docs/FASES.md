@@ -157,7 +157,7 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 
 ## Problemas encontrados no banco de desenvolvimento
 
-- **Cadastro de loja nova e catálogo:** `create_establishment` não preenchia `organization_id`, e o catálogo do painel inseria categorias e produtos sem ele. A migration `tenant_signup_organization` corrige os dois; o fluxo completo foi validado no dev. **Falta aplicá-la em produção.**
+- **Cadastro de loja nova e catálogo:** `create_establishment` não preenchia `organization_id`, e o catálogo do painel inseria categorias e produtos sem ele. A migration `tenant_signup_organization` corrige os dois; o fluxo completo foi validado no dev. Já aplicada em produção.
 - **`vinext dev` responde 500 em páginas HTML:** nesta máquina Windows, em pasta do OneDrive, toda página falha com `Network connection lost`, enquanto as rotas de API funcionam. `vite preview` funciona.
 - **`vinext start` não serve os assets:** a página abre sem CSS e JS, porque o build é para Cloudflare Workers. Use `vite preview`.
 - **Fontes no build local:** o console acusa fontes com caminho `file:///` da máquina, e o navegador as recusa. A página continua funcionando.
@@ -165,5 +165,6 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 ## Diferenças entre repositório e produção
 
 - **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
-- **`tenant_signup_organization`:** aplicada só no dev; falta em produção.
+- **`tenant_signup_organization`:** aplicada em produção; fluxo de cliente novo validado lá em bloco com rollback.
+- **`phase93_review_adjustments`:** aplicada em produção.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.

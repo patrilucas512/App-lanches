@@ -29,16 +29,29 @@ export async function runDetectiveSod(ctx:Ctx){
   return{found:found.length,created};
 }
 
-export async function treatSodConflict(ctx:Ctx,input:{conflictId:string;kind:"mitigation"|"acceptance";control:string;owner:string;reason:string;expiresAt:string;approvers:string[]}){
+export async function treatSodConflict(ctx:Ctx,input:{conflictId:string;kind:"mitigation"|"acceptance";control:string;owner:string;reason:string;expiresAt:string}){
   const{data:conflict}=await ctx.admin.from("sod_conflicts").select("*,sod_rule_definitions(mitigation_allowed,key),governed_identities(user_id)").eq("id",input.conflictId).eq("organization_id",ctx.organizationId).maybeSingle();
   if(!conflict)throw new Error("CONFLICT_NOT_FOUND");
-  const approvers=[...new Set(input.approvers)].filter(x=>x!==conflict.governed_identities?.user_id),validation=new SegregationOfDutiesService().validateTreatment({kind:input.kind,severity:conflict.severity,mitigationAllowed:conflict.sod_rule_definitions?.mitigation_allowed,owner:input.owner,reason:input.reason,control:input.control,expiresAt:input.expiresAt,approvers});
+  const service=new SegregationOfDutiesService(),validation=service.validateTreatment({kind:input.kind,severity:conflict.severity,mitigationAllowed:conflict.sod_rule_definitions?.mitigation_allowed,owner:input.owner,reason:input.reason,control:input.control,expiresAt:input.expiresAt});
   if(!validation.valid)throw new Error(validation.issues.join(","));
-  const{data,error}=await ctx.admin.from("sod_mitigations").insert({organization_id:ctx.organizationId,conflict_id:conflict.id,kind:input.kind,severity:conflict.severity,control_description:input.control,owner_ref:input.owner,reason:input.reason,expires_at:input.expiresAt,approved_by:approvers,status:"active",created_by:ctx.actorId}).select().single();
+  const{data,error}=await ctx.admin.from("sod_mitigations").insert({organization_id:ctx.organizationId,conflict_id:conflict.id,kind:input.kind,severity:conflict.severity,control_description:input.control,owner_ref:input.owner,reason:input.reason,expires_at:input.expiresAt,approved_by:[],required_approvals:service.requiredTreatmentApprovals({kind:input.kind,severity:conflict.severity}),status:"pending",created_by:ctx.actorId}).select().single();
   if(error)throw new Error(error.message);
-  const status=input.kind==="mitigation"?"mitigated":"accepted";
-  await ctx.admin.from("sod_conflicts").update({status,result:input.kind==="mitigation"?"conflict_mitigated":"conflict_accepted"}).eq("id",conflict.id);
-  await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:`sod_${status}`,resourceType:"sod_conflict",resourceId:conflict.id,reason:input.reason,metadata:{rule:conflict.sod_rule_definitions?.key,expires_at:input.expiresAt,approvers:approvers.length}});
+  await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"sod_treatment_requested",resourceType:"sod_conflict",resourceId:conflict.id,reason:input.reason,metadata:{rule:conflict.sod_rule_definitions?.key,kind:input.kind,expires_at:input.expiresAt}});
+  return data;
+}
+
+// The treatment counts only after other people approve it with their own session.
+export async function approveSodTreatment(ctx:Ctx,input:{treatmentId:string}){
+  const{data:treatment}=await ctx.admin.from("sod_mitigations").select("*").eq("id",input.treatmentId).eq("organization_id",ctx.organizationId).maybeSingle();
+  if(!treatment)throw new Error("TREATMENT_NOT_FOUND");
+  if(treatment.status!=="pending")throw new Error("TREATMENT_NOT_PENDING");
+  const{data:conflict}=await ctx.admin.from("sod_conflicts").select("*,sod_rule_definitions(key),governed_identities(user_id)").eq("id",treatment.conflict_id).eq("organization_id",ctx.organizationId).single();
+  if(ctx.actorId===treatment.created_by||ctx.actorId===conflict.governed_identities?.user_id)throw new Error("SELF_APPROVAL_BLOCKED");
+  if((treatment.approved_by||[]).includes(ctx.actorId))throw new Error("ALREADY_DECIDED");
+  const approvedBy=[...(treatment.approved_by||[]),ctx.actorId],enough=approvedBy.length>=treatment.required_approvals,{data,error}=await ctx.admin.from("sod_mitigations").update({approved_by:approvedBy,status:enough?"active":"pending"}).eq("id",treatment.id).eq("status","pending").select().single();
+  if(error)throw new Error(error.message);
+  if(enough){const status=treatment.kind==="mitigation"?"mitigated":"accepted";await ctx.admin.from("sod_conflicts").update({status,result:treatment.kind==="mitigation"?"conflict_mitigated":"conflict_accepted"}).eq("id",conflict.id);await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:`sod_${status}`,resourceType:"sod_conflict",resourceId:conflict.id,reason:treatment.reason,metadata:{rule:conflict.sod_rule_definitions?.key,expires_at:treatment.expires_at,approvers:approvedBy.length}})}
+  else await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"sod_treatment_approved",resourceType:"sod_conflict",resourceId:conflict.id,metadata:{approvals:approvedBy.length,required:treatment.required_approvals}});
   return data;
 }
 

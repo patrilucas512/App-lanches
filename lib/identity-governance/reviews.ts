@@ -5,8 +5,11 @@ import {revokeGrant,type GovernanceContext} from "./requests.ts";
 import {AccessReviewService} from "./rules.ts";
 import {governanceAudit} from "./server.ts";
 
+// Phase 25 keeps a shorter list of review types; each campaign maps to the closest one.
+const RUN_TYPES:Record<string,string>={manager_review:"roles",entitlement_owner_review:"roles",privileged_review:"admins",service_account_review:"api_keys",vendor_review:"integrations",dormant_access_review:"full",sod_review:"full"};
+
 export async function createReviewCampaign(ctx:GovernanceContext,input:{name:string;reviewType:string;dueAt?:string;filters?:{privilegedOnly?:boolean;identityIds?:string[];identityTypes?:string[];baselineOnly?:boolean};reviewerId?:string|null}){
-  const{data:settings}=await ctx.admin.from("identity_governance_settings").select("review_due_days").eq("organization_id",ctx.organizationId).maybeSingle(),dueAt=input.dueAt||new Date(Date.now()+(settings?.review_due_days||30)*864e5).toISOString(),filters=input.filters||{},{data:run}=await ctx.admin.from("access_review_runs").insert({organization_id:ctx.organizationId,review_type:input.reviewType,status:"open",due_at:dueAt,created_by:ctx.actorId,summary:{source:"identity_governance"}}).select("id").maybeSingle();
+  const{data:settings}=await ctx.admin.from("identity_governance_settings").select("review_due_days").eq("organization_id",ctx.organizationId).maybeSingle(),dueAt=input.dueAt||new Date(Date.now()+(settings?.review_due_days||30)*864e5).toISOString(),filters=input.filters||{},{data:run}=await ctx.admin.from("access_review_runs").insert({organization_id:ctx.organizationId,review_type:RUN_TYPES[input.reviewType]||"full",status:"open",due_at:dueAt,created_by:ctx.actorId,summary:{source:"identity_governance"}}).select("id").maybeSingle();
   const{data:campaign,error}=await ctx.admin.from("access_review_campaigns").insert({organization_id:ctx.organizationId,name:input.name,review_type:input.reviewType,status:"active",due_at:dueAt,filters,review_run_id:run?.id||null,created_by:ctx.actorId}).select().single();
   if(error)throw new Error(error.message);
   let query=ctx.admin.from("access_grants").select("id,identity_id,entitlement_id,source_type,valid_until,scope_key,reason,approved_by,granted_at,governed_identities(user_id,identity_type,last_seen_at),access_entitlements(key,name,criticality,privileged,owner_ref)").eq("organization_id",ctx.organizationId).in("status",["active","expiring"]);
@@ -23,7 +26,8 @@ export async function createReviewCampaign(ctx:GovernanceContext,input:{name:str
 export async function decideReviewItem(ctx:GovernanceContext,input:{itemId:string;decision:string;reason:string;delegateTo?:string|null;canManage?:boolean}){
   const service=new AccessReviewService(),{data:item}=await ctx.admin.from("access_review_items").select("*,governed_identities(user_id)").eq("id",input.itemId).eq("organization_id",ctx.organizationId).maybeSingle();
   if(!item)throw new Error("REVIEW_ITEM_NOT_FOUND");
-  if(item.decision&&!["delegate","needs_info"].includes(item.decision))throw new Error("REVIEW_ITEM_ALREADY_DECIDED");
+  // A revocation that failed can be decided again; otherwise the campaign could never be certified.
+  if(item.decision&&!["delegate","needs_info"].includes(item.decision)&&item.execution_status!=="failed")throw new Error("REVIEW_ITEM_ALREADY_DECIDED");
   const check=service.canDecide({actorId:ctx.actorId as string,identityUserId:item.governed_identities?.user_id,reviewerId:item.reviewer_id,canManage:input.canManage});
   if(!check.allowed)throw new Error(check.reasons.join(","));
   if(input.reason.trim().length<3)throw new Error("REASON_REQUIRED");

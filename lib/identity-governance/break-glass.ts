@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* Break-glass: limited, audited and always followed by a review from someone other than the person who used it. */
 import {scopeKeyOf} from "./core.ts";
-import {provisionGrant,revokeGrant,type GovernanceContext} from "./requests.ts";
-import {BreakGlassService} from "./rules.ts";
+import {assertAccessScope,provisionGrant,revokeGrant,type GovernanceContext} from "./requests.ts";
+import {BreakGlassService,JitAccessService} from "./rules.ts";
 import {governanceAudit} from "./server.ts";
 import {emitIdentityEvent} from "./soc-events.ts";
 import {settingsOf} from "./temporary.ts";
@@ -11,6 +11,7 @@ export async function requestBreakGlass(ctx:GovernanceContext,input:{identityId:
   const settings=await settingsOf(ctx),[{data:identity},{data:entitlement}]=await Promise.all([ctx.admin.from("governed_identities").select("*").eq("id",input.identityId).eq("organization_id",ctx.organizationId).maybeSingle(),ctx.admin.from("access_entitlements").select("*").eq("id",input.entitlementId).eq("organization_id",ctx.organizationId).maybeSingle()]);
   if(!identity||!entitlement)throw new Error("IDENTITY_OR_ENTITLEMENT_NOT_IN_TENANT");
   if(identity.user_id!==ctx.actorId)throw new Error("BREAK_GLASS_ONLY_FOR_SELF");
+  if(entitlement.technical_ref?.adapter!=="read_only")await assertAccessScope(ctx,entitlement,input.scope||{});
   const scope=input.scope||{},scopeKey=scopeKeyOf(scope),validation=new BreakGlassService().validate({reason:input.reason,minutes:input.minutes,maxMinutes:settings.break_glass_max_minutes,requiresIncident:settings.break_glass_requires_incident,incidentRef:input.incidentRef,adapter:entitlement.technical_ref?.adapter,scopeKey});
   if(!validation.valid)throw new Error(validation.issues.join(","));
   if(input.incidentRef){const{data:incident}=await ctx.admin.from("operational_incidents").select("id").eq("id",input.incidentRef).eq("organization_id",ctx.organizationId).maybeSingle();if(!incident)throw new Error("INCIDENT_NOT_IN_TENANT")}
@@ -24,7 +25,9 @@ export async function activateBreakGlass(ctx:GovernanceContext,input:{eventId:st
   const{data:event}=await ctx.admin.from("break_glass_events").select("*,governed_identities(*),access_entitlements(*)").eq("id",input.eventId).eq("organization_id",ctx.organizationId).maybeSingle();
   if(!event)throw new Error("BREAK_GLASS_NOT_FOUND");
   if(event.status!=="requested")throw new Error("BREAK_GLASS_NOT_REQUESTED");
-  const now=new Date(),expiresAt=new Date(now.getTime()+event.requested_minutes*60000).toISOString(),settings=await settingsOf(ctx),{grant,result,reason}=await provisionGrant(ctx,{identity:event.governed_identities,entitlement:event.access_entitlements,scope:event.scope,scopeKey:event.scope_key,sourceType:"break_glass",reason:event.reason,approvers:[],validUntil:expiresAt});
+  const settings=await settingsOf(ctx);
+  if(!new JitAccessService().mfaSatisfied({privileged:event.access_entitlements?.privileged,requireMfa:settings.require_mfa_for_privileged,aal:ctx.aal}))throw new Error("MFA_REQUIRED");
+  const now=new Date(),expiresAt=new Date(now.getTime()+event.requested_minutes*60000).toISOString(),{grant,result,reason}=await provisionGrant(ctx,{identity:event.governed_identities,entitlement:event.access_entitlements,scope:event.scope,scopeKey:event.scope_key,sourceType:"break_glass",reason:event.reason,approvers:[],validUntil:expiresAt});
   if(!result.ok)throw new Error(reason||"BREAK_GLASS_PROVISIONING_FAILED");
   const{data}=await ctx.admin.from("break_glass_events").update({status:"active",grant_id:grant.id,activated_at:now.toISOString(),expires_at:expiresAt,notified_at:now.toISOString(),review_due_at:new Date(now.getTime()+settings.break_glass_review_hours*3600_000).toISOString(),updated_at:now.toISOString()}).eq("id",event.id).select().single();
   await ctx.admin.from("privileged_sessions").insert({organization_id:ctx.organizationId,grant_id:grant.id,identity_id:event.identity_id,origin:"break_glass",scope:event.scope,mfa_level:ctx.aal||null});

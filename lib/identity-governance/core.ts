@@ -72,7 +72,7 @@ export class AccessBaselineService{
 
 export class IdentityGovernanceAccessService{
   // Holding a governance permission never includes the target access: this only answers what the actor may do in this module.
-  resolve(input:{orgRole?:string|null;storeRole?:string|null;explicit?:string[]}){const permissions=new Set<string>(input.explicit||[]);if(input.orgRole==="owner"||input.orgRole==="admin")IDGOV_PERMISSIONS.forEach(x=>permissions.add(x));else if(input.storeRole==="owner")IDGOV_PERMISSIONS.forEach(x=>permissions.add(x));return{permissions:[...permissions],grantsTargetAccess:false}}
+  resolve(input:{orgRole?:string|null;storeRole?:string|null;explicit?:string[]}){const permissions=new Set<string>(input.explicit||[]);if(input.orgRole==="owner"||input.orgRole==="admin")IDGOV_PERMISSIONS.forEach(x=>permissions.add(x));else if(input.storeRole==="owner")["idgov:view","idgov:request_access","idgov:review_access"].forEach(x=>permissions.add(x));return{permissions:[...permissions],grantsTargetAccess:false}}
   check(input:{organizationId?:string|null;resourceOrganizationId?:string|null;permissions:string[];required:string}){const tenant=Boolean(input.organizationId&&input.organizationId===input.resourceOrganizationId);return{allowed:tenant&&input.permissions.includes(input.required),tenantIsolated:tenant,grantsTargetAccess:false}}
   // Sensitive fields of other tenants are never loaded; inside the tenant they need idgov:view_sensitive.
   mask<T extends Record<string,unknown>>(row:T,permissions:string[],fields:string[]=["evidence","safe_metadata","owner_ref","sponsor_ref"]){if(permissions.includes("idgov:view_sensitive"))return row;return Object.fromEntries(Object.entries(row).map(([k,v])=>[k,fields.includes(k)&&v!=null?"[restrito]":v])) as T}

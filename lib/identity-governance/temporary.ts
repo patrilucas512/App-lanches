@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* JIT, privileged sessions and the deterministic expiration sweep. Safe to re-run: closed rows are skipped. */
 import {scopeKeyOf} from "./core.ts";
-import {provisionGrant,revokeGrant,type GovernanceContext} from "./requests.ts";
+import {assertAccessScope,evaluateAccessPolicy,provisionGrant,revokeGrant,type GovernanceContext} from "./requests.ts";
+import {checkPreventiveSod} from "./sod.ts";
 import {JitAccessService,TemporaryAccessService,hoursOfInterval} from "./rules.ts";
 import {governanceAudit} from "./server.ts";
 
+const APPROVAL_TTL_MS=24*3600_000;
 const settingsOf=async(ctx:GovernanceContext)=>(await ctx.admin.from("identity_governance_settings").select("*").eq("organization_id",ctx.organizationId).maybeSingle()).data||{require_mfa_for_privileged:true,expiry_warning_hours:24,break_glass_max_minutes:60,break_glass_review_hours:72,break_glass_requires_incident:true,jit_max_minutes:240,dormant_days:90,review_due_days:30,pre_approved_jit_keys:[]};
 export {settingsOf};
 
@@ -12,21 +14,30 @@ export async function requestJit(ctx:GovernanceContext,input:{identityId:string;
   const service=new JitAccessService(),settings=await settingsOf(ctx),[{data:identity},{data:entitlement}]=await Promise.all([ctx.admin.from("governed_identities").select("*").eq("id",input.identityId).eq("organization_id",ctx.organizationId).maybeSingle(),ctx.admin.from("access_entitlements").select("*").eq("id",input.entitlementId).eq("organization_id",ctx.organizationId).maybeSingle()]);
   if(!identity||!entitlement)throw new Error("IDENTITY_OR_ENTITLEMENT_NOT_IN_TENANT");
   if(entitlement.technical_ref?.adapter==="read_only")throw new Error("NO_OFFICIAL_PATH");
+  if(entitlement.status!=="active")throw new Error("ENTITLEMENT_NOT_ACTIVE");
+  await assertAccessScope(ctx,entitlement,input.scope||{});
   const validation=service.validate({minutes:input.minutes,maxMinutes:settings.jit_max_minutes,entitlementMaxHours:hoursOfInterval(entitlement.max_duration),justification:input.justification});
   if(!validation.valid)throw new Error(validation.issues.join(","));
+  const policy=await evaluateAccessPolicy(ctx.admin,ctx.organizationId,{entitlement_key:entitlement.key,criticality:entitlement.criticality,privileged:entitlement.privileged,identity_type:identity.identity_type,request_type:"jit"});
+  if(policy.decision==="deny")throw new Error("POLICY_DENIED");
+  const sod=await checkPreventiveSod(ctx,{identity,entitlement});
+  if(sod.result==="conflict_blocked")throw new Error("SOD_CONFLICT_BLOCKED");
   const preApproved=service.preApproved({key:entitlement.key,preApprovedKeys:settings.pre_approved_jit_keys||[],criticality:entitlement.criticality}),scope=input.scope||{};
-  const{data,error}=await ctx.admin.from("jit_sessions").insert({organization_id:ctx.organizationId,identity_id:identity.id,entitlement_id:entitlement.id,status:preApproved?"approved":"requested",scope,scope_key:scopeKeyOf(scope),justification:input.justification,requested_minutes:input.minutes,pre_approved:preApproved,linked_change_ref:input.changeRef||null,linked_incident_ref:input.incidentRef||null}).select().single();
+  const{data,error}=await ctx.admin.from("jit_sessions").insert({organization_id:ctx.organizationId,identity_id:identity.id,entitlement_id:entitlement.id,requested_by:ctx.actorId,status:preApproved?"approved":"requested",scope,scope_key:scopeKeyOf(scope),justification:input.justification,requested_minutes:input.minutes,pre_approved:preApproved,linked_change_ref:input.changeRef||null,linked_incident_ref:input.incidentRef||null}).select().single();
   if(error)throw new Error(error.message);
   await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"jit_requested",resourceType:"jit_session",resourceId:data.id,reason:input.justification,metadata:{entitlement:entitlement.key,minutes:input.minutes,pre_approved:preApproved}});
   return data;
 }
 
 export async function approveJit(ctx:GovernanceContext,input:{sessionId:string}){
-  const{data:session}=await ctx.admin.from("jit_sessions").select("*,governed_identities(user_id)").eq("id",input.sessionId).eq("organization_id",ctx.organizationId).maybeSingle();
+  const{data:session}=await ctx.admin.from("jit_sessions").select("*,governed_identities(user_id),access_entitlements(criticality)").eq("id",input.sessionId).eq("organization_id",ctx.organizationId).maybeSingle();
   if(!session)throw new Error("JIT_NOT_FOUND");
-  if(session.governed_identities?.user_id===ctx.actorId)throw new Error("SELF_APPROVAL_BLOCKED");
-  const status=new JitAccessService().transition(session.status,"approved"),{data}=await ctx.admin.from("jit_sessions").update({status,approved_by:[ctx.actorId],updated_at:new Date().toISOString()}).eq("id",session.id).select().single();
-  await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"jit_approved",resourceType:"jit_session",resourceId:session.id});
+  if(session.governed_identities?.user_id===ctx.actorId||session.requested_by===ctx.actorId)throw new Error("SELF_APPROVAL_BLOCKED");
+  if((session.approved_by||[]).includes(ctx.actorId))throw new Error("ALREADY_DECIDED");
+  new JitAccessService().transition(session.status,"approved");
+  // Critical access needs the same two people as a normal request.
+  const approvedBy=[...(session.approved_by||[]),ctx.actorId],enough=approvedBy.length>=(session.access_entitlements?.criticality==="critical"?2:1),{data}=await ctx.admin.from("jit_sessions").update({status:enough?"approved":"requested",approved_by:approvedBy,updated_at:new Date().toISOString()}).eq("id",session.id).select().single();
+  await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"jit_approved",resourceType:"jit_session",resourceId:session.id,metadata:{approvals:approvedBy.length,enough}});
   return data;
 }
 
@@ -36,6 +47,7 @@ export async function activateJit(ctx:GovernanceContext,input:{sessionId:string}
   const identity=session.governed_identities,entitlement=session.access_entitlements;
   if(identity.user_id!==ctx.actorId)throw new Error("JIT_ONLY_BENEFICIARY_ACTIVATES");
   service.transition(session.status,"active");
+  if(Date.now()-Date.parse(session.updated_at)>APPROVAL_TTL_MS){await ctx.admin.from("jit_sessions").update({status:"revoked",ended_at:new Date().toISOString()}).eq("id",session.id);throw new Error("JIT_APPROVAL_EXPIRED")}
   if(!service.mfaSatisfied({privileged:entitlement.privileged,requireMfa:settings.require_mfa_for_privileged,aal:ctx.aal}))throw new Error("MFA_REQUIRED");
   const now=new Date(),expiresAt=new Date(now.getTime()+session.requested_minutes*60000).toISOString(),{grant,result,reason}=await provisionGrant(ctx,{identity,entitlement,scope:session.scope,scopeKey:session.scope_key,sourceType:"jit",reason:session.justification,approvers:session.approved_by||[],validUntil:expiresAt});
   if(!result.ok){await ctx.admin.from("jit_sessions").update({status:"revoked",ended_at:now.toISOString(),grant_id:grant?.id||null}).eq("id",session.id);throw new Error(reason||"JIT_PROVISIONING_FAILED")}
@@ -68,7 +80,7 @@ export async function revokeJit(ctx:GovernanceContext,input:{sessionId:string;re
 
 // Runs per organization. If the module was down, the next run catches up on everything elapsed since.
 export async function sweepExpirations(ctx:GovernanceContext,now=new Date(),limit=200){
-  const settings=await settingsOf(ctx),{data:grants}=await ctx.admin.from("access_grants").select("id,status,valid_until,identity_id,governed_identities(user_id),access_entitlements(name)").eq("organization_id",ctx.organizationId).in("status",["active","expiring"]).not("valid_until","is",null).order("valid_until").limit(limit),plan=new TemporaryAccessService().plan(grants||[],now,settings.expiry_warning_hours),out={expired:0,failed:0,warned:0,lagSeconds:0};
+  const settings=await settingsOf(ctx),{data:grants}=await ctx.admin.from("access_grants").select("id,status,valid_until,identity_id,governed_identities(user_id),access_entitlements(name)").eq("organization_id",ctx.organizationId).in("status",["active","expiring","failed"]).not("valid_until","is",null).order("valid_until").limit(limit),plan=new TemporaryAccessService().plan(grants||[],now,settings.expiry_warning_hours),out={expired:0,failed:0,warned:0,lagSeconds:0};
   for(const id of plan.expire){
     const grant=(grants||[]).find((x:any)=>x.id===id),r=await revokeGrant({...ctx,actorId:null},{grantId:id,reason:"Validade encerrada.",finalStatus:"expired"});
     out.lagSeconds=Math.max(out.lagSeconds,(now.getTime()-Date.parse(grant.valid_until))/1000);
