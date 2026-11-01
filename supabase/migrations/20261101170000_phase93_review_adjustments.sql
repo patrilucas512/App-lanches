@@ -1,5 +1,5 @@
 -- Ajustes da revisão da Fase 93.
--- quality: allow-nonconcurrent-index reason=empty-identity-governance-tables
+-- quality: allow-nonconcurrent-index reason=new-empty-identity-governance-tables
 
 -- JIT guarda quem pediu, para que essa pessoa não aprove o próprio pedido.
 alter table public.jit_sessions add column if not exists requested_by uuid references auth.users(id) on delete set null;
