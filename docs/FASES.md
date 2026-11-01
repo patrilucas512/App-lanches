@@ -149,9 +149,19 @@ Confirmado em 2026-10-31, só com leitura do histórico de migrations de produç
 | `phase79_policy_engine_fk_indexes` | `20261028030530` |
 | `phase87_enterprise_risk_fk_indexes` | `20261029071041` |
 
-## Banco de desenvolvimento (masterapp-dev): pendente
+## Banco de desenvolvimento (masterapp-dev): pronto
 
-O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) existe, mas está sem migrations aplicadas e sem dados de teste. Aplicar as 247 migrations exige a CLI do Supabase com a string de conexão do banco ou uma sessão de `supabase login`. A trava que impede `vinext dev` de usar a URL de produção foi testada e funciona.
+O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations do commit `aab680e` aplicadas, na ordem dos arquivos e com as mesmas versões dos nomes de arquivo. A trava que impede `vinext dev` de usar a URL de produção foi testada e funciona.
+
+- **Dados fictícios:** `node scripts/dev/seed-dev.mjs` cria 1 estabelecimento (`lanchonete-teste`), 1 dono, 5 produtos, 1 mesa e 1 entregador. O script recusa outros projetos, pode ser reexecutado e grava a senha do dono em `.env.test-login.local`, ignorado pelo git.
+- **Rodar localmente:** com o `.env.local` preenchido, copie-o para `.dev.vars` e para `dist/server/.dev.vars`, rode `vinext build` e depois `vite preview`.
+
+## Problemas encontrados no banco de desenvolvimento
+
+- **Cadastro de loja nova quebrado:** `create_establishment` (última versão em `20260929192505`) não preenche `organization_id`, obrigatório em `establishments` desde a Fase 7. `complete_establishment_onboarding` também não o preenche ao inserir em `categories`. Com o schema do repositório, os dois falham para um usuário novo. O seed contorna isso, e a correção segue pendente. Não foi verificado em produção.
+- **`vinext dev` responde 500 em páginas HTML:** nesta máquina Windows, em pasta do OneDrive, toda página falha com `Network connection lost`, enquanto as rotas de API funcionam. `vite preview` funciona.
+- **`vinext start` não serve os assets:** a página abre sem CSS e JS, porque o build é para Cloudflare Workers. Use `vite preview`.
+- **Fontes no build local:** o console acusa fontes com caminho `file:///` da máquina, e o navegador as recusa. A página continua funcionando.
 
 ## Diferenças entre repositório e produção
 
