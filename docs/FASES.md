@@ -164,5 +164,6 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 
 ## Diferenças entre repositório e produção
 
-- **Fases 83, 93 e 94:** estão no repositório, mas `phase83_revenue_management`, as oito migrations `phase93*` e `phase94_security_operations_center` não estão em produção. A Fase 93 depende da 94, então a 94 precisa ir antes.
+- **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
+- **`tenant_signup_organization`:** aplicada só no dev; falta em produção.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
