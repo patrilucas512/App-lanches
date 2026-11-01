@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const migration=readFileSync(new URL("../../supabase/migrations/20261101140004_tenant_access_alignment.sql",import.meta.url),"utf8");
+const route=readFileSync(new URL("../../app/api/onboarding/route.ts",import.meta.url),"utf8");
+test("organization policies can evaluate the role check",()=>assert.match(migration,/grant execute on function private\.has_organization_role\(uuid, text\[\]\) to authenticated;/));
+test("organization role check is not opened to anonymous clients",()=>assert.doesNotMatch(migration,/has_organization_role[^;]*to[^;]*\b(anon|public)\b/));
+test("store access requires an active membership",()=>assert.match(migration,/function private\.has_role[\s\S]*m\.status = 'active'/));
+test("scheduled restore keeps units held by the platform closed",()=>assert.match(migration,/into held[\s\S]*if not coalesce\(held,false\) then[\s\S]*update public\.establishments set active=/));
+test("guided activation requires a released unit",()=>assert.match(migration,/and active and blocked_at is null and public_menu_active\)/));
+test("onboarding surfaces organization save failures",()=>assert.match(route,/error:organizationError[\s\S]*if\(organizationError\)throw organizationError/));

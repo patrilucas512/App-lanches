@@ -39,7 +39,8 @@ export async function POST(request:Request){try{
   const {data:sessionId}=body.sessionId?{data:body.sessionId}:await ctx.supabase.rpc("start_or_resume_onboarding",{requested_organization_id:ctx.store.organization_id,requested_establishment_id:ctx.store.id});
   if(!sessionId)throw new Error("Sessão indisponível");
   if(body.action==="profile"){
-    await ctx.supabase.from("organizations").update({business_type:body.businessType,operating_profile:body.profile||{},timezone:body.timezone||"America/Sao_Paulo"}).eq("id",ctx.store.organization_id);
+    const {error:organizationError}=await ctx.supabase.from("organizations").update({business_type:body.businessType,operating_profile:body.profile||{},timezone:body.timezone||"America/Sao_Paulo"}).eq("id",ctx.store.organization_id);
+    if(organizationError)throw organizationError;
     if(body.name||body.phone||body.timezone)await ctx.supabase.from("establishments").update({...(body.name&&{name:body.name}),...(body.phone&&{phone:body.phone}),...(body.timezone&&{timezone:body.timezone})}).eq("id",ctx.store.id);
     const {data:settings}=await ctx.supabase.from("establishment_settings").select("address,currency,timezone").eq("establishment_id",ctx.store.id).maybeSingle();
     await ctx.supabase.from("establishment_settings").upsert({establishment_id:ctx.store.id,address:{...(settings?.address||{}),...(body.address&&{street:body.address})},currency:body.currency||settings?.currency||"BRL",timezone:body.timezone||settings?.timezone||"America/Sao_Paulo"});
