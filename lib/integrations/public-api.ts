@@ -1,11 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createHash } from "node:crypto";
 import type { ApiContext } from "@/lib/integrations/auth";
 import { PublicApiError, assertStoreAccess } from "@/lib/integrations/auth";
 import { cursorDecode, cursorEncode } from "@/lib/integrations/security";
+import { IdentifierNormalizationService } from "@/lib/master-data/core";
 
 type Body = Record<string, any>;
 const orderStatuses = new Set(["new", "confirmed", "preparing", "ready", "out_for_delivery", "completed", "canceled"]);
 const reservationActions: Record<string, string> = { confirmed: "confirm", cancelled: "cancel", canceled: "cancel", seated: "seat", completed: "complete", no_show: "no_show" };
+
+export async function resolveMasterIdentifier(context: ApiContext, input: {entity_type:string;identifier_type:string;value:string;source_system:string;source_scope?:string}) {
+  const normalized = new IdentifierNormalizationService().normalize(input.identifier_type as any, input.value);
+  let query = context.admin.from("master_entity_identifiers").select("master_entity_id,verified").eq("organization_id", context.organizationId).eq("identifier_type", input.identifier_type).eq("source_system", input.source_system).eq("source_scope", input.source_scope || "").eq("status", "active");
+  query = normalized.valueHash ? query.eq("value_hash", normalized.valueHash) : query.eq("normalized_value", normalized.normalized);
+  const { data, error } = await query.limit(2); if (error) throw new PublicApiError(422, "master_identifier_resolution_failed", error.message);
+  if ((data || []).length > 1) throw new PublicApiError(409, "master_identifier_conflict", "Identificador externo conflitante; revisão humana necessária.");
+  return { master_entity_id: data?.[0]?.master_entity_id || null, verified: Boolean(data?.[0]?.verified), canonical_resolution: true, operational_record_rewritten: false };
+}
 
 export async function resolveStores(context: ApiContext, requested?: string | null) {
   if (requested) { await assertStoreAccess(context, requested); return [requested]; }

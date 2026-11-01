@@ -1,0 +1,15 @@
+export const SOC_ADAPTERS={
+  auth:"Phase25SecurityAdapter",observability:"Phase26ObservabilityAdapter",automation:"Phase50AutomationCenterAdapter",
+  incidents:"Phase59IncidentBridge",policy:"Phase79PolicyEngineAdapter",actions:"CopilotActionEngineAdapter",
+  ai:"Phase80AIGovernanceAdapter",integrations:"Phase81IntegrationHubAdapter",noc:"Phase84NOCAdapter",
+  continuity:"Phase86ContinuityAdapter",risk:"Phase87EnterpriseRiskAdapter",changes:"Phase88ChangeAdapter",
+  architecture:"Phase90ArchitectureImpactAdapter",vendors:"Phase92VendorAdapter",identity:"IdentityGovernanceReferenceAdapter"
+} as const;
+export const SOC_REPORT_DATASETS=["security_events","security_detection_rules","security_alerts","security_correlated_events","security_investigations","security_response_actions","security_source_health","security_detection_coverage","security_alert_dispositions"] as const;
+export const SOC_REPORT_TEMPLATES=["Security Alert Overview","Critical Security Alerts","Detection Rule Performance","False Positive Analysis","Identity Security Events","Privileged Activity","API Security","Integration Security","Vendor Security Events","Security Response Actions","Detection Coverage","Security Source Health","Investigation Aging","Confirmed Security Incident Summary"] as const;
+export const SOC_FACTS=["fact_security_events","fact_security_alerts","fact_security_investigations","fact_security_response_actions","fact_detection_matches","fact_security_source_health","fact_security_alert_dispositions"] as const;
+export const SOC_DIMENSIONS=["dim_security_event_type","dim_security_detection_rule","dim_security_alert_severity","dim_security_alert_status","dim_security_investigation_type","dim_security_disposition","dim_security_response_type","dim_security_source"] as const;
+export const SOC_METRICS=["Security Alert Count","Critical Security Alert Count","Active Investigation Count","Confirmed Security Incident Count","Security Alert Acknowledge Time","Security Investigation Resolution Time","False Positive Rate","Detection Source Coverage","Degraded Security Source Count","Privileged Security Alert Count","API Security Alert Count","Vendor Security Alert Count","Security Response Success Rate","Unverified Response Action Count","Detection Rule Alert Volume","Detection Rule False Positive Rate"] as const;
+export const SOC_WIDGETS=["critical_security_alerts","active_security_investigations","privileged_security_alerts","detection_source_health","break_glass_security_review","security_response_pending","security_control_failures"] as const;
+export const SOC_AUTOMATION_TRIGGERS=["security.alert_created","security.alert_escalated","security.investigation_opened","security.control_failure_confirmed","security.response_failed","security.break_glass_anomaly","security.vendor_access_anomaly","security.detection_source_degraded"] as const;
+export const SOC_SAFE_AUTOMATION_ACTIONS=["notify","create_investigation","attach_context","request_access_review","create_incident_candidate","create_change_draft","create_risk_candidate"] as const;
