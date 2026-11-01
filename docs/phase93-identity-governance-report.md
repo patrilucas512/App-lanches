@@ -131,3 +131,23 @@ Os testes de fluxo usam um banco em memória. O smoke é o que exercita SQL, tri
 
 ## 27. Recomendações para a Fase 95
 Antes dela: publicar o app, agendar o worker e fechar os itens acima. A Fase 95 não foi iniciada.
+
+## 28. Revisão da fase
+Revisão completa do módulo, com correções e testes de regressão (R01 a R15):
+- Desligamento só alcança quem pertence à organização, e a conta só é desativada se a pessoa não trabalha em outro lugar.
+- Escopo do acesso é validado antes de qualquer mudança, e uma mudança não confirmada é desfeita.
+- JIT segue as regras do pedido: catálogo ativo, política, SoD, quem pede não aprova, dois aprovadores em crítico e aprovação com validade de 24 horas.
+- Elevações não se acumulam nem alteram acesso já existente.
+- Duração é validada, e acesso privilegiado nunca fica sem validade.
+- Tratamento de SoD só vale depois da aprovação de outras pessoas, com validade de até um ano.
+- Mudanças em privilegiados, redução de exigências e mudança de função passam pela confirmação.
+- Pedido do SOC precisa estar aprovado para rodar.
+- Revogação falha é reprocessada, e jobs parados voltam para a fila.
+- Eventos de desligamento não atuam em organizações sem o módulo.
+
+Depende da migration `phase93_review_adjustments`, que precisa entrar no banco antes da publicação do app.
+
+Ficaram como estão:
+- Revogação de item crítico em revisão individual continua sem a confirmação extra, porque já tem revisor designado, motivo e auditoria.
+- Quem só tem `idgov:request_access` ou `idgov:review_access` ainda não abre o painel, que exige `idgov:view`.
+- A sincronização ainda não cria identidades de terceiros (`vendor_user`, `contractor`) nem preserva o dono definido à mão em credenciais.

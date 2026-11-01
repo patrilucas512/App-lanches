@@ -5,7 +5,7 @@ import {evaluateMany,resolveDecision,type Policy} from "../policy_engine/core.ts
 import {openGovernedAction} from "./actions.ts";
 import {scopeKeyOf} from "./core.ts";
 import {AccessProvisioningService} from "./provisioning.ts";
-import {AccessLifecycleService,AccessRequestService,TemporaryAccessService,type PolicyGate} from "./rules.ts";
+import {AccessLifecycleService,AccessRequestService,TemporaryAccessService,hoursOfInterval,type PolicyGate} from "./rules.ts";
 import {governanceAudit,readEffectiveAccess,syncIdentities} from "./server.ts";
 import {emitIdentityEvent} from "./soc-events.ts";
 import {checkPreventiveSod} from "./sod.ts";
@@ -18,9 +18,17 @@ export async function evaluateAccessPolicy(admin:any,organizationId:string,facts
   try{
     const{data,error}=await admin.from("policy_active_documents").select("document").eq("organization_id",organizationId).eq("policy_key",ACCESS_POLICY_KEY);
     if(error)return{decision:"not_applicable",available:false};
-    const context={facts:Object.fromEntries(Object.entries(facts).map(([k,v])=>[`evaluation_context:${k}`,typeof v==="boolean"?{type:"boolean",value:v}:{type:"text",value:v}])) as any},resolved=resolveDecision(evaluateMany((data||[]).map((x:any)=>x.document as Policy),context));
+    const context={scopeChain:[{type:"organization" as const,id:organizationId}],facts:Object.fromEntries(Object.entries(facts).map(([k,v])=>[`evaluation_context:${k}`,typeof v==="boolean"?{type:"boolean",value:v}:{type:"text",value:v}])) as any},resolved=resolveDecision(evaluateMany((data||[]).map((x:any)=>x.document as Policy),context));
     return{decision:resolved.decision,source:resolved.source,available:true};
   }catch{return{decision:"not_applicable",available:false}}
+}
+
+// A store role needs a store of this tenant; an organization role or a module permission cannot carry one.
+export async function assertAccessScope(ctx:GovernanceContext,entitlement:any,scope:{establishment_id?:string}){
+  const storeRole=entitlement.technical_ref?.adapter==="establishment_role";
+  if(storeRole&&!scope.establishment_id)throw new Error("SCOPE_REQUIRED");
+  if(!storeRole&&scope.establishment_id)throw new Error("SCOPE_INVALID_FOR_ENTITLEMENT");
+  if(scope.establishment_id){const{data:store}=await ctx.admin.from("establishments").select("id").eq("id",scope.establishment_id).eq("organization_id",ctx.organizationId).maybeSingle();if(!store)throw new Error("SCOPE_NOT_IN_TENANT")}
 }
 
 const loadRequestParts=async(ctx:GovernanceContext,identityId:string,entitlementId:string)=>{
@@ -34,7 +42,7 @@ export async function createAccessRequest(ctx:GovernanceContext,input:{identityI
   const{data:existing}=await ctx.admin.from("access_requests").select("*").eq("organization_id",ctx.organizationId).eq("idempotency_key",input.idempotencyKey).maybeSingle();
   if(existing)return{request:existing,deduplicated:true};
   const{identity,entitlement}=await loadRequestParts(ctx,input.identityId,input.entitlementId);
-  if(scope.establishment_id){const{data:store}=await ctx.admin.from("establishments").select("id").eq("id",scope.establishment_id).eq("organization_id",ctx.organizationId).maybeSingle();if(!store)throw new Error("SCOPE_NOT_IN_TENANT")}
+  if(entitlement.technical_ref?.adapter!=="read_only")await assertAccessScope(ctx,entitlement,scope);
   const validation=service.validate({entitlement,justification:input.justification,durationHours:input.durationHours,requestType});
   if(!validation.valid)throw new Error(validation.issues.join(","));
   const{data:settings}=await ctx.admin.from("identity_governance_settings").select("production_access_requires_change").eq("organization_id",ctx.organizationId).maybeSingle();
@@ -77,7 +85,8 @@ export async function decideAccessRequest(ctx:GovernanceContext,input:{requestId
   await ctx.admin.from("internal_approvals").update({status:state.status,resolved_at:now,resolution_reason:input.reason,updated_at:now}).eq("id",request.approval_id);
   if(state.status==="rejected"){const{data}=await ctx.admin.from("access_requests").update({status:"rejected",updated_at:now}).eq("id",request.id).select().single();return{request:data}}
   const approvers=validSteps.filter(x=>x.decision==="approved").map(x=>x.approver_user_id);
-  await ctx.admin.from("access_requests").update({status:"approved",updated_at:now}).eq("id",request.id);
+  const{data:claimed}=await ctx.admin.from("access_requests").update({status:"approved",updated_at:now}).eq("id",request.id).eq("status","pending_approval").select("id").maybeSingle();
+  if(!claimed)return{request:{...request,status:"approved"}};
   if(entitlement.criticality==="critical"&&ctx.storeId){
     const action=await openGovernedAction({admin:ctx.admin,organizationId:ctx.organizationId,storeId:ctx.storeId,actorId:approver},{actionType:request.request_type==="removal"?"IDGOV_REVOKE_CRITICAL":"IDGOV_GRANT_CRITICAL",criticality:"critical",targetType:"access_request",targetIds:[request.id],payload:{request_id:request.id,approvers},preview:{title:`Conceder ${entitlement.name}`,beneficiary:identity.id,scope:request.scope_key,duration:request.requested_duration,approvers:approvers.length},idempotencyKey:`idgov:request:${request.id}`});
     await ctx.admin.from("access_requests").update({action_request_id:action.action_id}).eq("id",request.id);
@@ -91,9 +100,10 @@ export async function executeApprovedRequest(ctx:GovernanceContext,request:any,e
   if(!identity.user_id)return fail("NO_USER_BOUND");
   await ctx.admin.from("access_requests").update({status:"provisioning",updated_at:now.toISOString()}).eq("id",request.id);
   const{data:live}=await ctx.admin.from("access_grants").select("*").eq("identity_id",identity.id).eq("entitlement_id",entitlement.id).eq("scope_key",request.scope_key).in("status",["pending","active","expiring"]).maybeSingle();
-  const hours=request.requested_duration?parseFloat(String(request.requested_duration).split(" ")[0]):null,validUntil=hours?new Date(now.getTime()+hours*3600_000).toISOString():null;
+  const hours=hoursOfInterval(request.requested_duration),validUntil=hours?new Date(now.getTime()+hours*3600_000).toISOString():null;
+  if(request.request_type!=="removal"&&entitlement.privileged&&!validUntil)return fail("DURATION_REQUIRED_FOR_PRIVILEGED");
   if(request.request_type==="removal"){if(!live)return fail("GRANT_NOT_FOUND");const result=await revokeGrant(ctx,{grantId:live.id,reason:request.justification});if(!result.ok)return fail(result.reason||"REVOCATION_FAILED",live.id);const{data}=await ctx.admin.from("access_requests").update({status:"completed",grant_id:live.id,updated_at:new Date().toISOString()}).eq("id",request.id).select().single();return data}
-  if(request.request_type==="extension"){if(!live)return fail("GRANT_NOT_FOUND");const{validUntil:extended}=new TemporaryAccessService().extend({newValidUntil:validUntil});await ctx.admin.from("access_grants").update({valid_until:extended,status:"active",approved_by:approvers,updated_at:new Date().toISOString()}).eq("id",live.id);const{data}=await ctx.admin.from("access_requests").update({status:"completed",grant_id:live.id,updated_at:new Date().toISOString()}).eq("id",request.id).select().single();await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"grant_extended",resourceType:"access_grant",resourceId:live.id,metadata:{valid_until:extended}});return data}
+  if(request.request_type==="extension"){if(!live)return fail("GRANT_NOT_FOUND");if(!validUntil)return fail("DURATION_REQUIRED");const{validUntil:extended}=new TemporaryAccessService().extend({newValidUntil:validUntil});await ctx.admin.from("access_grants").update({valid_until:extended,status:"active",approved_by:approvers,updated_at:new Date().toISOString()}).eq("id",live.id);const{data}=await ctx.admin.from("access_requests").update({status:"completed",grant_id:live.id,updated_at:new Date().toISOString()}).eq("id",request.id).select().single();await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"grant_extended",resourceType:"access_grant",resourceId:live.id,metadata:{valid_until:extended}});return data}
   const{grant,result,reason}=await provisionGrant(ctx,{identity,entitlement,scope:request.scope,scopeKey:request.scope_key,sourceType:request.request_type==="jit"?"jit":"request",requestId:request.id,reason:request.justification,approvers,validUntil});
   if(!result.ok)return fail(reason||"PROVISIONING_FAILED",grant?.id);
   const{data}=await ctx.admin.from("access_requests").update({status:"completed",grant_id:grant.id,updated_at:new Date().toISOString()}).eq("id",request.id).select().single();
@@ -103,7 +113,11 @@ export async function executeApprovedRequest(ctx:GovernanceContext,request:any,e
 // One path for every real grant: requests, birthright rules, JIT and break-glass all land here.
 export async function provisionGrant(ctx:GovernanceContext,input:{identity:any;entitlement:any;scope:any;scopeKey:string;sourceType:string;requestId?:string|null;reason:string;approvers:string[];validUntil?:string|null}){
   const started=Date.now(),{identity,entitlement}=input,base={organization_id:ctx.organizationId,identity_id:identity.id,entitlement_id:entitlement.id,scope:input.scope,scope_key:input.scopeKey,source_type:input.sourceType,request_id:input.requestId||null,reason:input.reason,approved_by:input.approvers,valid_until:input.validUntil||null,created_by:ctx.actorId};
-  const result=await new AccessProvisioningService(ctx.admin).grant({organizationId:ctx.organizationId,userId:identity.user_id,technicalRef:entitlement.technical_ref,entitlementKey:entitlement.key,scope:input.scope,scopeKey:input.scopeKey});
+  // An elevation stacks on nothing: it would otherwise overwrite the validity of held access or restore a role that already ended.
+  const elevating=["jit","break_glass"].includes(input.sourceType),refused=(reason:string)=>({grant:null as any,result:{ok:false,state:"failed" as const,reason,verified:false},reason});
+  if(elevating){const{data:held}=await ctx.admin.from("access_grants").select("id,entitlement_id,source_type,scope_key").eq("identity_id",identity.id).in("status",["pending","active","expiring"]);if((held||[]).some((x:any)=>x.entitlement_id===entitlement.id&&x.scope_key===input.scopeKey))return refused("ACCESS_ALREADY_HELD");if((held||[]).some((x:any)=>["jit","break_glass"].includes(x.source_type)&&x.scope_key===input.scopeKey))return refused("ELEVATION_ALREADY_ACTIVE")}
+  const provisioning=new AccessProvisioningService(ctx.admin),request={organizationId:ctx.organizationId,userId:identity.user_id,technicalRef:entitlement.technical_ref,entitlementKey:entitlement.key,scope:input.scope,scopeKey:input.scopeKey},result=await provisioning.grant(request);
+  if(elevating&&result.ok&&result.state==="already_present")return refused("ACCESS_ALREADY_HELD");
   if(!result.ok){
     const{data:grant}=await ctx.admin.from("access_grants").insert({...base,status:"failed",failure_reason:result.reason}).select().single();
     await emitIdentityEvent(ctx.admin,{organizationId:ctx.organizationId,kind:"revocation_failed",sourceEventId:`grant_failed:${grant?.id||crypto.randomUUID()}`,actorRef:ctx.actorId,targetType:"access_grant",targetRef:grant?.id||identity.id,severity:"high",title:"Falha ao provisionar acesso",metadata:{reason:result.reason,entitlement:entitlement.key}});
@@ -112,7 +126,7 @@ export async function provisionGrant(ctx:GovernanceContext,input:{identity:any;e
   const{data:live}=await ctx.admin.from("access_grants").select("*").eq("identity_id",identity.id).eq("entitlement_id",entitlement.id).eq("scope_key",input.scopeKey).in("status",["pending","active","expiring"]).maybeSingle();
   const payload={...base,status:"active",granted_at:new Date().toISOString(),previous_state:result.previousRole?{role:result.previousRole}:null};
   const{data:grant,error}=live?await ctx.admin.from("access_grants").update({source_type:input.sourceType,request_id:base.request_id,reason:input.reason,approved_by:input.approvers,valid_until:input.validUntil||live.valid_until,review_required:false,status:"active",updated_at:new Date().toISOString()}).eq("id",live.id).select().single():await ctx.admin.from("access_grants").insert(payload).select().single();
-  if(error)return{grant:null,result:{...result,ok:false},reason:error.message};
+  if(error){if(result.state==="provisioned")await provisioning.revoke({...request,previousRole:result.previousRole}).catch(()=>null);return{grant:null,result:{...result,ok:false},reason:error.message}}
   await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:"access_granted",resourceType:"access_grant",resourceId:grant.id,reason:input.reason,metadata:{entitlement:entitlement.key,scope:input.scopeKey,source:input.sourceType,state:result.state,latency_ms:Date.now()-started,verified:result.verified}});
   await emitIdentityEvent(ctx.admin,{organizationId:ctx.organizationId,kind:input.sourceType==="jit"?"jit":input.sourceType==="break_glass"?"break_glass":entitlement.privileged?"elevation":"grant",sourceEventId:`granted:${grant.id}:${grant.updated_at}`,actorRef:ctx.actorId,targetType:"access_grant",targetRef:identity.identity_ref,severity:entitlement.privileged?"warning":"info",title:`Acesso concedido: ${entitlement.key}`,metadata:{source:input.sourceType,scope:input.scopeKey}});
   return{grant,result};
@@ -123,7 +137,11 @@ export async function revokeGrant(ctx:GovernanceContext,input:{grantId:string;re
   const{data:grant}=await ctx.admin.from("access_grants").select("*,access_entitlements(*),governed_identities(*)").eq("id",input.grantId).eq("organization_id",ctx.organizationId).maybeSingle();
   if(!grant)return{ok:false,reason:"GRANT_NOT_FOUND"};
   if(!["active","expiring","failed","pending"].includes(grant.status))return{ok:true,state:"already_closed",grant};
-  const entitlement=grant.access_entitlements,identity=grant.governed_identities,now=new Date().toISOString(),result=identity.user_id?await new AccessProvisioningService(ctx.admin).revoke({organizationId:ctx.organizationId,userId:identity.user_id,technicalRef:entitlement.technical_ref,entitlementKey:entitlement.key,scope:grant.scope,scopeKey:grant.scope_key,previousRole:grant.previous_state?.role||null}):{ok:false,state:"failed",reason:"NO_USER_BOUND",verified:false};
+  const entitlement=grant.access_entitlements,identity=grant.governed_identities,now=new Date().toISOString();
+  // The base role comes back only if nobody revoked it while the elevation was running.
+  let previousRole:string|null=grant.previous_state?.role||null;
+  if(previousRole){const baseKey=`${entitlement.technical_ref?.adapter==="organization_role"?"org_role":"store_role"}:${previousRole}`,{data:closed}=await ctx.admin.from("access_grants").select("revoked_at,scope_key,access_entitlements(key)").eq("identity_id",identity.id).eq("status","revoked");if((closed||[]).some((x:any)=>x.access_entitlements?.key===baseKey&&x.scope_key===grant.scope_key&&grant.granted_at&&x.revoked_at>=grant.granted_at))previousRole=null}
+  const result=identity.user_id?await new AccessProvisioningService(ctx.admin).revoke({organizationId:ctx.organizationId,userId:identity.user_id,technicalRef:entitlement.technical_ref,entitlementKey:entitlement.key,scope:grant.scope,scopeKey:grant.scope_key,previousRole}):{ok:false,state:"failed",reason:"NO_USER_BOUND",verified:false};
   if(!result.ok){
     await ctx.admin.from("access_grants").update({status:"failed",failure_reason:result.reason,revocation_reason:input.reason,updated_at:now}).eq("id",grant.id);
     await emitIdentityEvent(ctx.admin,{organizationId:ctx.organizationId,kind:"revocation_failed",sourceEventId:`revoke_failed:${grant.id}:${now}`,actorRef:ctx.actorId,targetType:"access_grant",targetRef:grant.id,severity:"critical",title:"Revogação não confirmada",metadata:{reason:result.reason,entitlement:entitlement.key}});
@@ -132,6 +150,8 @@ export async function revokeGrant(ctx:GovernanceContext,input:{grantId:string;re
   }
   const{data:updated,error}=await ctx.admin.from("access_grants").update({status:input.finalStatus||"revoked",revocation_reason:input.reason,revoked_at:now,revocation_confirmed_at:now,failure_reason:null,updated_at:now}).eq("id",grant.id).select().single();
   if(error)return{ok:false,reason:error.message,grant};
+  await ctx.admin.from("privileged_sessions").update({ended_at:now}).eq("grant_id",grant.id).is("ended_at",null);
+  await ctx.admin.from("jit_sessions").update({status:input.finalStatus==="expired"?"expired":"revoked",ended_at:now,updated_at:now}).eq("grant_id",grant.id).eq("status","active");
   await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:ctx.actorId,action:input.finalStatus==="expired"?"access_expired":"access_revoked",resourceType:"access_grant",resourceId:grant.id,reason:input.reason,metadata:{entitlement:entitlement.key,confirmed:true,state:result.state}});
   await emitIdentityEvent(ctx.admin,{organizationId:ctx.organizationId,kind:"revocation",sourceEventId:`revoked:${grant.id}:${now}`,actorRef:ctx.actorId,targetType:"access_grant",targetRef:identity.identity_ref,severity:entitlement.privileged?"warning":"info",title:`Acesso encerrado: ${entitlement.key}`,metadata:{confirmed:true,final_status:input.finalStatus||"revoked"}});
   return{ok:true,state:result.state,grant:updated};
@@ -149,6 +169,7 @@ export async function processJoiner(ctx:GovernanceContext,input:{identityId:stri
 export async function processMover(ctx:GovernanceContext,input:{identityId:string;staffRole?:string|null;storeId?:string|null;reason:string;apply?:boolean}){
   const{data:identity}=await ctx.admin.from("governed_identities").select("*").eq("id",input.identityId).eq("organization_id",ctx.organizationId).single(),{data:current}=await ctx.admin.from("access_grants").select("id,entitlement_id,scope_key,source_type").eq("identity_id",identity.id).in("status",["active","expiring"]),targets=await birthrightTargets(ctx,input),plan=new AccessLifecycleService().moverPlan({current:current||[],target:targets});
   if(!input.apply)return{plan,applied:false};
+  if(!targets.length)throw new Error("MOVER_TARGET_EMPTY");
   const removed:any[]=[],added:any[]=[];
   for(const id of plan.remove)removed.push({id,...await revokeGrant(ctx,{grantId:id,reason:input.reason})});
   for(const t of plan.add){const full=targets.find((x:any)=>x.entitlement_id===t.entitlement_id&&x.scope_key===t.scope_key) as any,{data:entitlement}=await ctx.admin.from("access_entitlements").select("*").eq("id",t.entitlement_id).single(),{result}=await provisionGrant(ctx,{identity,entitlement,scope:full.scope,scopeKey:full.scope_key,sourceType:"lifecycle_rule",reason:input.reason,approvers:[]});added.push({entitlement:entitlement.key,ok:result.ok})}
@@ -159,8 +180,11 @@ export async function processMover(ctx:GovernanceContext,input:{identityId:strin
 // Priority path. Every step is read back; the event is confirmed only when all of them hold.
 export async function processLeaver(ctx:GovernanceContext,input:{eventId?:string;userId:string;reason:string}){
   const service=new AccessLifecycleService(),org=ctx.organizationId,started=Date.now();
+  if(ctx.actorId&&input.userId===ctx.actorId)throw new Error("SELF_OFFBOARDING_BLOCKED");
   await syncIdentities(ctx.admin,org);
   const{data:identity}=await ctx.admin.from("governed_identities").select("*").eq("organization_id",org).eq("user_id",input.userId).maybeSingle();
+  // Someone with no tie to this tenant is out of its reach: their account belongs to whoever they really work for.
+  if(!identity&&!(await readEffectiveAccess(ctx.admin,org,input.userId)).length)throw new Error("USER_NOT_IN_TENANT");
   const{data:event}=input.eventId?{data:{id:input.eventId}}:await ctx.admin.from("identity_lifecycle_events").upsert({organization_id:org,user_id:input.userId,identity_id:identity?.id||null,event_type:"leaver",source_system:"identity_governance",source_ref:`${input.userId}:${new Date().toISOString().slice(0,10)}`,priority:100,status:"processing",requested_by:ctx.actorId},{onConflict:"organization_id,event_type,source_system,source_ref"}).select("id").single();
   await ctx.admin.from("identity_lifecycle_events").update({status:"processing",identity_id:identity?.id||null}).eq("id",event.id);
   if(identity)await ctx.admin.from("governed_identities").update({lifecycle_status:"leaving",updated_at:new Date().toISOString()}).eq("id",identity.id);
@@ -172,7 +196,8 @@ export async function processLeaver(ctx:GovernanceContext,input:{eventId?:string
   const records=await ctx.admin.rpc("rbac_offboard_employee_records",{requested_organization_id:org,requested_user_id:input.userId});
   const stillEffective=(await readEffectiveAccess(ctx.admin,org,input.userId)).length;
   const[{data:profile},{count:otherOrgs},{count:otherStores}]=await Promise.all([ctx.admin.from("profiles").select("is_superadmin").eq("id",input.userId).maybeSingle(),ctx.admin.from("organization_members").select("organization_id",{count:"exact",head:true}).eq("user_id",input.userId).eq("active",true).neq("organization_id",org),ctx.admin.from("establishment_members").select("id",{count:"exact",head:true}).eq("user_id",input.userId)]);
-  const disable=service.disableAccount({otherOrganizationMemberships:(otherOrgs||0)+(otherStores||0),isSuperadmin:Boolean(profile?.is_superadmin)});
+  const{data:ownStores}=await ctx.admin.from("establishments").select("id").eq("organization_id",org),ours=new Set((ownStores||[]).map((x:any)=>x.id)),staffElsewhere=(await Promise.all(["custom_staff_members","waiters","kitchen_operators","driver_profiles"].map(table=>ctx.admin.from(table).select("establishment_id").eq("user_id",input.userId)))).flatMap((x:any)=>x.data||[]).filter((x:any)=>!ours.has(x.establishment_id)).length;
+  const disable=service.disableAccount({otherOrganizationMemberships:(otherOrgs||0)+(otherStores||0)+staffElsewhere,isSuperadmin:Boolean(profile?.is_superadmin)});
   const sessions=await ctx.admin.rpc("rbac_revoke_user_sessions",{requested_organization_id:org,requested_user_id:input.userId,requested_reason:"identity_leaver",requested_include_global:disable});
   let accountDisabled:boolean|null=null;
   if(disable){const{error}=await ctx.admin.auth.admin.updateUserById(input.userId,{ban_duration:"876000h"});accountDisabled=!error;if(!error){const{data:check}=await ctx.admin.auth.admin.getUserById(input.userId);accountDisabled=Boolean(check?.user?.banned_until&&Date.parse(check.user.banned_until)>Date.now())}}
