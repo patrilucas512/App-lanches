@@ -111,17 +111,17 @@ Os testes de fluxo usam um banco em memória. O smoke é o que exercita SQL, tri
 - Nada em produção.
 
 ## 25. O que precisa da sua aprovação
-1. Aplicar em produção as Fases 83, 94 e depois 93. As versões de produção diferem dos arquivos, então um `supabase db push` tentaria reaplicar tudo.
-2. Concluir antes disso a tarefa separada de correções de autorização, tratada fora do repositório.
+1. Feito: Fases 83, 94 e 93 aplicadas em produção. As versões de produção diferem dos arquivos, então não use `supabase db push` lá.
+2. Feito: correções de autorização concluídas (PRs #9 e #10).
 3. Definir `IDENTITY_GOVERNANCE_WORKER_SECRET` e agendar `POST /api/identity-governance/worker`. Sem isso, nada expira sozinho.
 4. Decidir como os planos ligam as flags; todas nascem desligadas.
 
 ## 26. Dívida técnica e limitações
 - **Sem agendamento, a expiração automática não roda em ambiente nenhum.**
 - A varredura restaura o papel de loja, mas JWTs emitidos valem até expirar; não há `auth.admin.signOut` no repositório.
-- `private.has_role` ignora `status`, então a fachada apaga a linha ao revogar.
+- `private.has_role` passou a exigir vínculo ativo; a fachada continua apagando a linha ao revogar.
 - A maioria dos módulos não tem caminho oficial de concessão.
-- Telas ainda sem formulário: dono do entitlement, criação de regra SoD, tratamento de conflito, perfil de terceiro, Identity 360, prévia em lote. A API cobre todas menos a Identity 360. Sem o formulário de dono, itens críticos não saem do rascunho pela tela.
+- Formulários de dono do entitlement, regra e tratamento de SoD, perfil de terceiro, Identity 360 e prévia em lote entregues depois da fase; ainda sem publicar no app.
 - A busca global cobre só navegação e comandos; não indexa identidade, grant, pedido, campanha nem achado.
 - Sem ligação funcional: candidato de risco (F87), DR Access Test (F86), classificação de dados (F76), mapa de serviços (F85/F90). `SensitiveActionService` e `IDGOV_PLAN_ENTITLEMENTS` existem, mas nenhuma rota os usa.
 - Widgets estão só registrados; dados dinâmicos no Workspace e no Executive não foram ligados, exceto o link e a lista `executive` da API.
@@ -130,4 +130,4 @@ Os testes de fluxo usam um banco em memória. O smoke é o que exercita SQL, tri
 - Os commits separam os arquivos por etapa, mas o código só compila no último, porque os fluxos dependem uns dos outros.
 
 ## 27. Recomendações para a Fase 95
-Antes dela: concluir as correções de autorização, agendar o worker e fechar os itens acima, a começar pelos formulários de dono e de tratamento de SoD. A Fase 95 não foi iniciada.
+Antes dela: publicar o app, agendar o worker e fechar os itens acima. A Fase 95 não foi iniciada.
