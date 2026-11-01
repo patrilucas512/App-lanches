@@ -34,7 +34,7 @@ Plano de controle assíncrono: a autorização em tempo de requisição continua
 `importBaseline` importa o acesso efetivo como `migration_baseline`, marcado para revisão, sem revogar nada, e pode ser reexecutado.
 
 ## 8. Pedidos, aprovações e provisionamento
-Pedido → política (F79) → SoD → aprovação (`internal_approvals`, F32) → prévia e confirmação quando crítico → fachada RBAC → verificação → auditoria e evento no SOC. Autoaprovação é bloqueada, e crítico exige dois aprovadores diferentes. Passos gravados por `/api/internal-work` não contam, porque aquela rota não confere quem decide. Sem política ou com erro, valem as regras do catálogo e privilegiado continua exigindo aprovação.
+Pedido → política (F79) → SoD → aprovação (`internal_approvals`, F32) → prévia e confirmação quando crítico → fachada RBAC → verificação → auditoria e evento no SOC. Autoaprovação é bloqueada, e crítico exige dois aprovadores diferentes. Só contam passos de quem pode decidir aquele pedido. Sem política ou com erro, valem as regras do catálogo e privilegiado continua exigindo aprovação.
 
 ## 9. Ciclo de vida
 - **Joiner:** regras `birthright_rules` configuráveis.
@@ -70,7 +70,7 @@ Compara acesso efetivo e grants: `matched`, `ungoverned_access`, `missing_access
 - O adaptador deixou de ser só um nome (`Phase93IdentityGovernanceAdapter`).
 - A fila continua em `security_response_actions`: o SOC pede, a Fase 93 executa `revoke_session`, `revoke_temporary_access`, `disable_identity`, `revoke_api_token` e `request_access_review`, e devolve a verificação.
 - Nenhuma tabela da 94 foi duplicada. Os 93 testes da 94 continuam passando sem alteração.
-- **Consolidação proposta, não feita:** a resolução de permissão do SOC dá `soc:view` a todo membro ativo e ignora `manager`; ela deveria seguir o padrão explícito da Fase 93.
+- **Consolidação proposta, não feita:** a resolução de permissão do SOC deveria seguir o padrão explícito da Fase 93.
 
 ## 18. Demais integrações
 Policy Engine, aprovações, ActionEngine (ledger compartilhado; `confirm`, `cancel` e `undo` do Copiloto recusam `IDGOV_*`), Change (`production_access_requires_change`), Incidentes (vínculo no break-glass e no JIT), Notifications, Automation (eventos registrados) e Vendor. Risk, Continuity, Data Governance, Architecture e Service Catalog **não têm ligação funcional** (ver item 26).
@@ -90,9 +90,9 @@ Datasets, 10 modelos, 7 views de fato, 11 métricas com denominadores explícito
 ## 23. Testes executados e resultado
 | Verificação | Resultado |
 |---|---|
-| `node --test tests/*.test.mjs` | 3.686 de 3.686 (antes da fase: 3.551); depois disso, os testes das Fases 93 e 94 foram repetidos após ajustes de lint: 228 de 228 |
+| `node --test tests/*.test.mjs` | 3.686 de 3.686 (antes da fase: 3.551); depois dos ajustes de lint, os testes das Fases 93 e 94 foram repetidos: 228 de 228 |
 | Testes da fase | 135, incluindo os 26 obrigatórios e os 6 adicionais |
-| `scripts/dev/idgov-smoke.mjs` no banco real do dev | 38 de 38 (executado antes dos últimos ajustes de lint) |
+| `scripts/dev/idgov-smoke.mjs` no banco real do dev | 38 de 38, repetido sobre o código final |
 | `typecheck:ci` | Sem erros novos (41 diagnósticos antigos aceitos) |
 | ESLint nos arquivos da fase | Limpo |
 | `lint` do repositório inteiro | Não executado |
@@ -112,14 +112,13 @@ Os testes de fluxo usam um banco em memória. O smoke é o que exercita SQL, tri
 
 ## 25. O que precisa da sua aprovação
 1. Aplicar em produção as Fases 83, 94 e depois 93. As versões de produção diferem dos arquivos, então um `supabase db push` tentaria reaplicar tudo.
-2. Corrigir a autoescalada para superadmin antes disso (tarefa separada). Enquanto ela existir, qualquer usuário logado pode obter acesso total, e a governança pode ser contornada.
+2. Concluir antes disso a tarefa separada de correções de autorização, tratada fora do repositório.
 3. Definir `IDENTITY_GOVERNANCE_WORKER_SECRET` e agendar `POST /api/identity-governance/worker`. Sem isso, nada expira sozinho.
 4. Decidir como os planos ligam as flags; todas nascem desligadas.
 
 ## 26. Dívida técnica e limitações
 - **Sem agendamento, a expiração automática não roda em ambiente nenhum.**
 - A varredura restaura o papel de loja, mas JWTs emitidos valem até expirar; não há `auth.admin.signOut` no repositório.
-- `session_ping` pode desfazer uma revogação de sessão (`app/api/security/route.ts`), e o RPC novo não corrige isso.
 - `private.has_role` ignora `status`, então a fachada apaga a linha ao revogar.
 - A maioria dos módulos não tem caminho oficial de concessão.
 - Telas ainda sem formulário: dono do entitlement, criação de regra SoD, tratamento de conflito, perfil de terceiro, Identity 360, prévia em lote. A API cobre todas menos a Identity 360. Sem o formulário de dono, itens críticos não saem do rascunho pela tela.
@@ -131,4 +130,4 @@ Os testes de fluxo usam um banco em memória. O smoke é o que exercita SQL, tri
 - Os commits separam os arquivos por etapa, mas o código só compila no último, porque os fluxos dependem uns dos outros.
 
 ## 27. Recomendações para a Fase 95
-Antes dela: corrigir a escalada, agendar o worker e fechar os itens acima, a começar pelos formulários de dono e de tratamento de SoD. A Fase 95 não foi iniciada.
+Antes dela: concluir as correções de autorização, agendar o worker e fechar os itens acima, a começar pelos formulários de dono e de tratamento de SoD. A Fase 95 não foi iniciada.

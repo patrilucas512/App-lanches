@@ -69,7 +69,7 @@ export async function decideAccessRequest(ctx:GovernanceContext,input:{requestId
   const{error:stepError}=await ctx.admin.from("internal_approval_steps").insert({approval_id:request.approval_id,approver_user_id:approver,decision:input.decision,reason:input.reason,decided_at:new Date().toISOString()});
   if(stepError)throw new Error(stepError.message);
   const{data:approval}=await ctx.admin.from("internal_approvals").select("required_approvals").eq("id",request.approval_id).single();
-  // Steps written by /api/internal-work do not count: that route does not check who may decide this request.
+  // Only steps from people allowed to decide this request count, whichever route wrote them.
   const validSteps=[...(steps||[]).filter((x:any)=>x.approver_user_id!==request.requester_id&&x.approver_user_id!==identity.user_id),{approver_user_id:approver,decision:input.decision}],state=approvalState(approval.required_approvals,validSteps);
   await governanceAudit(ctx.admin,{organizationId:ctx.organizationId,actorId:approver,action:input.decision==="approved"?"request_approved":"request_denied",resourceType:"access_request",resourceId:request.id,reason:input.reason,metadata:{approved:state.approved,required:state.required}});
   if(state.status==="pending")return{request,pendingApprovals:state.required-state.approved};

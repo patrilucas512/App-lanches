@@ -35,21 +35,19 @@ Há três camadas sem resolvedor central: helpers SQL (`private.has_role`, `has_
 1. **Não existe serviço oficial de Auth/RBAC.** O briefing pressupõe um. Sem ele, "provisionar pelo serviço oficial" não tem destino.
 2. **O ActionEngine é uma lista fechada.** `copilot_action_requests` aceita 12 tipos e `source='copilot'`. As Fases 88, 92 e 94 não o usam de fato.
 3. **`decide()` da Fase 79 não é chamado por nenhuma rota.** Sem política publicada, o resultado é `not_applicable`.
-4. **`internal_approvals` não tem `organization_id`**, e `/api/internal-work` aprova sem conferir o aprovador designado nem bloquear autoaprovação.
+4. **`internal_approvals` não tem `organization_id`.** A Fase 93 decide os próprios pedidos pela rota dela e confere de novo os passos antes de provisionar.
 5. **Não há evento de desligamento na Fase 18** nem sponsor de terceiro na Fase 92.
 6. **`impersonation_sessions` não tem nenhum uso no código.** Não há impersonação real para governar.
 7. **`access_review_runs` (Fase 25) não tem uso no código.**
-8. **Revogar sessão é parcial.** Não há "revogar todas as sessões do usuário", JWTs emitidos valem até expirar e `session_ping` em `app/api/security/route.ts` grava `revoked_at: null`, o que pode desfazer uma revogação.
+8. **Revogar sessão é parcial.** Não há "revogar todas as sessões do usuário", e JWTs emitidos valem até expirar.
 
 ## 5. Riscos encontrados
 
 | Risco | Evidência | Tratamento |
 |---|---|---|
-| **Crítico: usuário logado pode virar superadmin** | Comprovado no dev em transação com rollback: `update profiles set is_superadmin=true` como `authenticated` retornou `true` | Fora desta fase; correção proposta em tarefa separada. Produção não verificada |
+| Problemas de autorização em módulos anteriores | Foram encontrados problemas de autorização em módulos anteriores. Os detalhes ficam fora do repositório, que é público, e o tratamento segue em tarefa separada. | Fora desta fase |
 | `private.has_role` ignora `status` | Definição lida no dev | Revogar papel de loja exige apagar a linha, não inativar |
-| `soc:view` e `vendor:view` são dados a todo membro ativo | `app/api/security-operations/route.ts:4` | A Fase 93 não repete esse padrão; correção do SOC fica como recomendação |
 | `/api/security` lê `security_events` com o cliente do usuário, mas a Fase 94 revogou esse acesso | `app/api/security/route.ts:48` e a migration da Fase 94 | Registrado; fora do escopo |
-| `revoke_session` não confere a organização da sessão | `app/api/security/route.ts:118` | Registrado; o novo RPC filtra por organização |
 
 ## 6. Decisões de arquitetura
 
