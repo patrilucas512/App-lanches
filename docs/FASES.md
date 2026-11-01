@@ -107,7 +107,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 90 | Arquitetura corporativa | Implementada |
 | 91 | Gestão de portfólio | Implementada |
 | 92 | Gestão de fornecedores | Implementada |
-| 93 | Governança de identidades e acessos | Implementada (pendente de produção; aplicada só no `masterapp-dev`) |
+| 93 | Governança de identidades e acessos | Implementada e aplicada em produção; funções desligadas até o deploy do app e o agendamento do worker |
 | 94 | Centro de operações de segurança | Implementada |
 
 ## Dependências das fases pendentes
@@ -157,12 +157,13 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 
 ## Problemas encontrados no banco de desenvolvimento
 
-- **Cadastro de loja nova quebrado:** `create_establishment` (última versão em `20260929192505`) não preenche `organization_id`, obrigatório em `establishments` desde a Fase 7. `complete_establishment_onboarding` também não o preenche ao inserir em `categories`. Com o schema do repositório, os dois falham para um usuário novo. O seed contorna isso, e a correção segue pendente. Não foi verificado em produção.
+- **Cadastro de loja nova e catálogo:** `create_establishment` não preenchia `organization_id`, e o catálogo do painel inseria categorias e produtos sem ele. A migration `tenant_signup_organization` corrige os dois; o fluxo completo foi validado no dev. **Falta aplicá-la em produção.**
 - **`vinext dev` responde 500 em páginas HTML:** nesta máquina Windows, em pasta do OneDrive, toda página falha com `Network connection lost`, enquanto as rotas de API funcionam. `vite preview` funciona.
 - **`vinext start` não serve os assets:** a página abre sem CSS e JS, porque o build é para Cloudflare Workers. Use `vite preview`.
 - **Fontes no build local:** o console acusa fontes com caminho `file:///` da máquina, e o navegador as recusa. A página continua funcionando.
 
 ## Diferenças entre repositório e produção
 
-- **Fases 83, 93 e 94:** estão no repositório, mas `phase83_revenue_management`, as oito migrations `phase93*` e `phase94_security_operations_center` não estão em produção. A Fase 93 depende da 94, então a 94 precisa ir antes.
+- **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
+- **`tenant_signup_organization`:** aplicada só no dev; falta em produção.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
