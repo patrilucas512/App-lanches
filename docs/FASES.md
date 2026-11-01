@@ -51,7 +51,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 35 | Forecasting | Implementada |
 | 36 | Rentabilidade do cardápio | Implementada |
 | 37 | Inteligência de marketing | Implementada |
-| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Implementada (pendente de produção); ver `docs/phase38-customer-experience-report.md` |
+| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Implementada e aplicada em produção; depende do deploy do app; ver `docs/phase38-customer-experience-report.md` |
 | 39 | Inteligência de compras | Implementada |
 | 40 | Logística avançada | Implementada |
 | 41 | Orquestração da cozinha | Implementada |
@@ -152,5 +152,7 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 - **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
 - **`tenant_signup_organization`:** aplicada em produção; fluxo de cliente novo validado lá em bloco com rollback.
 - **`phase93_review_adjustments`:** aplicada em produção.
-- **`usage_events_metering_columns`:** aplicada em produção em 2026-11-01, com a versão `20261101181246`. As migrations da Fase 38 não estão em produção.
+- **`usage_events_metering_columns`:** aplicada em produção em 2026-11-01, com a versão `20261101181246`. 
+- **Fase 38:** migrations aplicadas em produção em 2026-11-01, com versões `20261101184633` a `20261101184904`. Flags ligadas só na loja de teste, sem IA nem avaliações externas. O app publicado ainda não tem as rotas da fase.
+- **Worker da Fase 38:** jobs `masterapp-cx-worker` (a cada 5 minutos) e `masterapp-cx-worker-enqueue` (de hora em hora), criados só em produção, fora das migrations, porque têm o endereço de produção fixo. O segredo está no Vault como `cx_worker_secret`. Falta publicar o app e definir o mesmo valor em `CUSTOMER_EXPERIENCE_WORKER_SECRET`.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.

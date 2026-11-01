@@ -1,6 +1,6 @@
 # Fase 38 — Reputação, Avaliações, NPS/CSAT e Experiência do Cliente
 
-Branch `claude/fase-38-reputacao-experiencia`, a partir de `2853a22`. As 7 migrations da fase foram aplicadas no `masterapp-dev` e não estão em produção. Em produção foi aplicada só a correção de `usage_events`, descrita na seção 16.
+Branch `claude/fase-38-reputacao-experiencia`, a partir de `2853a22`. As 7 migrations da fase e a correção de `usage_events` foram aplicadas no `masterapp-dev` e em produção, com aprovação do dono do projeto. O app publicado ainda não tem o código desta fase.
 
 ## 1. Diagnóstico
 
@@ -165,14 +165,14 @@ Os 17 cenários obrigatórios estão em `tests/customer-experience-phase38.test.
 - **Provedores reais:** WhatsApp, modelo de IA e provedores de avaliação não foram usados.
 - **Servidor de desenvolvimento:** na branch, a partida falhou de forma intermitente, com erro interno do `workerd` ou sem responder a tempo. Na `main` foi feita uma única tentativa, que funcionou, então essa amostra não prova nem descarta relação com a fase. O build de produção passa.
 
-## 15. O que precisa de aprovação
+## 15. O que falta para funcionar em produção
 
 1. Testar o painel com login na pré-visualização.
-2. Abrir o PR e fazer o merge depois da confirmação do dono do projeto.
-3. Aplicar em produção, o que esta fase proíbe sem nova instrução.
-4. Agendar o worker e definir `CUSTOMER_EXPERIENCE_WORKER_SECRET`, ou usar `CRON_SECRET`.
-5. Ligar as flags por plano ou loja. Todas nascem desligadas.
-6. Registrar o agente `customer_experience_assistant` na Fase 80, caso queira usar IA.
+2. Abrir o PR, passar o CI e fazer o merge depois da confirmação do dono do projeto.
+3. Publicar o app. As telas, a página pública e o worker só existem depois disso.
+4. Definir `CUSTOMER_EXPERIENCE_WORKER_SECRET` no app com o valor de `cx_worker_secret`, guardado no Vault de produção. Os jobs já estão agendados.
+5. Criar e ativar uma pesquisa na loja. Sem ela, nenhuma pesquisa é enviada.
+6. Para usar IA ou avaliações externas: ligar as flags, registrar o agente `customer_experience_assistant` na Fase 80 e registrar um adaptador oficial.
 
 ## 16. Limitações
 
