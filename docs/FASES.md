@@ -7,7 +7,6 @@ Status no repositório, conferido em 2026-10-31 na `main` (`a044578`), por nomes
 | Fase | Módulo | Status | Motivo |
 |---|---|---|---|
 | 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Pendente – será implementada | Não foi iniciada. A Fase 37 registra isso e o desenvolvimento seguiu para a 39. |
-| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Pendente – será implementada | Não foi iniciada. As Fases 56 e 59 registram a ausência. |
 
 ## Todas as fases
 
@@ -71,7 +70,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 54 | Relatórios avançados | Implementada |
 | 55 | Gestão de desempenho | Implementada |
 | 56 | Central de aprendizado | Implementada |
-| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | **Pendente – será implementada** |
+| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Implementada e aplicada só no `masterapp-dev`; ver `docs/phase57-internal-communications-report.md` |
 | 58 | Planejamento de equipe | Implementada |
 | 59 | Gestão de incidentes | Implementada |
 | 60 | Cliente 360 | Implementada |
@@ -126,17 +125,6 @@ Nenhuma fase depende dela no código. Ao implementá-la, reaproveite ou integre 
 | Fase 5 | `crm_feedback`, lido também pela Fase 60 (Cliente 360) e pelo atendente de IA | Feedback do consumidor; é o ponto de sobreposição mais direto |
 | Fase 21 | `app_reviews` | Avaliações de apps do marketplace; escopo diferente |
 
-### Fase 57
-
-| Onde | O que existe | Relação |
-|---|---|---|
-| Fase 59 | Doc registra a ausência e que a vinculação à "comunicação canônica da Fase 57" fica disponível quando o módulo existir. `app/api/incidents/route.ts` aceita a relação `internal_communication`, e `components/incident-management-center.tsx` cria o comunicado como rascunho no Task Engine | **Dependência declarada**, hoje contornada |
-| Fase 56 | Doc diz que a Fase 57 não faz parte daquela entrega | Só citação |
-| Fase 46 | `network_announcements` e `network_announcement_acknowledgements`: comunicados com escopo e confirmação de leitura | Sobreposição direta |
-| Superadmin | `platform_announcements` em `app/superadmin/avisos` | Avisos da plataforma; escopo diferente |
-| Fases 65, 67 e 68 | Ações de copiloto `*_create_communication_draft` | Criam só rascunho; candidatas a integrar com a 57 |
-| Fase 86 | Planos de continuidade têm campo de comunicação; a doc não cita "Internal Communications" nem a Fase 57 | Sem dependência encontrada no repositório |
-
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
 Confirmado em 2026-10-31, só com leitura do histórico de migrations de produção, sem nenhuma alteração. As quatro já estão aplicadas:
@@ -168,3 +156,4 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 - **`tenant_signup_organization`:** aplicada em produção; fluxo de cliente novo validado lá em bloco com rollback.
 - **`phase93_review_adjustments`:** aplicada em produção.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
+- **Fase 57:** migrations aplicadas só no `masterapp-dev` em 2026-11-01, com versões `20261101194114` a `20261101194949`, por ordem do documento da fase. Não estão em produção. O worker `/api/internal-communications/worker` ainda não está agendado em nenhum ambiente.
