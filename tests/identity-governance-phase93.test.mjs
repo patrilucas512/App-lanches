@@ -42,3 +42,4 @@ test("Identity actions are hidden from the Copilot",async()=>{const s=await migr
 test("RLS and direct access revoked",async()=>{const s=await migrations();assert.match(s,/enable row level security/);assert.match(s,/revoke all on public\.%I from public,anon,authenticated/)});
 test("Audit is immutable",async()=>assert.match(await migrations(),/identity_governance_audit_immutable before update or delete/));
 test("No plaintext secret columns",async()=>{const s=await migrations();assert.doesNotMatch(s,/\b(password|secret_value|token_value|raw_token|plain_token)\b/i)});
+test("Copilot confirm, cancel and undo refuse identity actions",async()=>assert.match(await migrations(),/if requested_action_type like 'IDGOV\\_%' then return false; end if;/));

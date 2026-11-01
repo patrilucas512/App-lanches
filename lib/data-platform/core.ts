@@ -73,3 +73,4 @@ export const ENTERPRISE_PORTFOLIO_SEMANTIC_METRICS=['Active Initiative Count','F
 export const ENTERPRISE_PORTFOLIO_LINEAGE={projects:'phase32',goals:'phase55',budgets:'phase55',ibp:'phase74',capacity:'phases32_58_63',risks:'phase87',changes:'phase88',architecture:'phase90',qualitativeBenefitsNeverMonetized:true,scenarioNeverChangesBaseline:true}as const;
 export {VENDOR_FACTS,VENDOR_DIMENSIONS,VENDOR_METRICS} from "../vendor-management/integrations.ts";
 export {SOC_FACTS,SOC_DIMENSIONS,SOC_METRICS} from "../security-operations/integrations.ts";
+export {IDGOV_FACTS,IDGOV_DIMENSIONS,IDGOV_METRICS,IDGOV_METRIC_DENOMINATORS} from "../identity-governance/integrations.ts";

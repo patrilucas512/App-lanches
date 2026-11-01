@@ -8,7 +8,6 @@ Status no repositório, conferido em 2026-10-31 na `main` (`a044578`), por nomes
 |---|---|---|---|
 | 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Pendente – será implementada | Não foi iniciada. A Fase 37 registra isso e o desenvolvimento seguiu para a 39. |
 | 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Pendente – será implementada | Não foi iniciada. As Fases 56 e 59 registram a ausência. |
-| 93 | Definida fora deste repositório | Pendente – será implementada | Próxima fase planejada. As Fases 92 e 94 já citam a ausência dela. |
 
 ## Todas as fases
 
@@ -108,7 +107,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 90 | Arquitetura corporativa | Implementada |
 | 91 | Gestão de portfólio | Implementada |
 | 92 | Gestão de fornecedores | Implementada |
-| 93 | Definida fora deste repositório | **Pendente – será implementada** |
+| 93 | Governança de identidades e acessos | Implementada (pendente de produção; aplicada só no `masterapp-dev`) |
 | 94 | Centro de operações de segurança | Implementada |
 
 ## Dependências das fases pendentes
@@ -165,5 +164,5 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 
 ## Diferenças entre repositório e produção
 
-- **Fases 83 e 94:** estão no repositório, mas `phase83_revenue_management` e `phase94_security_operations_center` não aparecem no histórico de produção.
+- **Fases 83, 93 e 94:** estão no repositório, mas `phase83_revenue_management`, as oito migrations `phase93*` e `phase94_security_operations_center` não estão em produção. A Fase 93 depende da 94, então a 94 precisa ir antes.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
