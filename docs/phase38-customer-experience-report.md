@@ -1,6 +1,6 @@
 # Fase 38 — Reputação, Avaliações, NPS/CSAT e Experiência do Cliente
 
-Branch `claude/fase-38-reputacao-experiencia`, a partir de `2853a22`. Produção não foi consultada nem alterada. As migrations ainda não foram aplicadas em nenhum banco.
+Branch `claude/fase-38-reputacao-experiencia`, a partir de `2853a22`. As 7 migrations foram aplicadas no `masterapp-dev`. Produção não foi consultada nem alterada.
 
 ## 1. Diagnóstico
 
@@ -55,13 +55,13 @@ O teste da Fase 37 que garante que a 37 não cita a 38 foi mantido, porque a mig
 
 | Arquivo | Conteúdo |
 |---|---|
-| `20261101170000_phase38a_feedback_canonical` | Extensão de `crm_feedback`, flags, permissões, configurações, fila e auditoria imutável |
-| `20261101171000_phase38b_surveys_requests` | Pesquisas versionadas, disparos, respostas, gatilhos e RPCs públicas |
-| `20261101172000_phase38c_external_reviews` | Fontes e avaliações externas |
-| `20261101173000_phase38d_sentiment_risk` | Análise, temas, sinais de risco e correções; `operational_incidents.created_by` passa a aceitar nulo |
-| `20261101174000_phase38e_responses_recovery` | Modelos, respostas, casos e ações de recuperação |
-| `20261101175000_phase38f_reputation_facts` | Sete views `fact_cx_*` |
-| `20261101176000_phase38g_integrations` | Catálogo de métricas, dataset, metas, widgets, busca, automação e notificações |
+| `20261101173354_phase38a_feedback_canonical` | Extensão de `crm_feedback`, flags, permissões, configurações, fila e auditoria imutável |
+| `20261101173609_phase38b_surveys_requests` | Pesquisas versionadas, disparos, respostas, gatilhos e RPCs públicas |
+| `20261101173612_phase38c_external_reviews` | Fontes e avaliações externas |
+| `20261101173615_phase38d_sentiment_risk` | Análise, temas, sinais de risco e correções; `operational_incidents.created_by` passa a aceitar nulo |
+| `20261101173618_phase38e_responses_recovery` | Modelos, respostas, casos e ações de recuperação |
+| `20261101173624_phase38f_reputation_facts` | Sete views `fact_cx_*` |
+| `20261101173627_phase38g_integrations` | Catálogo de métricas, dataset, metas, widgets, busca, automação e notificações |
 
 ## 5. Pesquisas e convites
 
@@ -138,7 +138,7 @@ O teste da Fase 37 que garante que a 37 não cita a 38 foi mantido, porque a mig
 
 ## 13. Testes e resultados
 
-Os testes rodam sem banco real, com um cliente Supabase em memória. Os 17 cenários obrigatórios estão em `tests/customer-experience-phase38.test.mjs`.
+Os 17 cenários obrigatórios estão em `tests/customer-experience-phase38.test.mjs`, com cliente Supabase em memória. O fluxo real roda no `masterapp-dev` com `node scripts/dev/cx-smoke.mjs`.
 
 | Verificação | Resultado |
 |---|---|
@@ -149,19 +149,24 @@ Os testes rodam sem banco real, com um cliente Supabase em memória. Os 17 cená
 | Build de produção | Passou |
 | Segurança de migrations | Passou nos 7 arquivos |
 | Varredura de segredos | Passou |
-| Rotas sem login, no servidor local | API e worker respondem 401; origem inválida, 404; painel redireciona para o login |
+| Rotas sem login, no servidor local | API e worker respondem 401; origem inválida e loja inexistente, 404; nota fora da escala, 422; painel redireciona para o login |
+| Migrations no `masterapp-dev` | 7 de 7 aplicadas; 17 tabelas e 7 views, com RLS e sem acesso direto para `anon` e `authenticated` |
+| Fluxo real no banco (`cx-smoke`) | 50 de 50 |
+| Gatilhos de pedido, em transação desfeita | Uma pesquisa por pedido, sem duplicar; `on conflict` do portal funciona; com a pesquisa quebrada de propósito, o pedido fecha |
+| Página pública em tela de celular | Respondida até a confirmação, sem rolagem lateral; notas 0 e 10 recebem o mesmo convite |
 
 ## 14. O que não foi verificado
 
-- **O SQL nunca rodou em um banco.** A aplicação no `masterapp-dev` foi bloqueada pela permissão do ambiente de execução, e o Docker não iniciou nesta máquina, então o `db reset` local também não rodou. O `migration-dry-run` do CI só roda no PR. Gatilhos, restrições, views e RPCs foram verificados apenas por leitura do texto.
-- **Nenhuma tela foi vista com dados.** Sem as migrations, a página pública responde 404 e o envio responde 500. O painel exige login, que não foi feito.
-- **O fluxo ponta a ponta não rodou:** pedido concluído, pesquisa, resposta, análise e ocorrência.
-- **Nada foi testado com provedor real:** WhatsApp, modelo de IA e provedores de avaliação.
-- **O worker não foi agendado.** Sem ele, pesquisas, análises e prazos não andam.
+- **O painel `/painel/clientes/experiencia` não foi aberto no navegador**, porque exige login. Os dados que ele usa foram lidos no banco real, mas abas, botões e formulários não foram usados.
+- **`migration-dry-run` do CI:** só roda no PR. As migrations rodaram sobre o dev, não sobre um banco vazio, e o `db reset` local não rodou porque o Docker não iniciou nesta máquina.
+- **Pedido real de ponta a ponta:** bloqueado pelo problema da seção 16. Os gatilhos de pedido só rodaram em transação desfeita, com o gatilho `orders_saas_usage` desligado, e a medição de recompra só foi testada por leitura do código.
+- **Worker pela rota HTTP:** a rota só foi testada sem segredo (401). A fila foi processada chamando as funções diretamente.
+- **Provedores reais:** WhatsApp, modelo de IA e provedores de avaliação não foram usados.
+- **Servidor de desenvolvimento:** na branch, a partida falhou de forma intermitente, com erro interno do `workerd` ou sem responder a tempo. Na `main` foi feita uma única tentativa, que funcionou, então essa amostra não prova nem descarta relação com a fase. O build de produção passa.
 
 ## 15. O que precisa de aprovação
 
-1. Aplicar as 7 migrations no `masterapp-dev` e testar as telas.
+1. Testar o painel com login na pré-visualização.
 2. Abrir o PR e fazer o merge depois da confirmação do dono do projeto.
 3. Aplicar em produção, o que esta fase proíbe sem nova instrução.
 4. Agendar o worker e definir `CUSTOMER_EXPERIENCE_WORKER_SECRET`, ou usar `CRON_SECRET`.
@@ -170,6 +175,8 @@ Os testes rodam sem banco real, com um cliente Supabase em memória. Os 17 cená
 
 ## 16. Limitações
 
+- **Problema anterior a esta fase:** no `masterapp-dev`, nenhum pedido pode ser criado, porque o gatilho `orders_saas_usage` grava em `usage_events` sem `event_type`, coluna obrigatória. A mesma função de gatilho é usada em `whatsapp_messages`, `ai_usage_events` e `voice_cost_usage`. A causa está nas migrations do repositório. Produção não foi consultada, então lá o efeito não foi confirmado. Até a correção, as pesquisas por pedido não têm como disparar neste banco.
+- O dev continua sem `20261101160259_phase93_review_adjustments`, que não é desta fase.
 - WhatsApp fora da janela de 24 horas não recebe pesquisa, porque não há template aprovado ligado a este fluxo.
 - O envio de e-mail está no catálogo de origens, mas não foi implementado; a pesquisa é pulada com `channel_not_supported`.
 - A impressão térmica do comprovante não mudou: o link é gerado no painel.
