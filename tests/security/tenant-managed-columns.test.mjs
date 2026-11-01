@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 const root=fileURLToPath(new URL("../../",import.meta.url));
-const migration=readFileSync(join(root,"supabase/migrations/20261101140000_tenant_managed_columns_hardening.sql"),"utf8");
+const migration=readFileSync(join(root,"supabase/migrations/20261101140002_tenant_managed_columns_hardening.sql"),"utf8");
 const walk=dir=>readdirSync(dir).flatMap(name=>{const path=join(dir,name);return statSync(path).isDirectory()?walk(path):/\.(ts|tsx|mjs|js)$/.test(name)?[path]:[];});
 const sources=["app","lib","components"].flatMap(dir=>walk(join(root,dir)));
 const SERVICE_CLIENTS=new Set(["a","admin"]);
