@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { verifyMetaSignature } from "@/lib/whatsapp/cloud-api";
 import { processWhatsAppAutomation } from "@/lib/ai-attendant/orchestrator";
 import { completeContinuityFromWhatsApp, recordWhatsAppInbound } from "@/lib/omnichannel/engine";
 import type { MetaWebhookPayload, WhatsAppConnectionSecret } from "@/lib/whatsapp/types";
 
-export async function GET(request: Request) {
+export const GET = withAdminCredentials(async (request: Request) => {
   const url = new URL(request.url);
   const connectionId = url.searchParams.get("connection");
   const mode = url.searchParams.get("hub.mode");
@@ -18,9 +18,9 @@ export async function GET(request: Request) {
   if (error || !secure?.verify_token || token !== secure.verify_token) return new NextResponse("Não autorizado.", { status: 403 });
   await admin.from("whatsapp_connections").update({ webhook_status: "verified", last_error: null }).eq("id", connectionId);
   return new NextResponse(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withAdminCredentials(async (request: Request) => {
   const rawBody = await request.text();
   let payload: MetaWebhookPayload;
   try { payload = JSON.parse(rawBody) as MetaWebhookPayload; }
@@ -83,5 +83,5 @@ export async function POST(request: Request) {
     await admin.from("whatsapp_connections").update({ webhook_status: "error", last_error: "Falha ao processar o último evento recebido." }).eq("id", connection.id);
     return NextResponse.json({ error: "Falha temporária no processamento." }, { status: 500 });
   }
-}
+});
 

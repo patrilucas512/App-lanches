@@ -1,9 +1,9 @@
 import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { validateWebhookUrl } from "@/lib/integrations/security";
 
-export async function POST(request: Request) {
+export const POST = withAdminCredentials(async (request: Request) => {
   const admin = createAdminClient(); const token = request.headers.get("x-masterapp-worker") || ""; const { data: allowed } = await admin.rpc("verify_integration_worker_token", { requested_token: token });
   if (!allowed) return NextResponse.json({ error: "Worker não autorizado." }, { status: 401 });
   const body = await request.json().catch(() => ({})); const { data: deliveries, error } = await admin.rpc("claim_webhook_deliveries", { requested_limit: Math.min(Number(body.limit || 20), 50) }); if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -17,4 +17,4 @@ export async function POST(request: Request) {
     const success = !failure && status >= 200 && status < 300; await admin.rpc("finish_webhook_delivery", { requested_delivery_id: delivery.delivery_id, requested_success: success, requested_http_status: status || null, requested_latency_ms: Date.now() - started, requested_response_excerpt: excerpt, requested_error: failure }); results.push({ id: delivery.delivery_id, success, status });
   }
   return NextResponse.json({ processed: results.length, results });
-}
+});

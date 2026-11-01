@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, withAdminCredentials } from "@/lib/supabase/admin";
 import { sendWhatsAppText } from "@/lib/whatsapp/cloud-api";
 import { CUSTOMER_PORTAL_COOKIE, createOtp, createPortalToken, getPortalContext, readPortalToken, requestFingerprint, secureHash } from "@/lib/customer-portal";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export const GET = withAdminCredentials(async (_request: Request, { params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
   const context = await getPortalContext(slug);
   if (!context) return NextResponse.json({ error: "Sessão expirada." }, { status: 401 });
@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     admin.rpc("get_reservation_portal_context",{requested_session_hash:secureHash(`session:${raw}`),requested_slug:slug}),
   ]);
   return NextResponse.json({ ...context, subscriptions: subscriptions?.subscriptions || [], available_subscription_plans: subscriptions?.available_plans || [], reservations:reservationContext?.reservations||[], waitlist:reservationContext?.waitlist||[], reservation_settings:reservationContext?.settings||null }, { headers: { "Cache-Control": "no-store" } });
-}
+});
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
