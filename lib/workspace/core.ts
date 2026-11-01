@@ -44,3 +44,4 @@ export const ENTERPRISE_PORTFOLIO_WORKSPACE_WIDGETS=["portfolio_decisions_pendin
 export {VENDOR_WIDGETS as VENDOR_MANAGEMENT_WORKSPACE_WIDGETS} from "@/lib/vendor-management/integrations";
 export {SOC_WIDGETS as SECURITY_OPERATIONS_WORKSPACE_WIDGETS} from "@/lib/security-operations/integrations";
 export {IDGOV_WIDGETS as IDENTITY_GOVERNANCE_WORKSPACE_WIDGETS} from "@/lib/identity-governance/integrations";
+export {CX_WIDGETS as CUSTOMER_EXPERIENCE_WORKSPACE_WIDGETS} from "@/lib/customer-experience/integrations";

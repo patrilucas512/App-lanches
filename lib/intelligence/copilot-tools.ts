@@ -275,6 +275,13 @@ export function answerManagerQuestion(question: string, snapshot: ManagerSnapsho
     result.recommendations=["Abra o Perfil 360 para conferir as fontes, o horário de atualização e as permissões antes de agir.","Priorize recuperação de atendimento antes de qualquer oferta comercial."];
     result.action={label:"Abrir Perfil 360",href:"/painel/clientes-360"};return result;
   }
+  if (/\bnps\b|\bcsat\b|reputa[cç]|avalia[cç][aã]o|avalia[cç][oõ]es|detrator|reclama[cç]/.test(text)) {
+    const result=base("customer_experience","Experiência e reputação","As avaliações vêm das pesquisas, do portal, da conversa e de integrações oficiais. Os números abaixo da amostra mínima não são mostrados.",["getReputationOverview","getStoreNps","getReviewInbox","getComplaintTopics","getItemFeedback","getRecoveryCases","draftReviewResponse","explainScoreChange"],["crm_feedback","fact_cx_feedback","cx_feedback_topics","cx_risk_signals","service_recovery_cases"]);
+    result.facts=["NPS é promotores menos detratores sobre as respostas do período, sempre com o número de respostas.","Sinal de segurança alimentar, acidente ou ameaça abre ocorrência e exige revisão humana.","O Copiloto não publica resposta, não concede reembolso e não altera avaliações."];
+    result.hypotheses=["Causa provável é correlação com volume e período, não prova de causa."];
+    result.recommendations=["Revise primeiro os sinais de risco e depois as avaliações públicas com prazo vencido."];
+    result.action={label:"Abrir Experiência & Reputação",href:"/painel/clientes/experiencia"};return result;
+  }
   if (/jornada|journey|reativa|win.?back|pós.?compra|pos.?compra|fideliza|supress|experimento de relacionamento/.test(text)) {
     const result=base("customer_journeys","Jornadas de relacionamento","As jornadas coordenam lifecycle, consentimento, mensagens, ofertas e tarefas sobre os motores oficiais do MasterApp, com versões, simulação e auditoria.",["getJourneys","getJourneyPerformance","getJourneyEnrollments","getJourneySuppressions","getJourneyConversions","getJourneyExperimentResults","getCustomerActiveJourneys","getJourneyHealth"],["customer_journeys","customer_journey_enrollments","journey_suppressions","journey_conversions","journey_experiments","automation_executions"]);
     result.facts=["Supressão por opt-out, ausência de consentimento, reclamação, frequência ou horário silencioso é uma proteção, não uma falha.","Receita atribuída mostra associação observada; causalidade só pode ser avaliada com grupo de controle válido.","A IA pode propor rascunhos, mas não publica, ativa, matricula clientes nem envia mensagens."];

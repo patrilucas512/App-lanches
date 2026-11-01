@@ -6,7 +6,6 @@ Status no repositório, conferido em 2026-10-31 na `main` (`a044578`), por nomes
 
 | Fase | Módulo | Status | Motivo |
 |---|---|---|---|
-| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Pendente – será implementada | Não foi iniciada. A Fase 37 registra isso e o desenvolvimento seguiu para a 39. |
 | 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Pendente – será implementada | Não foi iniciada. As Fases 56 e 59 registram a ausência. |
 
 ## Todas as fases
@@ -52,7 +51,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 35 | Forecasting | Implementada |
 | 36 | Rentabilidade do cardápio | Implementada |
 | 37 | Inteligência de marketing | Implementada |
-| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | **Pendente – será implementada** |
+| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Implementada (pendente de produção); ver `docs/phase38-customer-experience-report.md` |
 | 39 | Inteligência de compras | Implementada |
 | 40 | Logística avançada | Implementada |
 | 41 | Orquestração da cozinha | Implementada |
@@ -111,20 +110,6 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 94 | Centro de operações de segurança | Implementada |
 
 ## Dependências das fases pendentes
-
-### Fase 38
-
-Nenhuma fase depende dela no código. Ao implementá-la, reaproveite ou integre o que já existe, sem duplicar:
-
-| Onde | O que existe | Relação |
-|---|---|---|
-| Fase 37 | Doc registra que a 38 não foi iniciada; `tests/marketing-intelligence-phase37.test.mjs` verifica que a migration, a API e a UI da 37 não citam a 38 | Rever esse teste se a 37 passar a integrar a 38 |
-| Fase 54 | `lib/reporting/core.ts` e migration definem as métricas `csat` e `nps`, descritas como "customer experience mart" | Consumidora provável dos dados da 38 |
-| Fase 55 | `lib/performance-management/core.ts` e migration usam `csat` e `nps` em metas | Consumidora provável dos dados da 38 |
-| Fase 30 | `customer_feedback` guarda NPS, CSAT e feedback | Voltado ao cliente do SaaS, não ao consumidor da loja |
-| Fase 24 | `support_csat` | CSAT do suporte do SaaS |
-| Fase 5 | `crm_feedback`, lido também pela Fase 60 (Cliente 360) e pelo atendente de IA | Feedback do consumidor; é o ponto de sobreposição mais direto |
-| Fase 21 | `app_reviews` | Avaliações de apps do marketplace; escopo diferente |
 
 ### Fase 57
 
