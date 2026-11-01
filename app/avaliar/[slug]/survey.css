@@ -1,0 +1,23 @@
+.cx-survey{--accent:#c8102e;min-height:100dvh;display:grid;place-items:center;padding:16px;background:#f6f6f4;color:#17181c;font-family:inherit}
+.cx-survey-card{width:100%;max-width:440px;display:grid;gap:18px;background:#fff;border:1px solid #e4e4e0;border-radius:16px;padding:24px}
+.cx-survey-brand{display:flex;align-items:center;gap:12px}
+.cx-survey-brand img{width:44px;height:44px;border-radius:10px;object-fit:cover}
+.cx-survey-brand strong{font-size:1rem}
+.cx-survey h1{margin:0;font-size:1.25rem;line-height:1.3;text-wrap:balance}
+.cx-survey-scale{display:grid;gap:8px}
+.cx-survey-scale[data-size="11"]{grid-template-columns:repeat(6,1fr)}
+.cx-survey-scale[data-size="5"]{grid-template-columns:repeat(5,1fr)}
+.cx-survey-scale[data-size="7"]{grid-template-columns:repeat(7,1fr)}
+.cx-survey-scale button{min-height:48px;border:1px solid #cfcfca;border-radius:10px;background:#fff;color:inherit;font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;touch-action:manipulation;transition:background-color .15s,border-color .15s,color .15s,transform .1s}
+.cx-survey-scale button:active{transform:scale(.96)}
+.cx-survey-scale button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.cx-survey-scale button:focus-visible,.cx-survey-send:focus-visible,.cx-survey textarea:focus-visible,.cx-survey-invite:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cx-survey-ends{display:flex;justify-content:space-between;color:#62646b;font-size:.82rem}
+.cx-survey label{display:grid;gap:6px;font-weight:600;font-size:.92rem}
+.cx-survey textarea{width:100%;box-sizing:border-box;border:1px solid #cfcfca;border-radius:10px;padding:10px 12px;font:inherit;font-weight:400;resize:vertical}
+.cx-survey-send{min-height:48px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+.cx-survey-send:disabled{opacity:.5;cursor:not-allowed}
+.cx-survey-note{margin:0;color:#62646b;font-size:.82rem}
+.cx-survey-error{margin:0;color:#a3112a;font-size:.92rem}
+.cx-survey-invite{display:flex;align-items:center;justify-content:center;min-height:48px;border:1px solid #cfcfca;border-radius:10px;color:inherit;font-weight:700;text-decoration:none}
+@media (prefers-reduced-motion:reduce){.cx-survey-scale button{transition:none}.cx-survey-scale button:active{transform:none}}
