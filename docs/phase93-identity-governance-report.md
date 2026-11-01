@@ -145,7 +145,7 @@ Revisão completa do módulo, com correções e testes de regressão (R01 a R15)
 - Revogação falha é reprocessada, e jobs parados voltam para a fila.
 - Eventos de desligamento não atuam em organizações sem o módulo.
 
-Depende da migration `phase93_review_adjustments`, que precisa entrar no banco antes da publicação do app.
+A migration `phase93_review_adjustments` já está em produção e foi validada lá em bloco com rollback.
 
 Ficaram como estão:
 - Revogação de item crítico em revisão individual continua sem a confirmação extra, porque já tem revisor designado, motivo e auditoria.
