@@ -68,7 +68,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 54 | Relatórios avançados | Implementada |
 | 55 | Gestão de desempenho | Implementada |
 | 56 | Central de aprendizado | Implementada |
-| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Implementada e aplicada só no `masterapp-dev`; ver `docs/phase57-internal-communications-report.md` |
+| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Implementada e aplicada em produção; depende do deploy do app; ver `docs/phase57-internal-communications-report.md` |
 | 58 | Planejamento de equipe | Implementada |
 | 59 | Gestão de incidentes | Implementada |
 | 60 | Cliente 360 | Implementada |
@@ -141,4 +141,4 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 - **Fase 38:** migrations aplicadas em produção em 2026-11-01, com versões `20261101184633` a `20261101184904`. Flags ligadas só na loja de teste, sem IA nem avaliações externas. O app publicado ainda não tem as rotas da fase.
 - **Worker da Fase 38:** jobs `masterapp-cx-worker` (a cada 5 minutos) e `masterapp-cx-worker-enqueue` (de hora em hora), criados só em produção, fora das migrations, porque têm o endereço de produção fixo. O segredo está no Vault como `cx_worker_secret`. Falta publicar o app e definir o mesmo valor em `CUSTOMER_EXPERIENCE_WORKER_SECRET`.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
-- **Fase 57:** migrations aplicadas só no `masterapp-dev` em 2026-11-01, com versões `20261101194114` a `20261101194949`, por ordem do documento da fase. Não estão em produção. O worker `/api/internal-communications/worker` ainda não está agendado em nenhum ambiente.
+- **Fase 57:** migrations aplicadas em produção em 2026-11-02, com versões `20261102223531` a `20261102223710`, e no `masterapp-dev` em 2026-11-01. Flags ligadas só na loja de teste, sem rascunhos de IA e sem publicação de emergência. Worker com os jobs `masterapp-comms-worker` (a cada 5 minutos) e `masterapp-comms-worker-enqueue` (de hora em hora), criados só em produção, fora das migrations, a partir do comando dos jobs da Fase 38. O app publicado ainda não tem as rotas das Fases 38 e 57.

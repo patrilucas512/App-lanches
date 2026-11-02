@@ -1,6 +1,6 @@
 # Fase 57 — Comunicação Interna, Mural Corporativo e Central de Comunicados
 
-Migrations aplicadas **só no `masterapp-dev`**. Nada foi aplicado ou escrito em produção. Nada foi mesclado. A Fase 38 ainda não está na `main`, e esta branch partiu da `main`.
+Mesclada na `main` pelo PR #13 e aplicada em produção em 2026-11-02, com autorização do dono do projeto, que substituiu a proibição do documento da fase. A Fase 38 entrou na `main` depois, pelo PR #14.
 
 ## 1. Diagnóstico
 
@@ -144,18 +144,26 @@ Defeitos encontrados nessas verificações e já corrigidos:
 ## 14. O que não foi verificado
 
 - **`vinext dev`:** caiu duas vezes com erro interno do `workerd` ao carregar a entrada do Worker, antes de executar qualquer rota. O relatório da Fase 38 registra a mesma falha intermitente. A causa não foi investigada e não dá para afirmar que é anterior a esta fase. O teste de tela foi feito no build de produção.
-- **Worker com segredo real:** a rota só foi testada sem segredo (401). As funções da fila rodaram direto no banco, mas não o laço completo do worker nem `?enqueue=1`.
+- **Worker com segredo real:** a rota só foi testada sem segredo (401). As funções da fila rodaram direto no banco, mas não o laço completo do worker nem `?enqueue=1`. Em produção, o job foi criado, mas só funciona depois da publicação do app.
+- **Telas em produção:** não testadas, porque o app publicado ainda não tem as rotas.
 - **Com a janela do app minimizada:** a maior parte das telas foi conferida por leitura de texto, sem revisão visual. O botão de anexo não foi clicado; o envio foi testado direto na URL assinada.
 - **Duas pessoas reais na tela:** aprovação, recusa e permissões foram testadas nos serviços e no banco, não com duas sessões no navegador.
 - **Push e WhatsApp reais:** não foi testado envio para aparelho. A entrega foi conferida até o inbox e o registro da Fase 52.
 
-## 15. O que precisa de aprovação
+## 15. Produção
 
-1. Revisar e mesclar o [PR #13](https://github.com/patrilucas512/App-lanches/pull/13).
-2. Decidir quando aplicar em produção. As migrations não foram aplicadas lá, por ordem do documento da fase.
-3. Agendar o worker, fora das migrations: `POST /api/internal-communications/worker`, com um job frequente e outro com `?enqueue=1`. Sem ele, não há lembretes, agendados, expiração nem novos membros, e crises dependem da tentativa imediata feita na publicação.
-4. Configurar `INTERNAL_COMMUNICATIONS_WORKER_SECRET` ou `CRON_SECRET`.
-5. Ligar as flags, todas desligadas por padrão, e decidir se a emergência será permitida.
+Feito em 2026-11-02:
+
+- As 7 migrations, com versões `20261102223531` a `20261102223710`. Antes, foi conferido que as funções `rbac_*` de produção eram idênticas às que a 57G substitui.
+- Depois: 14 tabelas novas, todas com RLS e sem acesso de cliente; bucket privado; as funções `rbac_*` continuam sem execução para `anon` e `authenticated`. O advisor de segurança não aponta nada novo desta fase.
+- Flags ligadas só na loja de teste (`app-lanches`): módulo, mural, enquetes e crise. Rascunhos de IA desligados. `comms_settings` criado com o padrão: emergência desligada e autoaprovação desligada.
+- Jobs `masterapp-comms-worker` (a cada 5 minutos) e `masterapp-comms-worker-enqueue` (minuto 12 de cada hora), fora das migrations. O comando foi copiado dos jobs da Fase 38 trocando só o caminho, sem ler o segredo.
+
+Ainda depende do dono do projeto:
+
+1. **Publicar o app.** O endereço publicado devolve 404 nas rotas das Fases 38 e 57. Até a publicação, as telas não existem e os jobs dos workers recebem 404.
+2. **Segredo do worker.** O job usa o mesmo token do worker da Fase 38. Se o app publicado tiver `CUSTOMER_EXPERIENCE_WORKER_SECRET` próprio, é preciso configurar `INTERNAL_COMMUNICATIONS_WORKER_SECRET` com o mesmo valor; com `CRON_SECRET`, nada muda.
+3. **Autoaprovação.** Com uma pessoa só na conta, comunicados de crise, recall e política não têm quem aprove. Para testar sozinho, ligue “Permitir que o autor aprove o próprio comunicado” em Configurações.
 
 ## 16. Limitações
 
