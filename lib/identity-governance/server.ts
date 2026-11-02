@@ -3,6 +3,7 @@
 import {API_SCOPES} from "../integrations/types.ts";
 import {SOC_PERMISSIONS} from "../security-operations/core.ts";
 import {VENDOR_PERMISSIONS} from "../vendor-management/core.ts";
+import {COMMS_PERMISSIONS} from "../internal-communications/core.ts";
 import {AccessBaselineService,AccessCatalogService,EffectiveAccessService,IDGOV_PERMISSIONS,IdentityClassificationService,scopeKeyOf} from "./core.ts";
 
 const must=<T>(result:{data:T;error:any},step:string):T=>{if(result.error)throw new Error(`${step}: ${result.error.message}`);return result.data};
@@ -18,7 +19,7 @@ export async function governanceAudit(admin:any,input:{organizationId:string;act
 export async function readEffectiveAccess(admin:any,organizationId:string,userId?:string|null){const raw=must(await admin.rpc("rbac_read_effective_access",{requested_organization_id:organizationId,requested_user_id:userId||null}),"ler acesso efetivo");return new EffectiveAccessService().compute(raw)}
 
 export async function syncCatalog(admin:any,organizationId:string){
-  const catalog=new AccessCatalogService().compose({modulePermissions:{soc:SOC_PERMISSIONS,vendor:VENDOR_PERMISSIONS,idgov:IDGOV_PERMISSIONS},apiScopes:API_SCOPES});
+  const catalog=new AccessCatalogService().compose({modulePermissions:{soc:SOC_PERMISSIONS,vendor:VENDOR_PERMISSIONS,idgov:IDGOV_PERMISSIONS,comms:COMMS_PERMISSIONS},apiScopes:API_SCOPES});
   const existing=must(await admin.from("access_entitlements").select("key").eq("organization_id",organizationId),"ler catálogo") as any[],known=new Set(existing.map(x=>x.key)),fresh=catalog.filter(x=>!known.has(x.key)).map(x=>({...x,organization_id:organizationId}));
   // Existing rows keep owners, status and duration edited by the organization: a re-sync only adds what is new.
   if(fresh.length)must(await admin.from("access_entitlements").insert(fresh),"gravar catálogo");

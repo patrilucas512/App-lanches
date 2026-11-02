@@ -46,7 +46,7 @@ Recuperação permite etapas, owner, validação e rollout gradual. O estado só
 Cada incidente recebe um espaço operacional com resumo, links, responders, tarefas, contenções e recuperação. Não foi criado chat paralelo.
 
 ## 16. Communications
-O botão de comunicação cria rascunho auditável no Task Engine. Publicação externa nunca é automática. A vinculação à comunicação canônica da Fase 57 fica disponível quando esse módulo existir no checkout.
+Com a Comunicação Interna ligada, o botão de comunicação cria um rascunho canônico da Fase 57, vinculado ao incidente; sem ela, cria rascunho auditável no Task Engine. Publicação externa nunca é automática.
 
 ## 17. Postmortems
 Postmortems são blameless, distinguem unknown/suspected/confirmed e só aceitam causa confirmada após revisão humana. Follow-ups continuam como tarefas canônicas.
@@ -88,7 +88,7 @@ Os nomes reservados são `incident_creation_rate`, `incident_detection_lag`, `in
 Há 35 testes, incluindo os 30 cenários obrigatórios, fontes canônicas, segurança do Copilot, acessibilidade e validação de fechamento crítico.
 
 ## 30. Limitations
-Não há status page pública, sistema completo de plantão ou ITIL completo. A Fase 57 não está neste checkout. Valores de impacto são estimativas e exigem conciliação externa para virarem valores finais.
+Não há status page pública, sistema completo de plantão ou ITIL completo. Valores de impacto são estimativas e exigem conciliação externa para virarem valores finais.
 
 ## 31. Recomendações para a Fase 60
 Após autorizar a migration e publicação, validar dados reais em staging, calibrar thresholds por origem, cadastrar runbooks e metas por severidade, conectar o módulo canônico de comunicação quando disponível e medir falsos positivos antes de ampliar auto-create. Nenhuma implementação da Fase 60 foi iniciada.

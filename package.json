@@ -40,6 +40,7 @@
     "test:phase45": "node --test tests/hardware-hub-phase45.test.mjs",
     "test:phase46": "node --test tests/network-governance-phase46.test.mjs",
     "test:phase47": "node --test tests/food-quality-phase47.test.mjs",
+    "test:phase57": "node --test tests/internal-communications-phase57.test.mjs",
     "test:phase58": "node --test tests/workforce-planning-phase58.test.mjs",
     "test:phase59": "node --test tests/incident-management-phase59.test.mjs",
     "test:phase60": "node --test tests/customer-360-phase60.test.mjs",
