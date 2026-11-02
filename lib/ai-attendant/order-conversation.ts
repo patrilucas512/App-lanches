@@ -223,11 +223,13 @@ export async function processConversationalOrder(input:ConversationOrderInput) :
     const {data:balance}=await input.admin.rpc("get_loyalty_balance",{requested_establishment_id:input.establishmentId,requested_customer_id:crmContact.customer_id});
     return {handled:true,answer:`Seu saldo atual é de ${Number(balance||0)} ponto(s). Os benefícios são validados pelo sistema no momento do uso.`,intent:"loyalty_balance",toolName:"getLoyaltyBalance"};
   }
-  if(crmContact?.customer_id&&/^[1-5]$/.test(normalized)) {
-    const {data:pending}=await input.admin.from("crm_feedback").select("id,order_id").eq("establishment_id",input.establishmentId).eq("customer_id",crmContact.customer_id).is("answered_at",null).order("requested_at",{ascending:false}).limit(1).maybeSingle();
-    if(pending) {
-      const rating=Number(normalized); const needsHuman=rating<=3;
-      await input.admin.from("crm_feedback").update({rating,needs_human_attention:needsHuman,answered_at:new Date().toISOString()}).eq("id",pending.id).eq("establishment_id",input.establishmentId);
+  if(crmContact?.customer_id&&/^(10|[0-9])$/.test(normalized)) {
+    const {data:pending}=await input.admin.from("crm_feedback").select("id,order_id,scale").eq("establishment_id",input.establishmentId).eq("customer_id",crmContact.customer_id).is("answered_at",null).order("requested_at",{ascending:false}).limit(1).maybeSingle();
+    const answer=Number(normalized); const scale=pending?.scale||"1-5";
+    // The pending row says which scale the customer was asked about; a digit outside it is not an answer and continues as a normal message.
+    if(pending&&(scale==="0-10"||(answer>=1&&answer<=(scale==="1-7"?7:5)))) {
+      const needsHuman=answer<=(scale==="0-10"?6:3);
+      await input.admin.from("crm_feedback").update({...(scale==="1-5"?{rating:answer}:{score:answer}),needs_human_attention:needsHuman,answered_at:new Date().toISOString()}).eq("id",pending.id).eq("establishment_id",input.establishmentId);
       if(needsHuman&&channel==="whatsapp") await input.admin.from("whatsapp_conversations").update({human_controlled:true,status:"waiting"}).eq("id",input.conversationId).eq("establishment_id",input.establishmentId);
       return {handled:true,answer:needsHuman?"Obrigado por contar. Sinto muito que a experiência não tenha sido boa. A equipe foi avisada e vai priorizar a resolução.":"Obrigado pela avaliação ❤️ Ela ficou registrada para melhorar nosso atendimento.",intent:"satisfaction_rating",toolName:"saveFeedback",shouldHandoff:needsHuman};
     }

@@ -1,7 +1,7 @@
 # Fase 37 — Relatório de entrega
 
 ## 1. Escopo
-Inteligência de marketing, promoções orientadas por margem, segmentação comportamental, experimentos e atribuição. A Fase 38 não foi iniciada.
+Inteligência de marketing, promoções orientadas por margem, segmentação comportamental, experimentos e atribuição. A Fase 38 foi implementada depois, sem alterar a migration, a API ou a UI desta fase.
 
 ## 2. Reuso da plataforma
 Clientes, segmentos, campanhas, destinatários, eventos, consentimentos, cupons, fidelidade, pedidos, previsão e rentabilidade continuam sendo as fontes canônicas. Não existe CRM paralelo.

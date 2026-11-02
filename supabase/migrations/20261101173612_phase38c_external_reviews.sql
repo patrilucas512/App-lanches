@@ -1,0 +1,16 @@
+-- Phase 38C: external review sources. Import only through an official adapter; the text lands in crm_feedback, so the inbox has a single source.
+-- quality: allow-nonconcurrent-index reason=new-empty-customer-experience-tables
+
+create table public.external_review_sources(id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations(id) on delete cascade,store_id uuid not null references public.establishments(id) on delete cascade,provider text not null,integration_ref uuid references public.integrations(id) on delete set null,marketplace_connection_id uuid references public.marketplace_connections(id) on delete set null,status text not null default 'not_supported' check(status in('not_supported','pending_credentials','active','paused','error')),support_reason text,retain_text boolean not null default true,can_reply boolean not null default false,external_location_ref text,sync_cursor text,last_sync_at timestamptz,last_error text,consecutive_failures integer not null default 0 check(consecutive_failures>=0),circuit_open_until timestamptz,created_by uuid references auth.users(id) on delete set null,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(organization_id,store_id,provider));
+comment on column public.external_review_sources.integration_ref is 'Credentials stay in integrations.vault_config_secret_id; this table never holds a secret.';
+create index external_review_sources_store_idx on public.external_review_sources(store_id);
+create index external_review_sources_integration_idx on public.external_review_sources(integration_ref) where integration_ref is not null;
+create index external_review_sources_marketplace_idx on public.external_review_sources(marketplace_connection_id) where marketplace_connection_id is not null;
+create index external_review_sources_created_by_idx on public.external_review_sources(created_by) where created_by is not null;
+
+create table public.external_reviews(id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations(id) on delete cascade,store_id uuid not null references public.establishments(id) on delete cascade,source_id uuid not null references public.external_review_sources(id) on delete cascade,feedback_id uuid not null references public.crm_feedback(id) on delete cascade,external_id text not null,provider_url text,author_label text,provider_rating numeric(3,1),reviewed_at timestamptz not null,replied_at timestamptz,imported_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(source_id,external_id));
+create index external_reviews_store_idx on public.external_reviews(organization_id,store_id,reviewed_at desc);
+create index external_reviews_store_fk_idx on public.external_reviews(store_id);
+create index external_reviews_feedback_idx on public.external_reviews(feedback_id);
+
+do $$declare t text;begin foreach t in array array['external_review_sources','external_reviews'] loop execute format('alter table public.%I enable row level security',t);execute format('revoke all on public.%I from public,anon,authenticated',t);execute format('grant all on public.%I to service_role',t);end loop;end$$;

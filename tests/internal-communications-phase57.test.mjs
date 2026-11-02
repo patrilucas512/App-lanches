@@ -369,7 +369,7 @@ test("T20 schema is closed to clients and every foreign key is indexed",async()=
 test("T21 integrations are wired",async()=>{
  const[report,reports,widgets,core,exec,shell,search,identity]=await Promise.all([file("../lib/reporting/core.ts"),file("../app/api/reports/route.ts"),file("../lib/workspace/widget-data.ts"),file("../lib/data-platform/core.ts"),file("../app/api/executive-command/route.ts"),file("../components/dashboard-shell.tsx"),migrations(),file("../lib/identity-governance/server.ts")]);
  assert.match(report,/COMMS_DATASET_DEFINITIONS/);assert.match(reports,/commsReportRows/);assert.match(widgets,/comms_my_mandatory/);assert.match(await file("../app/api/workspace/route.ts"),/commsOpen?["comms_my_mandatory"]/);assert.match(core,/COMMS_FACTS/);
- assert.match(exec,/commsCrisis[\s\S]*commsPending/);assert.match(exec,/"insights","flags","commsCrisis","commsPending"\]/);
+ assert.match(exec,/commsCrisis[\s\S]*commsPending/);assert.match(exec,/"insights","flags",("[a-zA-Z]+",)*"commsCrisis","commsPending"\]/,"comms keys stay last, matching the order of their queries");
  assert.match(shell,/internal-communications/);assert.match(shell,/my-announcements/);assert.match(search,/search_navigation_registry/);assert.match(search,/comms-new-announcement/);assert.match(identity,/comms:COMMS_PERMISSIONS/);
  const entitlements=new AccessCatalogService().compose({modulePermissions:{soc:[],vendor:[],idgov:[],comms:COMMS_PERMISSIONS},apiScopes:[]});
  const of=key=>entitlements.find(x=>x.key===`perm:${key}`);assert.equal(of("comms:publish_crisis").privileged,true);assert.equal(of("comms:publish_network").privileged,true);assert.equal(of("comms:view").privileged,false);assert.equal(of("comms:publish_network").technical_ref.module,"comms");

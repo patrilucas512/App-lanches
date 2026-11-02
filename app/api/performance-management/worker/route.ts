@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { calculateProgress, type GoalInput } from "@/lib/performance-management/core";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { semanticExperienceMetric } from "@/lib/customer-experience/dashboard";
 
 const response = (value: unknown, status = 200) => NextResponse.json(value, { status, headers: { "cache-control": "no-store" } });
 
@@ -24,6 +25,10 @@ function goalInput(goal: any): GoalInput {
 }
 
 async function semanticActual(admin: any, goal: any) {
+  if (goal.metric_id === "csat" || goal.metric_id === "nps") {
+    const result = await semanticExperienceMetric(admin, { metric: goal.metric_id, organizationId: goal.organization_id, storeIds: goal.scope_type === "store" ? [goal.scope_id] : null, from: goal.period_start, to: goal.period_end });
+    return { actual: result.actual, dataAsOf: result.dataAsOf, source: result.source };
+  }
   if (!["revenue", "orders", "average_ticket"].includes(goal.metric_id)) {
     return { actual: null, dataAsOf: null, source: "semantic_metric_unavailable" };
   }

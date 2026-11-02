@@ -22,7 +22,7 @@ export const MARKETPLACE_COPILOT_TOOLS = [
 export const MARKETPLACE_CAPABILITIES = [
   "webhook_orders", "polling_orders", "catalog_read", "catalog_write", "price_update", "availability_update",
   "modifier_support", "combo_support", "promotion_support", "order_accept", "order_reject", "order_cancel",
-  "ready_status", "dispatch_status", "tracking", "financial_statement", "payout_data",
+  "ready_status", "dispatch_status", "tracking", "financial_statement", "payout_data", "reviews_read", "reviews_reply",
 ] as const;
 
 export type MarketplaceCapability = typeof MARKETPLACE_CAPABILITIES[number];

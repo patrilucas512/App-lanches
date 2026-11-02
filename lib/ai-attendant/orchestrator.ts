@@ -1,3 +1,4 @@
+import {recordConversationComplaint} from "@/lib/customer-experience/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendStoredWhatsAppText } from "@/lib/whatsapp/message-service";
 import { routeByRules } from "./intent-router";
@@ -100,6 +101,7 @@ export async function processWhatsAppAutomation(input:{connectionId:string;messa
     await sendStoredWhatsAppText({admin,establishmentId:connection.establishment_id,connectionId:connection.id,conversationId:message.conversation_id,contactId:message.contact_id,waId:String(contact?.wa_id||""),text:answer,automationGenerated:true});
     await logUsage(admin,connection,{conversation_id:message.conversation_id,event_type:"ai_handoff",config_version_id:aiConfig?.id||null,prompt_base_version:aiConfig?.prompt_base_version||"masterapp-ai-v1",metadata:{reason:"quota_reached"}});return;
   }
+  if(/reclama|p[ée]ssim|horr[ií]vel/i.test(text))await recordConversationComplaint(admin,{establishmentId:connection.establishment_id,contactId:message.contact_id,conversationId:message.conversation_id,text});
   if(aiConfig&&configuredHandoff(text,aiConfig.handoff_rules||{})&&connection.human_handoff_enabled){
     await admin.rpc("set_whatsapp_waiting_human",{requested_conversation_id:message.conversation_id,requested_intent:"configured_handoff"});
     const answer=shapeAnswer("Entendi. Vou transferir sua conversa para uma pessoa da equipe, que continuará o atendimento por aqui.",aiConfig);

@@ -4,9 +4,7 @@ Status no repositório, conferido em 2026-10-31 na `main` (`a044578`), por nomes
 
 ## Pendências
 
-| Fase | Módulo | Status | Motivo |
-|---|---|---|---|
-| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Pendente – será implementada | Não foi iniciada. A Fase 37 registra isso e o desenvolvimento seguiu para a 39. |
+Nenhuma. As Fases 38 e 57 foram as últimas a entrar na `main`.
 
 ## Todas as fases
 
@@ -51,7 +49,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 35 | Forecasting | Implementada |
 | 36 | Rentabilidade do cardápio | Implementada |
 | 37 | Inteligência de marketing | Implementada |
-| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | **Pendente – será implementada** |
+| 38 | Reputação, Avaliações, NPS/CSAT e Experiência do Cliente | Implementada e aplicada em produção; depende do deploy do app; ver `docs/phase38-customer-experience-report.md` |
 | 39 | Inteligência de compras | Implementada |
 | 40 | Logística avançada | Implementada |
 | 41 | Orquestração da cozinha | Implementada |
@@ -109,22 +107,6 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 93 | Governança de identidades e acessos | Implementada e aplicada em produção; funções desligadas até o deploy do app e o agendamento do worker |
 | 94 | Centro de operações de segurança | Implementada |
 
-## Dependências das fases pendentes
-
-### Fase 38
-
-Nenhuma fase depende dela no código. Ao implementá-la, reaproveite ou integre o que já existe, sem duplicar:
-
-| Onde | O que existe | Relação |
-|---|---|---|
-| Fase 37 | Doc registra que a 38 não foi iniciada; `tests/marketing-intelligence-phase37.test.mjs` verifica que a migration, a API e a UI da 37 não citam a 38 | Rever esse teste se a 37 passar a integrar a 38 |
-| Fase 54 | `lib/reporting/core.ts` e migration definem as métricas `csat` e `nps`, descritas como "customer experience mart" | Consumidora provável dos dados da 38 |
-| Fase 55 | `lib/performance-management/core.ts` e migration usam `csat` e `nps` em metas | Consumidora provável dos dados da 38 |
-| Fase 30 | `customer_feedback` guarda NPS, CSAT e feedback | Voltado ao cliente do SaaS, não ao consumidor da loja |
-| Fase 24 | `support_csat` | CSAT do suporte do SaaS |
-| Fase 5 | `crm_feedback`, lido também pela Fase 60 (Cliente 360) e pelo atendente de IA | Feedback do consumidor; é o ponto de sobreposição mais direto |
-| Fase 21 | `app_reviews` | Avaliações de apps do marketplace; escopo diferente |
-
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
 Confirmado em 2026-10-31, só com leitura do histórico de migrations de produção, sem nenhuma alteração. As quatro já estão aplicadas:
@@ -155,5 +137,8 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 - **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
 - **`tenant_signup_organization`:** aplicada em produção; fluxo de cliente novo validado lá em bloco com rollback.
 - **`phase93_review_adjustments`:** aplicada em produção.
+- **`usage_events_metering_columns`:** aplicada em produção em 2026-11-01, com a versão `20261101181246`. 
+- **Fase 38:** migrations aplicadas em produção em 2026-11-01, com versões `20261101184633` a `20261101184904`. Flags ligadas só na loja de teste, sem IA nem avaliações externas. O app publicado ainda não tem as rotas da fase.
+- **Worker da Fase 38:** jobs `masterapp-cx-worker` (a cada 5 minutos) e `masterapp-cx-worker-enqueue` (de hora em hora), criados só em produção, fora das migrations, porque têm o endereço de produção fixo. O segredo está no Vault como `cx_worker_secret`. Falta publicar o app e definir o mesmo valor em `CUSTOMER_EXPERIENCE_WORKER_SECRET`.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
 - **Fase 57:** migrations aplicadas só no `masterapp-dev` em 2026-11-01, com versões `20261101194114` a `20261101194949`, por ordem do documento da fase. Não estão em produção. O worker `/api/internal-communications/worker` ainda não está agendado em nenhum ambiente.
