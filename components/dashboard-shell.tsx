@@ -23,7 +23,7 @@ export type DashboardLink = {
 type PlanEntitlements = { network_governance_enabled?:boolean; franchise_management_enabled?:boolean; central_catalog_enabled?:boolean; network_pricing_enabled?:boolean; network_benchmarking_enabled?:boolean; hardware_hub_enabled?:boolean; local_hardware_agent_enabled?:boolean; advanced_printing_enabled?:boolean; payment_terminal_integration_enabled?:boolean; scale_integration_enabled?:boolean; cashier_enabled?: boolean; inventory_enabled?: boolean; financial_management_enabled?:boolean; workforce_management_enabled?:boolean; fiscal_module_enabled?:boolean; staff_management_enabled?: boolean; drivers_enabled?: boolean; waiter_mode_enabled?: boolean; kitchen_enabled?: boolean; advanced_kds_enabled?:boolean; kitchen_orchestration_enabled?:boolean; advanced_dining_room_enabled?:boolean; table_tabs_enabled?:boolean; waiter_orchestration_enabled?:boolean; split_bill_enabled?:boolean; table_qr_ordering_enabled?:boolean; self_service_enabled?:boolean; kiosk_payments_enabled?:boolean; pickup_display_enabled?:boolean; kiosk_loyalty_enabled?:boolean; kiosk_analytics_enabled?:boolean; offline_operations_enabled?:boolean; voice_ai_enabled?:boolean; subscriptions_enabled?:boolean; reservations_enabled?:boolean; marketplace_integrations_enabled?:boolean; app_marketplace_enabled?:boolean;partner_platform_enabled?:boolean;mfa_enabled?:boolean; demand_forecasting_enabled?:boolean; menu_engineering_enabled?:boolean; marketing_intelligence_enabled?:boolean; procurement_intelligence_enabled?:boolean; advanced_delivery_enabled?:boolean };
 type FoodQualityEntitlements = { food_quality_enabled?:boolean; lot_tracking_enabled?:boolean; temperature_tracking_enabled?:boolean; traceability_enabled?:boolean; internal_recall_enabled?:boolean; asset_management_enabled?:boolean; preventive_maintenance_enabled?:boolean; work_orders_enabled?:boolean; maintenance_analytics_enabled?:boolean; asset_qr_enabled?:boolean; document_compliance_enabled?:boolean; contract_management_enabled?:boolean; license_tracking_enabled?:boolean; renewal_workflows_enabled?:boolean; document_ai_assistant_enabled?:boolean; automation_center_enabled?:boolean; workflow_builder_enabled?:boolean; workflow_simulation_enabled?:boolean; workflow_ai_builder_enabled?:boolean; network_workflows_enabled?:boolean; global_search_enabled?:boolean; command_palette_enabled?:boolean; quick_actions_enabled?:boolean; saved_searches_enabled?:boolean; search_analytics_enabled?:boolean; network_search_enabled?:boolean; notification_center_enabled?:boolean; team_inbox_enabled?:boolean; notification_escalation_enabled?:boolean; notification_digests_enabled?:boolean; notification_ai_summary_enabled?:boolean; workspace_enabled?:boolean; personalized_home_enabled?:boolean; workspace_customization_enabled?:boolean; workspace_templates_enabled?:boolean; display_mode_enabled?:boolean; advanced_reporting_enabled?:boolean; report_builder_enabled?:boolean; scheduled_reports_enabled?:boolean; report_exports_enabled?:boolean; report_ai_builder_enabled?:boolean; performance_management_enabled?:boolean; goals_enabled?:boolean; okr_enabled?:boolean; budget_management_enabled?:boolean; scorecards_enabled?:boolean; learning_center_enabled?:boolean; learning_paths_enabled?:boolean; assessments_enabled?:boolean; internal_certifications_enabled?:boolean; learning_ai_assistant_enabled?:boolean };
 type WorkforcePlanningEntitlements = { advanced_workforce_planning_enabled?:boolean; staffing_forecast_enabled?:boolean; schedule_builder_enabled?:boolean; open_shifts_enabled?:boolean; labor_planning_enabled?:boolean };
-type IncidentEntitlements = { incident_management_enabled?:boolean; incident_war_room_enabled?:boolean; incident_detection_enabled?:boolean; incident_postmortems_enabled?:boolean; network_incidents_enabled?:boolean };
+type IncidentEntitlements = { internal_communications_enabled?:boolean; incident_management_enabled?:boolean; incident_war_room_enabled?:boolean; incident_detection_enabled?:boolean; incident_postmortems_enabled?:boolean; network_incidents_enabled?:boolean };
 type Customer360Entitlements = { customer_experience_enabled?:boolean; customer_360_enabled?:boolean; customer_health_enabled?:boolean; customer_next_best_action_enabled?:boolean; customer_identity_resolution_enabled?:boolean; customer_ai_summary_enabled?:boolean };
 type JourneyEntitlements = { customer_journeys_enabled?:boolean; journey_experiments_enabled?:boolean; journey_ai_assistant_enabled?:boolean; next_best_journey_enabled?:boolean; journey_network_scope_enabled?:boolean };
 type CatalogEntitlements = { central_catalog_enabled?:boolean; catalog_governance_enabled?:boolean; catalog_changesets_enabled?:boolean; catalog_scheduled_publish_enabled?:boolean; catalog_ai_assistant_enabled?:boolean };
@@ -94,6 +94,8 @@ const allLinks: DashboardLink[] = [
   { key: "self-service", href: "/painel/autoatendimento", label: "Autoatendimento", icon: "▣", group: "operacao" },
   { key: "continuity", href: "/painel/continuidade", label: "Continuidade", icon: "↻", group: "operacao" },
   { key: "incidents", href: "/painel/incidentes", label: "Incidentes", icon: "!", group: "operacao" },
+  { key: "internal-communications", href: "/painel/operacoes/comunicacao-interna", label: "Comunicação Interna", icon: "✉", group: "operacao" },
+  { key: "my-announcements", href: "/painel/comunicados", label: "Comunicados", icon: "✉", group: "operacao" },
   { key: "hardware", href: "/painel/hardware", label: "Hardware", icon: "⌘", group: "gestao" },
   { key: "deliveries", href: "/painel/pedidos#despacho-entregas", label: "Entregas", icon: "🚚", group: "operacao" },
   { key: "logistics", href: "/painel/logistica", label: "Central de Despacho", icon: "⌖", group: "operacao" },
@@ -125,6 +127,7 @@ const allLinks: DashboardLink[] = [
 ];
 
 const attendantLinks: DashboardLink[] = [
+  { key: "my-announcements", href: "/painel/comunicados", label: "Comunicados", icon: "✉", group: "operacao" },
   { key: "inbox", href: "/painel/caixa-de-entrada", label: "Caixa de Entrada", icon: "◎", group: "operacao" },
   { key: "voice", href: "/painel/voz", label: "Voz", icon: "☎", group: "operacao" },
   { key: "whatsapp-supervision", href: "/painel/whatsapp/supervisao", label: "Supervisão", icon: "◫", group: "gestao" },
@@ -161,6 +164,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     if (link.key === "documents") return plan.document_compliance_enabled !== false;
     if (link.key === "automation") return plan.automation_center_enabled !== false;
     if (link.key === "notifications") return plan.notification_center_enabled !== false;
+    if (link.key === "internal-communications" || link.key === "my-announcements") return plan.internal_communications_enabled !== false;
     if (link.key === "reports") return plan.advanced_reporting_enabled !== false;
     if (link.key === "performance-management") return plan.performance_management_enabled !== false;
     if (link.key === "my-learning" || link.key === "learning-admin") return plan.learning_center_enabled !== false;
@@ -217,8 +221,8 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     return true;
   });
   const links = role === "attendant" ? attendantLinks
-    : role === "kitchen" ? entitledLinks.filter(link => link.key === "kitchen")
-    : role === "catalog_editor" ? entitledLinks.filter(link => link.key === "catalog" || link.key === "central-catalog") : entitledLinks;
+    : role === "kitchen" ? entitledLinks.filter(link => link.key === "kitchen" || link.key === "my-announcements")
+    : role === "catalog_editor" ? entitledLinks.filter(link => link.key === "catalog" || link.key === "central-catalog" || link.key === "my-announcements") : entitledLinks;
   const dateLabel = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "long" }).format(new Date());
   const currentLabel = links.find(link => link.key === active)?.label ?? "Painel";
   const scope = brand as EstablishmentBrand & { organization?: { id: string; name: string } | null; availableStores?: { id: string; name: string; unit_status: string }[] } | undefined;

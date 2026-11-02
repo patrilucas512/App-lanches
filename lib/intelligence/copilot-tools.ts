@@ -282,6 +282,12 @@ export function answerManagerQuestion(question: string, snapshot: ManagerSnapsho
     result.recommendations=["Revise primeiro os sinais de risco e depois as avaliações públicas com prazo vencido."];
     result.action={label:"Abrir Experiência & Reputação",href:"/painel/clientes/experiencia"};return result;
   }
+  if (/comunicado|mural|enquete|li e entendi|confirma[cç][aã]o de leitura|comunica[cç][aã]o interna/.test(text)) {
+    const result=base("internal_communications","Comunicação interna","Os comunicados têm público definido, leitura obrigatória com prazo e aprovação quando atingem a rede, crise, recall, política ou texto de IA.",["getAnnouncements","getPendingAcknowledgements","draftAnnouncement","summarizeAnnouncement","simplifyLanguage","getCrisisCommunications"],["network_announcements","network_announcement_recipients","fact_comms_reach"]);
+    result.facts=["As métricas de leitura são agregadas e têm o total de referência.","O nome de quem não leu só aparece em comunicado obrigatório, para gestores com permissão, e a consulta fica registrada.","O Copiloto só prepara texto: não publica, não aprova e não envia."];
+    result.recommendations=["Veja primeiro as pendências de leitura dos comunicados obrigatórios com prazo próximo."];
+    result.action={label:"Abrir Comunicação Interna",href:"/painel/operacoes/comunicacao-interna"};return result;
+  }
   if (/jornada|journey|reativa|win.?back|pós.?compra|pos.?compra|fideliza|supress|experimento de relacionamento/.test(text)) {
     const result=base("customer_journeys","Jornadas de relacionamento","As jornadas coordenam lifecycle, consentimento, mensagens, ofertas e tarefas sobre os motores oficiais do MasterApp, com versões, simulação e auditoria.",["getJourneys","getJourneyPerformance","getJourneyEnrollments","getJourneySuppressions","getJourneyConversions","getJourneyExperimentResults","getCustomerActiveJourneys","getJourneyHealth"],["customer_journeys","customer_journey_enrollments","journey_suppressions","journey_conversions","journey_experiments","automation_executions"]);
     result.facts=["Supressão por opt-out, ausência de consentimento, reclamação, frequência ou horário silencioso é uma proteção, não uma falha.","Receita atribuída mostra associação observada; causalidade só pode ser avaliada com grupo de controle válido.","A IA pode propor rascunhos, mas não publica, ativa, matricula clientes nem envia mensagens."];

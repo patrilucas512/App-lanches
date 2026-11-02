@@ -4,9 +4,7 @@ Status no repositório, conferido em 2026-10-31 na `main` (`a044578`), por nomes
 
 ## Pendências
 
-| Fase | Módulo | Status | Motivo |
-|---|---|---|---|
-| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Pendente – será implementada | Não foi iniciada. As Fases 56 e 59 registram a ausência. |
+Nenhuma. As Fases 38 e 57 foram as últimas a entrar na `main`.
 
 ## Todas as fases
 
@@ -70,7 +68,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 54 | Relatórios avançados | Implementada |
 | 55 | Gestão de desempenho | Implementada |
 | 56 | Central de aprendizado | Implementada |
-| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | **Pendente – será implementada** |
+| 57 | Comunicação Interna, Mural Corporativo e Central de Comunicados | Implementada e aplicada só no `masterapp-dev`; ver `docs/phase57-internal-communications-report.md` |
 | 58 | Planejamento de equipe | Implementada |
 | 59 | Gestão de incidentes | Implementada |
 | 60 | Cliente 360 | Implementada |
@@ -109,19 +107,6 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 93 | Governança de identidades e acessos | Implementada e aplicada em produção; funções desligadas até o deploy do app e o agendamento do worker |
 | 94 | Centro de operações de segurança | Implementada |
 
-## Dependências das fases pendentes
-
-### Fase 57
-
-| Onde | O que existe | Relação |
-|---|---|---|
-| Fase 59 | Doc registra a ausência e que a vinculação à "comunicação canônica da Fase 57" fica disponível quando o módulo existir. `app/api/incidents/route.ts` aceita a relação `internal_communication`, e `components/incident-management-center.tsx` cria o comunicado como rascunho no Task Engine | **Dependência declarada**, hoje contornada |
-| Fase 56 | Doc diz que a Fase 57 não faz parte daquela entrega | Só citação |
-| Fase 46 | `network_announcements` e `network_announcement_acknowledgements`: comunicados com escopo e confirmação de leitura | Sobreposição direta |
-| Superadmin | `platform_announcements` em `app/superadmin/avisos` | Avisos da plataforma; escopo diferente |
-| Fases 65, 67 e 68 | Ações de copiloto `*_create_communication_draft` | Criam só rascunho; candidatas a integrar com a 57 |
-| Fase 86 | Planos de continuidade têm campo de comunicação; a doc não cita "Internal Communications" nem a Fase 57 | Sem dependência encontrada no repositório |
-
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
 Confirmado em 2026-10-31, só com leitura do histórico de migrations de produção, sem nenhuma alteração. As quatro já estão aplicadas:
@@ -156,3 +141,4 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 - **Fase 38:** migrations aplicadas em produção em 2026-11-01, com versões `20261101184633` a `20261101184904`. Flags ligadas só na loja de teste, sem IA nem avaliações externas. O app publicado ainda não tem as rotas da fase.
 - **Worker da Fase 38:** jobs `masterapp-cx-worker` (a cada 5 minutos) e `masterapp-cx-worker-enqueue` (de hora em hora), criados só em produção, fora das migrations, porque têm o endereço de produção fixo. O segredo está no Vault como `cx_worker_secret`. Falta publicar o app e definir o mesmo valor em `CUSTOMER_EXPERIENCE_WORKER_SECRET`.
 - **Versões:** as migrations de produção têm versões diferentes dos nomes de arquivo do repositório (por exemplo, `multitenant_mvp` é `20260724165852` em produção e `20260724070000` no arquivo). Um `supabase db push` em produção tentaria reaplicá-las.
+- **Fase 57:** migrations aplicadas só no `masterapp-dev` em 2026-11-01, com versões `20261101194114` a `20261101194949`, por ordem do documento da fase. Não estão em produção. O worker `/api/internal-communications/worker` ainda não está agendado em nenhum ambiente.

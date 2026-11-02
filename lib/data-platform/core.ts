@@ -75,3 +75,4 @@ export {VENDOR_FACTS,VENDOR_DIMENSIONS,VENDOR_METRICS} from "../vendor-managemen
 export {SOC_FACTS,SOC_DIMENSIONS,SOC_METRICS} from "../security-operations/integrations.ts";
 export {IDGOV_FACTS,IDGOV_DIMENSIONS,IDGOV_METRICS,IDGOV_METRIC_DENOMINATORS} from "../identity-governance/integrations.ts";
 export {CX_FACTS,CX_METRIC_DENOMINATORS} from "../customer-experience/integrations.ts";
+export {COMMS_FACTS,COMMS_METRIC_DENOMINATORS} from "../internal-communications/integrations.ts";
