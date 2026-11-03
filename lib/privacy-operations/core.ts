@@ -80,7 +80,7 @@ export function canDeliverSubjectData(request:{verification_status?:string|null}
 export function consentDecision(input:{kind:"transactional"|"marketing";purpose:string;channel:string;records:any[]|null;registryAvailable:boolean;now:Date;currentTextVersion?:Record<string,number>;requireCurrentVersion?:boolean}){
   if(input.kind==="transactional")return{allowed:true,reason:"TRANSACTIONAL"};
   if(!input.registryAvailable||input.records==null)return{allowed:false,reason:"REGISTRY_UNAVAILABLE"};
-  const relevant=input.records.filter(x=>(x.purpose_key??x.purpose)===input.purpose&&(x.channel===input.channel||x.channel==="any")).sort((a,b)=>String(b.recorded_at||b.created_at).localeCompare(String(a.recorded_at||a.created_at)));
+  const relevant=input.records.filter(x=>(x.purpose_key??x.purpose)===input.purpose&&(x.channel===input.channel||x.channel==="any")).sort((a,b)=>String(b.recorded_at||b.created_at).localeCompare(String(a.recorded_at||a.created_at))||Number(b.seq||0)-Number(a.seq||0));
   const latest=relevant[0];
   if(!latest)return{allowed:false,reason:"NO_CONSENT"};
   if(latest.status!=="granted")return{allowed:false,reason:latest.status==="revoked"?"REVOKED":"EXPIRED"};

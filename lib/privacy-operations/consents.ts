@@ -68,7 +68,7 @@ export async function marketingConsentGate(admin:any,input:{storeId:string;custo
     if(!context)return{mode:"canonical" as const,allowed:false,reason:"NO_CONSENT"};
     const subjectRef=String(customer.organization_customer_id||customer.id);
     const[{data:records,error:recordError},{data:purpose}]=await Promise.all([
-      admin.from("consent_records").select("purpose_key,channel,status,text_version,recorded_at,created_at,expires_at").eq("context_id",context.id).eq("subject_ref",subjectRef).eq("purpose_key",input.purposeKey).order("recorded_at",{ascending:false}).limit(20),
+      admin.from("consent_records").select("purpose_key,channel,status,text_version,recorded_at,created_at,expires_at,seq").eq("context_id",context.id).eq("subject_ref",subjectRef).eq("purpose_key",input.purposeKey).order("recorded_at",{ascending:false}).limit(20),
       admin.from("consent_purposes").select("current_version,requires_reacceptance").eq("context_id",context.id).eq("purpose_key",input.purposeKey).maybeSingle(),
     ]);
     const decision=consentDecision({kind:"marketing",purpose:input.purposeKey,channel:input.channel,records:recordError?null:records,registryAvailable:!recordError,now:input.now||new Date(),currentTextVersion:purpose?{[input.purposeKey]:purpose.current_version}:undefined,requireCurrentVersion:purpose?.requires_reacceptance===true});
