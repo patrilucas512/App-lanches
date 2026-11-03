@@ -139,7 +139,7 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 - A Vercel compila com `next build` (configurado no projeto). O build `vinext` do `package.json` continua existindo para a Cloudflare, mas não é usado na Vercel.
 - Cada merge na `main` publica em produção automaticamente.
 - As chaves do Supabase de produção chegam pela integração oficial Supabase ↔ Vercel, ligada ao projeto `qjwmjwubtgqginwhmajv`. `MASTERAPP_ENVIRONMENT=production` foi cadastrada à mão.
-- Ainda faltam `CRON_SECRET`, `CUSTOMER_PORTAL_OTP_SECRET`, `NEXT_PUBLIC_SITE_URL` e as chaves opcionais (Stripe, OpenAI, workers). Os jobs do `pg_cron` ainda apontam para o endereço antigo.
+- Os jobs do `pg_cron` apontam para `app-lanches-psi.vercel.app` desde 2026-11-02. Os workers das Fases 38 e 57 conferem o token no Vault pela função `verify_worker_secret` (aplicada em produção); o de webhooks da Fase 20 já fazia isso. Ainda faltam `CUSTOMER_PORTAL_OTP_SECRET`, `NEXT_PUBLIC_SITE_URL` e as chaves opcionais (Stripe, OpenAI).
 
 ## Diferenças entre repositório e produção
 
