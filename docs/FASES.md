@@ -106,7 +106,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 92 | Gestão de fornecedores | Implementada |
 | 93 | Governança de identidades e acessos | Implementada e aplicada em produção; worker agendado desde 2026-11-03; flags desligadas |
 | 94 | Centro de operações de segurança | Implementada |
-| 95 | Privacidade e LGPD (Privacy Operations) | Implementada; migrations só no masterapp-dev; flags desligadas |
+| 95 | Privacidade e LGPD (Privacy Operations) | Implementada e aplicada em produção; flags desligadas; worker não agendado |
 
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
@@ -145,7 +145,7 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 
 ## Diferenças entre repositório e produção
 
-- **Fase 95:** as 9 migrations (`20261103120000` a `20261103128000`) foram aplicadas só no `masterapp-dev`, em 2026-11-03, com as versões geradas pelo aplicador (diferentes dos nomes de arquivo). Produção não tem nada da fase: a tela e as APIs respondem 503 em JSON até a migração ser aplicada, e o consentimento de marketing segue as regras antigas. O worker `/api/privacy/worker` não está agendado. No dev, as flags `privacy_operations_enabled`, `privacy_dsr_portal_enabled` e `privacy_ai_assistance_enabled` estão ligadas só na loja fictícia `lanchonete-teste`.
+- **Fase 95:** as 9 migrations (`20261103120000` a `20261103128000`) foram aplicadas no `masterapp-dev` e, depois do merge do PR #22, em produção em 2026-11-03, com versões `20261103063715` a `20261103064110`. Em produção nenhuma loja ou plano tem as flags ligadas, o baseline de consentimento importou 0 registros (não havia opt-in/opt-out) e o mapa tem 53 campos. O worker `/api/privacy/worker` não está agendado e não há `privacy_worker_secret` no Vault. No dev, as flags `privacy_operations_enabled`, `privacy_dsr_portal_enabled` e `privacy_ai_assistance_enabled` estão ligadas só na loja fictícia `lanchonete-teste`.
 
 - **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 roda pelos jobs `masterapp-idgov-worker` (a cada 5 minutos) e `masterapp-idgov-worker-enqueue` (de hora em hora), criados só em produção em 2026-11-03.
 - **`tenant_signup_organization`:** aplicada em produção; fluxo de cliente novo validado lá em bloco com rollback.
