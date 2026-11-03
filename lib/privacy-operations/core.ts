@@ -99,7 +99,8 @@ export function anonymizeValue(technique:string,value:any,options:{salt?:string;
   if(value==null)return null;
   switch(technique){
     case"suppress":return null;
-    case"hash":return pseudonym(value,String(options.salt||""));
+    // Already a pseudonym: hashing again would change it, and the same step must converge to the same state.
+    case"hash":return String(value).startsWith("psd_")?value:pseudonym(value,String(options.salt||""));
     case"mask":{const text=String(value),digits=text.replace(/\D/g,"");return digits.length>=4?`••••${digits.slice(-2)}`:"••••"}
     case"truncate_date":return String(value).slice(0,4);
     // Address keeps only the coarse parts (neighbourhood, city, state), which is what delivery statistics use.

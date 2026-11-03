@@ -3,9 +3,10 @@
    Nothing is removed before a person approves, legal holds and legal retention always win, and a domain that fails or still
    needs a manual step leaves the request partial. Steps can be re-run: they converge to the same state. */
 import {aggregateExecution,canDeliverSubjectData,mustData,planDeletion,planSummary} from "./core.ts";
-import {contextSalt,executeStep,locateSubjectData,resolveSubject,verifyStep} from "./adapters.ts";
+import {contextSalt,executeStep,locateSubjectData,resolveRequestSubject,resolveSubject,verifyStep} from "./adapters.ts";
 import {dsrEvent,loadRequest,transitionRequest} from "./dsr.ts";
 import {privacyAudit,privacySettings} from "./server.ts";
+import {privacyRules} from "./policies.ts";
 
 const MODE_OF:Record<string,"deletion"|"anonymization"|"blocking">={deletion:"deletion",anonymization:"anonymization",blocking:"blocking",opposition:"blocking"};
 async function activeHolds(ctx:any){const{data}=await ctx.admin.from("legal_holds").select("scope_type,scope_ref,domain,status,valid_until,reason").eq("context_id",ctx.contextId).eq("status","active");return data||[]}
@@ -14,7 +15,7 @@ export async function previewDeletion(ctx:any,input:{requestId?:string|null;cust
   let request:any=null,mode=MODE_OF[String(input.mode)]||"deletion";
   if(input.requestId){request=await loadRequest(ctx,input.requestId);mode=MODE_OF[request.request_type]||mode;if(!["deletion","anonymization","blocking","opposition"].includes(request.request_type))throw new Error("REQUEST_TYPE_INVALID");
     if(["received","verifying"].includes(request.status)){await transitionRequest(ctx,{id:request.id,to:"in_progress",note:"Prévia de exclusão gerada."});request=await loadRequest(ctx,request.id)}}
-  const subject=await resolveSubject(ctx.admin,{contextId:ctx.contextId,organizationId:ctx.organizationId,customerId:request?.customer_id||input.customerId,organizationCustomerId:request?.organization_customer_id||input.organizationCustomerId});
+  const subject=request?await resolveRequestSubject(ctx.admin,ctx,request):await resolveSubject(ctx.admin,{contextId:ctx.contextId,organizationId:ctx.organizationId,customerId:input.customerId,organizationCustomerId:input.organizationCustomerId});
   if(!subject)throw new Error("SUBJECT_NOT_FOUND");
   const[records,holds]=await Promise.all([locateSubjectData(ctx.admin,subject),activeHolds(ctx)]);
   const items=planDeletion({records,holds,subjectRef:subject.subjectRef,mode,now:new Date()}),summary=planSummary(items);
@@ -44,8 +45,13 @@ export async function decidePlan(ctx:any,input:{planId:string;decision:"approved
   const[plan,settings]=await Promise.all([ctx.admin.from("privacy_deletion_plans").select("*").eq("id",input.planId).eq("context_id",ctx.contextId).single().then((r:any)=>mustData(r,"plano")),privacySettings(ctx.admin,ctx.contextId)]);
   if(plan.status!=="awaiting_approval")throw new Error("STATUS_INVALID");
   if(!settings.self_approval_allowed&&plan.requested_by===ctx.actorId)throw new Error("SELF_APPROVAL_BLOCKED");
-  const now=new Date().toISOString(),approved=input.decision==="approved";
+  const now=new Date().toISOString(),rejected=input.decision==="rejected",separation=(await privacyRules(ctx)).separation("deletion");
+  const{data:prior}=await ctx.admin.from("internal_approval_steps").select("approver_user_id,decision").eq("approval_id",plan.approval_id);
+  if((prior||[]).some((s:any)=>s.approver_user_id===ctx.actorId))throw new Error("ALREADY_DECIDED");
   await ctx.admin.from("internal_approval_steps").insert({approval_id:plan.approval_id,approver_user_id:ctx.actorId,decision:input.decision,reason:input.reason,decided_at:now});
+  // A policy may ask for more than one approval; the plan only moves on when enough different people approved.
+  const approvals=new Set([...(prior||[]).filter((s:any)=>s.decision==="approved").map((s:any)=>s.approver_user_id),...(rejected?[]:[ctx.actorId])]).size,approved=!rejected&&approvals>=separation.requiredApprovals;
+  if(!rejected&&!approved){await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"deletion_partially_approved",resourceType:"privacy_deletion_plan",resourceId:plan.id,reason:input.reason,metadata:{approvals,required:separation.requiredApprovals}});return{status:"awaiting_approval",approvals,required:separation.requiredApprovals}}
   await ctx.admin.from("internal_approvals").update({status:input.decision,resolved_at:now,resolution_reason:input.reason,approver_user_id:ctx.actorId,updated_at:now}).eq("id",plan.approval_id);
   await ctx.admin.from("privacy_deletion_plans").update({status:approved?"approved":"cancelled",approved_by:approved?ctx.actorId:null,updated_at:now}).eq("id",plan.id);
   if(plan.request_id&&!approved){const request=await loadRequest(ctx,plan.request_id);if(request.status==="awaiting_approval")await transitionRequest(ctx,{id:request.id,to:"in_progress",note:`Plano recusado: ${input.reason}`})}
@@ -59,6 +65,10 @@ export async function executePlan(ctx:any,input:{planId:string;limit?:number}){
   if(!["approved","running","partially_completed"].includes(plan.status))throw new Error("APPROVAL_REQUIRED");
   // A subject's request is only acted on after the identity check; retention runs have no subject asking.
   if(plan.request_id&&!canDeliverSubjectData(await loadRequest(ctx,plan.request_id)))throw new Error("VERIFICATION_REQUIRED");
+  // Requester, approver and executor are different people, unless the policy or the context says otherwise.
+  if(ctx.actorType!=="system"&&plan.status==="approved"){const separation=(await privacyRules(ctx)).separation("deletion");
+    if(separation.executorNotApprover&&plan.approved_by&&plan.approved_by===ctx.actorId)throw new Error("EXECUTOR_IS_APPROVER");
+    if(separation.executorNotRequester&&plan.requested_by&&plan.requested_by===ctx.actorId)throw new Error("EXECUTOR_IS_REQUESTER")}
   await ctx.admin.from("privacy_deletion_plans").update({status:"running",executed_by:plan.executed_by||ctx.actorId,updated_at:new Date().toISOString()}).eq("id",plan.id);
   // Holds created after the preview still win: their domains are skipped now.
   const holds=await activeHolds(ctx),heldDomains=new Set(holds.filter((h:any)=>h.scope_type==="dataset").map((h:any)=>h.domain||h.scope_ref)),subjectHeld=holds.some((h:any)=>h.scope_type==="subject"&&h.scope_ref===plan.subject_ref);
@@ -70,7 +80,8 @@ export async function executePlan(ctx:any,input:{planId:string;limit?:number}){
     if(subjectHeld||heldDomains.has(step.domain)){await ctx.admin.from("privacy_deletion_steps").update({status:"skipped_retained",reason:"legal_hold",executed_at:now}).eq("id",step.id);continue}
     try{
       if(step.status!=="completed"){await ctx.admin.from("privacy_deletion_steps").update({status:"running",attempts:step.attempts+1}).eq("id",step.id);const result=await executeStep(ctx.admin,step,salt);
-        if(result.status==="skipped_retained"){await ctx.admin.from("privacy_deletion_steps").update({status:"skipped_retained",executed_at:now}).eq("id",step.id);continue}}
+        if(result.status==="skipped_retained"){await ctx.admin.from("privacy_deletion_steps").update({status:"skipped_retained",executed_at:now}).eq("id",step.id);continue}
+        if(result.evidence)await ctx.admin.from("privacy_deletion_steps").update({evidence:result.evidence}).eq("id",step.id)}
       const ok=await verifyStep(ctx.admin,step);
       await ctx.admin.from("privacy_deletion_steps").update(ok?{status:"verified",executed_at:step.executed_at||now,verified_at:now,error_code:null}:{status:"failed",error_code:"VERIFICATION_FAILED"}).eq("id",step.id);
       if(ok)done++;else failed++;
