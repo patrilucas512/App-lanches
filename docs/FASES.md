@@ -104,7 +104,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 90 | Arquitetura corporativa | Implementada |
 | 91 | Gestão de portfólio | Implementada |
 | 92 | Gestão de fornecedores | Implementada |
-| 93 | Governança de identidades e acessos | Implementada e aplicada em produção; funções desligadas até o deploy do app e o agendamento do worker |
+| 93 | Governança de identidades e acessos | Implementada e aplicada em produção; worker agendado desde 2026-11-03; flags desligadas |
 | 94 | Centro de operações de segurança | Implementada |
 
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
@@ -139,11 +139,12 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 - A Vercel compila com `next build` (configurado no projeto). O build `vinext` do `package.json` continua existindo para a Cloudflare, mas não é usado na Vercel.
 - Cada merge na `main` publica em produção automaticamente.
 - As chaves do Supabase de produção chegam pela integração oficial Supabase ↔ Vercel, ligada ao projeto `qjwmjwubtgqginwhmajv`. `MASTERAPP_ENVIRONMENT=production` foi cadastrada à mão.
-- Os jobs do `pg_cron` apontam para `app-lanches-psi.vercel.app` desde 2026-11-02. Os workers das Fases 38 e 57 conferem o token no Vault pela função `verify_worker_secret` (aplicada em produção); o de webhooks da Fase 20 já fazia isso. Ainda faltam `CUSTOMER_PORTAL_OTP_SECRET`, `NEXT_PUBLIC_SITE_URL` e as chaves opcionais (Stripe, OpenAI).
+- Os jobs do `pg_cron` apontam para `app-lanches-psi.vercel.app` desde 2026-11-02. Os workers das Fases 38, 57 e 93 conferem o token no Vault pela função `verify_worker_secret` (aplicada em produção); o de webhooks da Fase 20 já fazia isso. `NEXT_PUBLIC_SITE_URL` foi cadastrada em 2026-11-03. `CUSTOMER_PORTAL_OTP_SECRET` é opcional: sem ela, o código do portal usa `SUPABASE_SECRET_KEY`. Faltam só as chaves opcionais (Stripe, OpenAI).
+- O código de acesso do portal do cliente (`/conta/<loja>`) vai por WhatsApp. Sem uma conexão em `whatsapp_connections` com status `connected`, nenhum código é enviado.
 
 ## Diferenças entre repositório e produção
 
-- **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
+- **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 roda pelos jobs `masterapp-idgov-worker` (a cada 5 minutos) e `masterapp-idgov-worker-enqueue` (de hora em hora), criados só em produção em 2026-11-03.
 - **`tenant_signup_organization`:** aplicada em produção; fluxo de cliente novo validado lá em bloco com rollback.
 - **`phase93_review_adjustments`:** aplicada em produção.
 - **`usage_events_metering_columns`:** aplicada em produção em 2026-11-01, com a versão `20261101181246`. 
