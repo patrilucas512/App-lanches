@@ -7,7 +7,7 @@ import {contextSalt,exportSubjectData,resolveSubject} from "./adapters.ts";
 import {consentStatus,recordConsent} from "./consents.ts";
 import {emitPrivacyEvent,privacyAudit,privacySettings} from "./server.ts";
 
-const TERMINAL=["fulfilled","partially_fulfilled","rejected_with_reason","closed"];
+const TERMINAL=["fulfilled","partially_fulfilled","rejected_with_reason","closed"],ERASURE_TYPES=["deletion","anonymization","blocking","opposition"];
 export async function dsrEvent(ctx:any,request:any,input:{type:string;from?:string|null;to?:string|null;note?:string|null;evidence?:Record<string,unknown>}){
   await ctx.admin.from("privacy_dsr_events").insert({request_id:request.id,context_id:request.context_id,event_type:input.type,from_status:input.from||null,to_status:input.to||null,actor_id:ctx.actorType==="subject"?null:ctx.actorId||null,actor_type:ctx.actorType||"user",note:input.note||null,evidence:input.evidence||{}});
 }
@@ -42,6 +42,8 @@ export async function transitionRequest(ctx:any,input:{id:string;to:string;note?
   if(input.to==="rejected_with_reason"&&String(input.reason||"").trim().length<10)throw new Error("REASON_REQUIRED");
   if(["fulfilled","partially_fulfilled"].includes(input.to)&&["access","portability","correction","deletion","anonymization"].includes(request.request_type)&&!canDeliverSubjectData(request))throw new Error("VERIFICATION_REQUIRED");
   if(input.to==="partially_fulfilled"&&!input.reason&&!input.outcome&&!request.rejection_reason)throw new Error("REASON_REQUIRED");
+  // A deletion-type request is fulfilled only by a completed plan, never by a click: a pending domain keeps it partial.
+  if(input.to==="fulfilled"&&ERASURE_TYPES.includes(request.request_type)){const{data:done}=await ctx.admin.from("privacy_deletion_plans").select("id").eq("request_id",request.id).eq("context_id",ctx.contextId).eq("status","completed").limit(1);if(!(done||[]).length)throw new Error("DELETION_PLAN_NOT_COMPLETED")}
   const patch:any={status:input.to,updated_at:new Date().toISOString()};
   if(input.reason)patch.rejection_reason=String(input.reason).slice(0,1000);
   if(input.outcome)patch.outcome={...request.outcome,...input.outcome};

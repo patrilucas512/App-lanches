@@ -2,7 +2,7 @@ import test from"node:test";import assert from"node:assert/strict";import{readFi
 import{PRIVACY_FLAGS,PRIVACY_PERMISSIONS,PrivacyAccessService,anonymizeValue,canSeeContext,consentDecision,detectPersonalColumns,dsrAlert,dsrDueAt,planDeletion,reidentificationRisks,retentionRunGate,unmappedPersonalColumns,verificationRequirement}from"../lib/privacy-operations/core.ts";
 import{ADAPTER_SPECS,IMPLEMENTED_DOMAINS,PENDING_ADAPTERS,locateSubjectData,resolveSubject}from"../lib/privacy-operations/adapters.ts";
 import{canonicalAllowedSet,marketingConsentGate,recordConsent}from"../lib/privacy-operations/consents.ts";
-import{approveResponse,confirmVerification,createRequest,generateAccessPackage,loadRequest,saveResponseDraft,scanDeadlines,startVerification}from"../lib/privacy-operations/dsr.ts";
+import{approveResponse,confirmVerification,createRequest,generateAccessPackage,loadRequest,saveResponseDraft,scanDeadlines,startVerification,transitionRequest}from"../lib/privacy-operations/dsr.ts";
 import{decidePlan,executePlan,previewDeletion,requestPlanApproval}from"../lib/privacy-operations/deletion.ts";
 import{createHold,runRetention}from"../lib/privacy-operations/retention.ts";
 import{decideIncidentNotification}from"../lib/privacy-operations/governance.ts";
@@ -269,4 +269,15 @@ test("T24 domain adapters cover the brief and pending ones are explicit",()=>{
  assert.ok(ADAPTER_SPECS.every(s=>s.anonymizeOnly||s.deleteRow||s.legalRetention),"each table says how it is handled");
  assert.throws(()=>anonymizeValue("tokenize","x",{salt:"x".repeat(32)}),/TOKENIZATION_REQUIRES_GOVERNED_VAULT/);
  assert.notEqual(anonymizeValue("hash","11900000001",{salt:"a".repeat(32)}),anonymizeValue("hash","11900000001",{salt:"b".repeat(32)}),"salt per tenant");
+});
+test("T25 a deletion request is fulfilled only by a completed plan, never by a click",async()=>{
+ const admin=fakeDb(seed()),ctx=ctxOf(admin),request=await verifiedRequest(admin,"deletion");
+ await transitionRequest(ctx,{id:request.id,to:"in_progress"});
+ await assert.rejects(transitionRequest(ctx,{id:request.id,to:"fulfilled"}),/DELETION_PLAN_NOT_COMPLETED/);
+ assert.equal(admin.tables.customers.find(c=>c.id==="c1").name,"Maria Teste","nothing was deleted, so it cannot be marked done");
+ const access=await verifiedRequest(admin,"access");await transitionRequest(ctx,{id:access.id,to:"in_progress"});
+ assert.equal((await transitionRequest(ctx,{id:access.id,to:"fulfilled"})).status,"fulfilled","other types keep the manual close");
+ const admin2=fakeDb(seed()),req2=await verifiedRequest(admin2,"deletion");const{result}=await approveAndRun(admin2,req2,{});
+ assert.equal(result.status,"partially_completed","pending domains keep it partial");
+ assert.equal(admin2.tables.customer_privacy_requests.find(r=>r.id===req2.id).status,"partially_fulfilled");
 });
