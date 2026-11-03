@@ -63,3 +63,23 @@ export async function disableStore(ctx:any,input:{reason:string}){
   await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"go_live_disabled",resourceType:"store",resourceId:ctx.storeId,reason:input.reason});
   return{enabled:false};
 }
+
+// The DPO validation pack with this store's current values, to decide on paper and register in the screens.
+export async function dpoValidationPack(ctx:any){
+  const[settings,items,{data:purposes},{data:holds},{data:policies}]=await Promise.all([privacySettings(ctx.admin,ctx.contextId),goLiveChecklist(ctx),
+    ctx.admin.from("consent_purposes").select("purpose_key,label,current_version").eq("context_id",ctx.contextId).eq("active",true),
+    ctx.admin.from("legal_holds").select("reason,scope_type,valid_until").eq("context_id",ctx.contextId).eq("status","active"),
+    ctx.admin.from("retention_policies").select("name,dataset,period_days,action,status").eq("context_id",ctx.contextId)]);
+  const days=settings.dsr_deadline_days||{},line=(cells:unknown[])=>`| ${cells.map(x=>String(x??"—")).join(" | ")} |`;
+  const md=[`# Pacote de validação do encarregado`,``,`Gerado em ${new Date().toISOString().slice(0,10)}. Valores atuais desta loja; nada aqui é decisão do sistema.`,``,
+    `## Prazos`,``,line(["Item","Valor atual","Decisão"]),line(["---","---","---"]),
+    ...Object.entries(days).map(([k,v])=>line([k==="default"?"Prazo padrão de resposta":`Prazo para ${k}`,v==null?"sem prazo":`${v} dias`,"[ ] Mantém  [ ] Muda"])),
+    line(["Alerta antes do prazo",`${settings.dsr_alert_days_before} dias`,"[ ] Mantém  [ ] Muda"]),line(["Prazo para comunicar incidente",settings.incident_notification_deadline_days?`${settings.incident_notification_deadline_days} dias`:"vazio","[ ] Define"]),
+    ``,`## Textos de consentimento`,``,line(["Finalidade","Versão atual","Decisão"]),line(["---","---","---"]),...(purposes||[]).map((p:any)=>line([p.label,p.current_version,"[ ] Aprovado"])),
+    ``,`## Retenção`,``,line(["Política","Conjunto","Prazo","Ação","Status"]),line(["---","---","---","---","---"]),...(policies||[]).map((p:any)=>line([p.name,p.dataset,`${p.period_days} dias`,p.action,p.status])),
+    ``,`## Bloqueios legais ativos`,``,`${(holds||[]).length} bloqueio(s).`,
+    ``,`## Checklist de ativação`,``,...items.map(i=>`- ${i.ok?"✅":"❌"} ${i.label}${i.critical?" (obrigatório)":""}: ${i.detail}`),
+    ``,`O roteiro completo e os demais itens a validar estão em docs/privacy-dpo-validation-pack.md.`].join("\n");
+  await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"dpo_pack_exported",resourceType:"privacy_context",resourceId:ctx.contextId});
+  return{markdown:md};
+}
