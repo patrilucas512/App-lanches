@@ -230,7 +230,7 @@ A validação no dev achou um terceiro: empate de horário no registro canônico
 
 ## 18. Precisa de aprovação
 
-- Aplicar as 9 migrations em produção. É uma etapa separada, depois do merge, e as versões de produção serão diferentes dos nomes de arquivo, como nas fases anteriores.
+- ~~Aplicar as 9 migrations em produção.~~ Feito em 2026-11-03, depois do merge do PR #22, com versões `20261103063715` a `20261103064110`. Avisos de segurança: só "RLS sem política", como no dev.
 - Ligar as flags em alguma loja.
 - Agendar o worker (`privacy_worker_secret` no Vault).
 - Ligar `privacy_retention_execution_enabled`.
