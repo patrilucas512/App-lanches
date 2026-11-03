@@ -4,6 +4,7 @@
 import {HOLD_REASONS,RETENTION_ACTIONS,RETENTION_TRIGGERS,holdNeedsReview,mustData,retentionDue,retentionRunGate} from "./core.ts";
 import {executePlan,previewDeletion} from "./deletion.ts";
 import {privacyAudit,privacySettings} from "./server.ts";
+import {privacyRules} from "./policies.ts";
 
 // Datasets with an executor today. Others can hold a policy (and show in the ROPA) but a run reports them as not executable.
 export const RETENTION_DATASETS:Record<string,{label:string;triggers:string[]}>={
@@ -33,12 +34,15 @@ export async function runRetention(ctx:any,input:{policyId:string;mode:"dry_run"
   const now=input.now||new Date(),limit=Math.min(input.limit||200,500);
   const policy=mustData(await ctx.admin.from("retention_policies").select("*").eq("id",input.policyId).eq("context_id",ctx.contextId).single(),"política");
   if(input.mode==="execute"&&policy.status!=="active")throw new Error("POLICY_NOT_ACTIVE");
-  const settings=await privacySettings(ctx.admin,ctx.contextId);
+  const rules=await privacyRules(ctx);
   let run:any=null;
   if(input.runId)run=mustData(await ctx.admin.from("retention_runs").select("*").eq("id",input.runId).eq("context_id",ctx.contextId).single(),"execução");
-  const{data:approval}=run?.approval_id?await ctx.admin.from("internal_approvals").select("status").eq("id",run.approval_id).maybeSingle():{data:null};
-  const gate=retentionRunGate({mode:input.mode,executionFlag:ctx.flags?.privacy_retention_execution_enabled===true,approvalStatus:approval?.status,requiresApproval:policy.requires_approval||settings.retention_requires_approval});
+  const{data:approval}=run?.approval_id?await ctx.admin.from("internal_approvals").select("status,approver_user_id").eq("id",run.approval_id).maybeSingle():{data:null};
+  const gate=retentionRunGate({mode:input.mode,executionFlag:ctx.flags?.privacy_retention_execution_enabled===true,approvalStatus:approval?.status,requiresApproval:rules.retentionRequiresApproval(policy.dataset,policy.requires_approval)});
   if(!gate.allowed)throw new Error((gate.issues||[]).join(","));
+  if(input.mode==="execute"&&run&&ctx.actorType!=="system"){const separation=rules.separation("retention");
+    if(separation.executorNotApprover&&approval?.approver_user_id===ctx.actorId)throw new Error("EXECUTOR_IS_APPROVER");
+    if(separation.executorNotRequester&&run.requested_by===ctx.actorId)throw new Error("EXECUTOR_IS_REQUESTER")}
   if(!RETENTION_DATASETS[policy.dataset]){
     const report={executable:false,reason:"DATASET_WITHOUT_EXECUTOR",dataset:policy.dataset};
     run=mustData(await ctx.admin.from("retention_runs").insert({context_id:ctx.contextId,policy_id:policy.id,mode:"dry_run",status:"completed",report,requested_by:ctx.actorId,completed_at:now.toISOString()}).select().single(),"execução");
