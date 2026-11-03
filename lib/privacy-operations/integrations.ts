@@ -70,3 +70,10 @@ export async function privacyReportRows(c:any,definition:any,period:{from:string
   const{data,error}=await c.a.from(table).select(columns).eq("context_id",context.id).limit(limit);if(error)throw error;
   return{rows:data||[],freshness:{source:table,status:"current",metric_catalog:true}};
 }
+
+// Phase 96C. Deletion approvals stay in internal_approvals; the ActionEngine (copilot_action_requests) is not used for privacy.
+export const PRIVACY_ACTION_ENGINE_DECISION={
+  engine:"internal_approvals",
+  reason:"copilot_action_requests tem lista fixa de ações operacionais ligada ao Copiloto, semântica de desfazer que não existe numa exclusão, e um before_state cujo uso natural guardaria os dados apagados. A trilha de privacidade guarda só contagens, domínios, IDs e hashes.",
+  debt:"Se o ActionEngine ganhar um modo redigido garantido no banco (sem before_state de conteúdo), avaliar a migração das aprovações de privacidade.",
+} as const;
