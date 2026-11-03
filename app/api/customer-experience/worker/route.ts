@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import{NextResponse}from"next/server";import{createAdminClient}from"@/lib/supabase/admin";import{publishNotification}from"@/lib/notifications/publisher";import{sendStoredWhatsAppText}from"@/lib/whatsapp/message-service";import{runCxJob}from"@/lib/customer-experience/dashboard";import{processDueDispatches}from"@/lib/customer-experience/surveys";
+import{NextResponse}from"next/server";import{workerAuthorized}from"@/lib/worker-auth";import{createAdminClient}from"@/lib/supabase/admin";import{publishNotification}from"@/lib/notifications/publisher";import{sendStoredWhatsAppText}from"@/lib/whatsapp/message-service";import{runCxJob}from"@/lib/customer-experience/dashboard";import{processDueDispatches}from"@/lib/customer-experience/surveys";
 const SCAN_JOBS=["sla_scan","sync_external"];
 // Orders, payments and conversations do not call this worker: it can be down without blocking anyone, and the next run catches up.
-export async function POST(req:Request){const secret=process.env.CUSTOMER_EXPERIENCE_WORKER_SECRET||process.env.CRON_SECRET;if(!secret||req.headers.get("authorization")!==`Bearer ${secret}`)return NextResponse.json({error:"Unauthorized"},{status:401});
- const admin=createAdminClient(),params=new URL(req.url).searchParams,now=new Date(),nowIso=now.toISOString(),siteUrl=(process.env.NEXT_PUBLIC_SITE_URL||new URL(req.url).origin).replace(/\/$/,"");
+export async function POST(req:Request){const admin=createAdminClient();if(!await workerAuthorized(admin,req,{envSecret:process.env.CUSTOMER_EXPERIENCE_WORKER_SECRET||process.env.CRON_SECRET,vaultName:"cx_worker_secret"}))return NextResponse.json({error:"Unauthorized"},{status:401});
+ const params=new URL(req.url).searchParams,now=new Date(),nowIso=now.toISOString(),siteUrl=(process.env.NEXT_PUBLIC_SITE_URL||new URL(req.url).origin).replace(/\/$/,"");
  // Work left behind by a worker that died goes back to the queue instead of staying stuck.
  await admin.from("cx_jobs").update({status:"queued",lease_expires_at:null}).eq("status","running").lt("lease_expires_at",nowIso);
  await admin.from("cx_survey_dispatches").update({status:"queued"}).eq("status","processing").lt("updated_at",new Date(now.getTime()-9e5).toISOString());
