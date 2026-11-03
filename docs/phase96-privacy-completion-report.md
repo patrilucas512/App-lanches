@@ -175,7 +175,7 @@ Tabelas novas com RLS, sem acesso para `anon` e `authenticated`, como na 95.
 
 ## 13. O que precisa de aprovação para ir a produção
 
-1. Aplicar as 3 migrations da 96 em produção.
+1. ~~Aplicar as 3 migrations da 96 em produção.~~ Feito em 2026-11-03, depois do merge do PR #25, com versões `20261103231311`, `20261103231333` e `20261103231336`.
 2. Publicar o app (merge do PR).
 3. Ligar `privacy_setup_enabled` na loja piloto.
 4. Criar `privacy_worker_secret` no Vault e o job no `pg_cron`.

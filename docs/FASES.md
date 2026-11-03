@@ -107,7 +107,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 93 | Governança de identidades e acessos | Implementada e aplicada em produção; worker agendado desde 2026-11-03; flags desligadas |
 | 94 | Centro de operações de segurança | Implementada |
 | 95 | Privacidade e LGPD (Privacy Operations) | Implementada e aplicada em produção; flags desligadas; worker não agendado |
-| 96 | Privacidade e LGPD: conclusão e prontidão para uso real | Implementada; migrations só no masterapp-dev; flags desligadas |
+| 96 | Privacidade e LGPD: conclusão e prontidão para uso real | Implementada e aplicada em produção; flags desligadas; worker não agendado |
 
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
@@ -146,7 +146,7 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 
 ## Diferenças entre repositório e produção
 
-- **Fase 96:** as 3 migrations (`20261103130000`, `20261103131000`, `20261103132000`) foram aplicadas só no `masterapp-dev`, em 2026-11-03, com versões `20261103073107`, `20261103073348` e `20261103073414`. Produção ainda não tem: sem elas a tela de Privacidade responde 503 em JSON, e o resto do app segue normal. A flag nova `privacy_setup_enabled` começa desligada, e `privacy_operations_enabled` só liga pelo checklist de go-live (gatilho no banco). O dev tem 50 mil clientes fictícios "Volume Teste" do teste de volume.
+- **Fase 96:** as 3 migrations (`20261103130000`, `20261103131000`, `20261103132000`) foram aplicadas no `masterapp-dev` (versões `20261103073107`, `20261103073348` e `20261103073414`) e, depois do merge do PR #25, em produção em 2026-11-03 (versões `20261103231311`, `20261103231333` e `20261103231336`). Em produção nenhuma loja ou plano tem flag de privacidade ligada, e não há `privacy_worker_secret` no Vault nem job do worker. A flag nova `privacy_setup_enabled` começa desligada, e `privacy_operations_enabled` só liga pelo checklist de go-live (gatilho no banco). O dev tem 50 mil clientes fictícios "Volume Teste" do teste de volume.
 
 - **Fase 95:** as 9 migrations (`20261103120000` a `20261103128000`) foram aplicadas no `masterapp-dev` e, depois do merge do PR #22, em produção em 2026-11-03, com versões `20261103063715` a `20261103064110`. Em produção nenhuma loja ou plano tem as flags ligadas, o baseline de consentimento importou 0 registros (não havia opt-in/opt-out) e o mapa tem 53 campos. O worker `/api/privacy/worker` não está agendado e não há `privacy_worker_secret` no Vault. No dev, as flags `privacy_operations_enabled`, `privacy_dsr_portal_enabled` e `privacy_ai_assistance_enabled` estão ligadas só na loja fictícia `lanchonete-teste`.
 
