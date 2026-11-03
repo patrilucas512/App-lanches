@@ -9,7 +9,7 @@ export type Subject={contextId:string;organizationId:string|null;subjectCategory
   employeeIds:string[];driverIds:string[];leadIds:string[];salesContactIds:string[];snapshotIds:string[];marketplaceConnections:string[];packageIds:string[];voiceCallIds:string[]};
 type Value={technique:string;keep?:string[]}|{literal:unknown};
 // A storage spec owns a file column: the step reads the path, removes the object and clears the column, keeping only a hash.
-type StorageRef={bucket:string|null;column:string;format:"path"|"public_url"};
+type StorageRef={bucket:string|null;column:string;format:"path"|"public_url";afterRemove?:"clear"|"delete_row"};
 type Spec={domain:string;table:string;key:string;by:Array<[column:string,source:keyof Subject]>;personal:string[];context?:string[];anonymize:Record<string,Value>;deleteRow?:boolean;anonymizeOnly?:boolean;legalRetention?:string;personalLinkFields?:string[];note?:string;storage?:StorageRef;step?:string};
 
 const anon=(literal:unknown):Value=>({literal}),hash:Value={technique:"hash"},mask:Value={technique:"mask"},none:Value={technique:"suppress"},now:Value={technique:"now"};
@@ -45,7 +45,7 @@ export const ADAPTER_SPECS:Spec[]=[
   // Marketplaces (Phase 69): the order snapshot keeps the order and loses the customer fields.
   {domain:"marketplaces",table:"marketplace_order_snapshots",key:"id",by:[["id","snapshotIds"]],personal:["normalized_snapshot"],context:["external_display_id","created_at"],anonymize:{normalized_snapshot:{technique:"redact_keys",keep:CUSTOMER_KEYS}},anonymizeOnly:true},
   // Old access packages of this subject are removed with the rest.
-  {domain:"storage",table:"privacy_export_packages",step:"storage:privacy_exports",key:"id",by:[["id","packageIds"]],personal:["storage_path"],anonymize:{},storage:{bucket:"privacy-exports",column:"storage_path",format:"path"}},
+  {domain:"storage",table:"privacy_export_packages",step:"storage:privacy_exports",key:"id",by:[["id","packageIds"]],personal:["storage_path"],anonymize:{},storage:{bucket:"privacy-exports",column:"storage_path",format:"path",afterRemove:"delete_row"}},
 
   // Workforce (Phase 18). Labor records (shifts, time clock, documents, evaluations) stay by law; the person behind them is
   // anonymized in custom_staff_members, which is what pseudonymizes every one of those links at once.
@@ -146,9 +146,9 @@ export async function resolveRequestSubject(admin:any,ctx:{contextId:string;orga
 
 export async function locateSubjectData(admin:any,subject:Subject):Promise<SubjectRecord[]>{
   const found:SubjectRecord[]=[];
-  for(const spec of ADAPTER_SPECS){
-    const columns=spec.storage?[spec.key,spec.storage.column].join(","):spec.key;
-    for(const row of await rowsFor(admin,spec,subject,columns)){
+  const results=await Promise.all(ADAPTER_SPECS.map(spec=>rowsFor(admin,spec,subject,spec.storage?[spec.key,spec.storage.column].join(","):spec.key)));
+  for(const[index,spec]of ADAPTER_SPECS.entries()){
+    for(const row of results[index]){
       if(spec.storage&&!row[spec.storage.column])continue;
       found.push({domain:spec.domain,table:stepTable(spec),recordId:String(row[spec.key]),categories:spec.personal,legalRetention:spec.legalRetention||null,personalLinkFields:spec.personalLinkFields,adapterStatus:spec.storage&&!spec.storage.bucket?"pending":"implemented",anonymizeOnly:spec.anonymizeOnly});
     }
@@ -159,8 +159,9 @@ export async function locateSubjectData(admin:any,subject:Subject):Promise<Subje
 
 // Readable and structured: one section per domain, with the personal fields and enough context to recognise each record.
 export async function exportSubjectData(admin:any,subject:Subject){
-  const domains:Record<string,any>={};
-  for(const spec of ADAPTER_SPECS){if(spec.storage)continue;const rows=await rowsFor(admin,spec,subject,[spec.key,...spec.personal,...(spec.context||[])].join(","));if(!rows.length)continue;(domains[spec.domain]||={})[spec.table]=rows}
+  const domains:Record<string,any>={},specs=ADAPTER_SPECS.filter(s=>!s.storage);
+  const results=await Promise.all(specs.map(spec=>rowsFor(admin,spec,subject,[spec.key,...spec.personal,...(spec.context||[])].join(","))));
+  specs.forEach((spec,i)=>{if(results[i].length)(domains[spec.domain]||={})[spec.table]=results[i]});
   const missing=subject.marketplaceConnections.length?["marketplace_partner"]:[];
   return{generatedAt:new Date().toISOString(),subject:{reference:subject.subjectRef,category:subject.subjectCategory},domains,missingDomains:missing,notice:missing.length?"Os dados que o parceiro de marketplace guarda são pedidos a ele, pelo canal do parceiro.":"Este pacote traz os dados de todos os domínios do MasterApp."};
 }
@@ -199,7 +200,8 @@ export async function executeStep(admin:any,step:{table_name:string;record_ref:s
     const path=objectPath(spec.storage,String(value));if(!spec.storage.bucket||!path)throw new Error("STORAGE_PATH_UNKNOWN");
     // The evidence is the bucket and a hash of the path: proof that a file went, never its name or content.
     const{error:removeError}=await admin.storage.from(spec.storage.bucket).remove([path]);if(removeError)throw new Error(`storage: ${removeError.message}`);
-    const{error:clearError}=await admin.from(spec.table).update({[spec.storage.column]:null}).eq(spec.key,step.record_ref);if(clearError)throw new Error(clearError.message);
+    // A row that is only a pointer to the file (an access package) goes with it; otherwise the column is cleared.
+    const{error:clearError}=spec.storage.afterRemove==="delete_row"?await admin.from(spec.table).delete().eq(spec.key,step.record_ref):await admin.from(spec.table).update({[spec.storage.column]:null}).eq(spec.key,step.record_ref);if(clearError)throw new Error(clearError.message);
     return{status:"completed",evidence:{bucket:spec.storage.bucket,path_sha256:pathFingerprint(path)}};
   }
   if(step.decision==="delete"&&spec.deleteRow&&!spec.anonymizeOnly){const{error}=await admin.from(spec.table).delete().eq(spec.key,step.record_ref);if(error)throw new Error(error.message);return{status:"completed"}}

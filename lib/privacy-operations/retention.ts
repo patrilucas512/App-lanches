@@ -36,7 +36,9 @@ async function dueInactiveCustomers(ctx:any,policy:any,now:Date,limit:number){
   return(data||[]).filter((c:any)=>retentionDue(policy,c,now));
 }
 
-export async function runRetention(ctx:any,input:{policyId:string;mode:"dry_run"|"execute";runId?:string|null;now?:Date;limit?:number}){
+// Customers processed per call of a real run. The rest stays queued in the run and the worker continues it.
+export const RETENTION_BATCH=25;
+export async function runRetention(ctx:any,input:{policyId:string;mode:"dry_run"|"execute";runId?:string|null;now?:Date;limit?:number;batch?:number}){
   const now=input.now||new Date(),limit=Math.min(input.limit||200,500);
   const policy=mustData(await ctx.admin.from("retention_policies").select("*").eq("id",input.policyId).eq("context_id",ctx.contextId).single(),"política");
   if(input.mode==="execute"&&policy.status!=="active")throw new Error("POLICY_NOT_ACTIVE");
@@ -73,15 +75,24 @@ export async function runRetention(ctx:any,input:{policyId:string;mode:"dry_run"
     await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"retention_previewed",resourceType:"retention_run",resourceId:run.id,metadata:report});
     return{run,report};
   }
-  let processed=0,failed=0;
-  for(const item of unique.filter((x:any)=>x.decision==="due")){
+  // Already handled in an earlier batch of this run: skipped, so a resumed run never processes anyone twice.
+  const{data:done}=await ctx.admin.from("retention_run_items").select("record_ref,decision").eq("run_id",run.id).in("decision",["processed","failed"]).limit(10000);
+  const handled=new Set((done||[]).map((x:any)=>x.record_ref)),todo=unique.filter((x:any)=>x.decision==="due"&&!handled.has(x.record_ref)),batch=todo.slice(0,Math.max(1,input.batch||RETENTION_BATCH));
+  await ctx.admin.from("retention_runs").update({status:"running",started_at:run.started_at||now.toISOString()}).eq("id",run.id);
+  let processed=(done||[]).filter((x:any)=>x.decision==="processed").length,failed=(done||[]).filter((x:any)=>x.decision==="failed").length;
+  // Five customers at a time: each one is independent, and a failure stays with its own item.
+  const one=async(item:any)=>{
     try{const preview=await previewDeletion(ctx,{customerId:customerOf.get(item.record_ref),mode:policy.action==="delete"?"deletion":"anonymization",retentionRunId:run.id});
       await ctx.admin.from("privacy_deletion_plans").update({status:"approved",approval_id:run.approval_id,approved_by:null}).eq("id",preview.plan.id);
       const result=await executePlan({...ctx,actorType:"system"},{planId:preview.plan.id});
       await ctx.admin.from("retention_run_items").update({decision:result.status==="completed"?"processed":"failed",reason:result.status}).eq("run_id",run.id).eq("record_ref",item.record_ref);
       if(result.status==="completed")processed++;else failed++;
     }catch(error:any){await ctx.admin.from("retention_run_items").update({decision:"failed",reason:String(error?.message||"FAILED").slice(0,120)}).eq("run_id",run.id).eq("record_ref",item.record_ref);failed++}
-  }
+  };
+  for(let i=0;i<batch.length;i+=5)await Promise.all(batch.slice(i,i+5).map(one));
+  const remaining=todo.length-batch.length;
+  if(remaining>0){const report={executable:true,due:unique.length-heldCount,held:heldCount,processed,failed,remaining,action:policy.action,note:"Em andamento: o restante segue em lotes pelo worker."};
+    run=mustData(await ctx.admin.from("retention_runs").update({status:"running",processed_count:processed,failed_count:failed,report}).eq("id",run.id).select().single(),"execução");return{run,report}}
   const report={executable:true,due:unique.length-heldCount,held:heldCount,processed,failed,action:policy.action};
   run=mustData(await ctx.admin.from("retention_runs").update({status:failed?"partially_completed":"completed",due_count:report.due,held_count:heldCount,processed_count:processed,failed_count:failed,report,completed_at:new Date().toISOString()}).eq("id",run.id).select().single(),"execução");
   await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"retention_executed",resourceType:"retention_run",resourceId:run.id,metadata:report});

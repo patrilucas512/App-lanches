@@ -208,3 +208,10 @@ test("T17 a module failure does not block orders",async()=>{
  const admin=fakeDb(seed(),{missing:["store_feature_flags"]});assert.equal((await marketingConsentGate(admin,{storeId:"s1",customerId:"c1",purposeKey:"marketing_whatsapp",channel:"whatsapp"})).mode,"legacy");
  for(const p of["../app/api/public-orders/route.ts","../app/api/stripe/checkout/route.ts","../app/api/security/login/route.ts"])assert.doesNotMatch(await file(p).catch(()=>""),/privacy-operations/);
 });
+test("T18 an old access package is removed with the subject, file and pointer row",async()=>{
+ const admin=fakeDb(seed()),access=await request(admin,"access");
+ const{generateAccessPackage}=await import("../lib/privacy-operations/dsr.ts");await generateAccessPackage(ctxOf(admin),{id:access.id});
+ const path=admin.tables.privacy_export_packages[0].storage_path,req=await request(admin,"deletion");await run(admin,req);
+ assert.ok(admin.removed.includes(`privacy-exports/${path}`));assert.equal(admin.tables.privacy_export_packages.length,0,"the pointer row goes too (its path column cannot be empty)");
+ assert.equal(admin.tables.privacy_deletion_steps.find(s=>s.table_name==="storage:privacy_exports").status,"verified");
+});
