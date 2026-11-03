@@ -132,6 +132,15 @@ O projeto `masterapp-dev` (`bfmrcvjxbmxxmdustrgo`) está com as 247 migrations d
 - **`vinext start` não serve os assets:** a página abre sem CSS e JS, porque o build é para Cloudflare Workers. Use `vite preview`.
 - **Fontes no build local:** o console acusa fontes com caminho `file:///` da máquina, e o navegador as recusa. A página continua funcionando.
 
+## Hospedagem do app
+
+Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` do time `lucas-patrick`, saindo do ChatGPT Sites.
+
+- A Vercel compila com `next build` (configurado no projeto). O build `vinext` do `package.json` continua existindo para a Cloudflare, mas não é usado na Vercel.
+- Cada merge na `main` publica em produção automaticamente.
+- As chaves do Supabase de produção chegam pela integração oficial Supabase ↔ Vercel, ligada ao projeto `qjwmjwubtgqginwhmajv`. `MASTERAPP_ENVIRONMENT=production` foi cadastrada à mão.
+- Ainda faltam `CRON_SECRET`, `CUSTOMER_PORTAL_OTP_SECRET`, `NEXT_PUBLIC_SITE_URL` e as chaves opcionais (Stripe, OpenAI, workers). Os jobs do `pg_cron` ainda apontam para o endereço antigo.
+
 ## Diferenças entre repositório e produção
 
 - **Fases 83, 93 e 94:** aplicadas em produção em 2026-11-01, com todas as flags desligadas. O worker da Fase 93 ainda não está agendado.
