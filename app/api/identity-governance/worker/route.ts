@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import{NextResponse}from"next/server";import{createAdminClient}from"@/lib/supabase/admin";import{publishNotification}from"@/lib/notifications/publisher";import{drainLifecycleEvents,enqueueDueTerminations,runGovernanceJob}from"@/lib/identity-governance/dashboard";
+import{NextResponse}from"next/server";import{workerAuthorized}from"@/lib/worker-auth";import{createAdminClient}from"@/lib/supabase/admin";import{publishNotification}from"@/lib/notifications/publisher";import{drainLifecycleEvents,enqueueDueTerminations,runGovernanceJob}from"@/lib/identity-governance/dashboard";
 const SCAN_JOBS=["expiration","reconciliation","sod_scan","dormant_scan","review_reminder"];
 // Authorization at request time stays in Auth/RBAC, so this worker can be down without blocking anyone; the next run catches up.
-export async function POST(req:Request){const secret=process.env.IDENTITY_GOVERNANCE_WORKER_SECRET||process.env.CRON_SECRET;if(!secret||req.headers.get("authorization")!==`Bearer ${secret}`)return NextResponse.json({error:"Unauthorized"},{status:401});const admin=createAdminClient(),params=new URL(req.url).searchParams,nowIso=new Date().toISOString();
+export async function POST(req:Request){const admin=createAdminClient();if(!await workerAuthorized(admin,req,{envSecret:process.env.IDENTITY_GOVERNANCE_WORKER_SECRET||process.env.CRON_SECRET,vaultName:"cx_worker_secret"}))return NextResponse.json({error:"Unauthorized"},{status:401});const params=new URL(req.url).searchParams,nowIso=new Date().toISOString();
  // Work left behind by a worker that died goes back to the queue instead of staying stuck.
  await admin.from("identity_governance_jobs").update({status:"queued",lease_expires_at:null}).eq("status","running").lt("lease_expires_at",nowIso);
  await admin.from("identity_lifecycle_events").update({status:"queued"}).eq("status","processing").lt("created_at",new Date(Date.now()-900000).toISOString());

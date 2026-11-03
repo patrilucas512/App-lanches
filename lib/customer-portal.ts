@@ -4,8 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const CUSTOMER_PORTAL_COOKIE = "masterapp_customer_portal";
 
+// The server key is set wherever the app runs, so codes work without a separate portal secret.
 function secret() {
-  const value = process.env.CUSTOMER_PORTAL_OTP_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const value = process.env.CUSTOMER_PORTAL_OTP_SECRET || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!value) throw new Error("Segurança do portal não configurada.");
   return value;
 }
