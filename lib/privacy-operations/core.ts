@@ -121,7 +121,7 @@ export function reidentificationRisks(row:Record<string,any>,allowed:string[]=[]
 }
 
 /* Deletion plan. What may go, what is anonymized and what the law keeps, with the reason for each, before anyone approves. */
-export type SubjectRecord={domain:string;table:string;recordId:string;categories:string[];legalRetention?:string|null;personalLinkFields?:string[];adapterStatus?:"implemented"|"pending"};
+export type SubjectRecord={domain:string;table:string;recordId:string;categories:string[];legalRetention?:string|null;personalLinkFields?:string[];adapterStatus?:"implemented"|"pending";anonymizeOnly?:boolean};
 export function planDeletion(input:{records:SubjectRecord[];holds:Array<{scope_type:string;scope_ref?:string|null;domain?:string|null;status:string;valid_until?:string|null;reason:string}>;subjectRef:string;mode:"deletion"|"anonymization"|"blocking";now:Date}){
   const activeHolds=input.holds.filter(h=>h.status==="active"&&(!h.valid_until||Date.parse(h.valid_until)>input.now.getTime()));
   const heldBy=(r:SubjectRecord)=>activeHolds.find(h=>(h.scope_type==="subject"&&h.scope_ref===input.subjectRef)||(h.scope_type==="dataset"&&(h.domain===r.domain||h.scope_ref===r.table)));
@@ -131,6 +131,8 @@ export function planDeletion(input:{records:SubjectRecord[];holds:Array<{scope_t
     if(r.adapterStatus==="pending")return{...r,decision:"manual",reason:"adapter_pending"};
     if(r.legalRetention||(LEGAL_RETENTION_DOMAINS as readonly string[]).includes(r.domain))return{...r,decision:r.personalLinkFields?.length?"anonymize_link":"retain",reason:`legal_retention:${r.legalRetention||r.domain}`};
     if(input.mode==="blocking")return{...r,decision:"block",reason:"subject_request"};
+    // Rows other records depend on (a customer behind its orders) are anonymized instead of deleted, keeping totals intact.
+    if(r.anonymizeOnly)return{...r,decision:"anonymize",reason:input.mode==="deletion"?"referential_integrity":"subject_request"};
     return{...r,decision:input.mode==="anonymization"?"anonymize":"delete",reason:"subject_request"};
   });
 }
