@@ -282,6 +282,12 @@ export function answerManagerQuestion(question: string, snapshot: ManagerSnapsho
     result.recommendations=["Revise primeiro os sinais de risco e depois as avaliações públicas com prazo vencido."];
     result.action={label:"Abrir Experiência & Reputação",href:"/painel/clientes/experiencia"};return result;
   }
+  if (/privacidade|lgpd|titular|consentimento|dado[s]? pessoa|encarregado|dpo|ripd|reten[cç][aã]o|anonimiza/.test(text)) {
+    const result=base("privacy_operations","Privacidade & LGPD","O módulo mapeia dados pessoais, registra atividades de tratamento, centraliza consentimentos e atende solicitações de titulares com prazos e verificação.",["getPrivacyOverview","findSubjectData","getConsentStatus","getOpenDataSubjectRequests","previewDeletion","getRetentionStatus","getProcessingActivity","draftDsrResponse"],["customer_privacy_requests","consent_records","processing_activities","fact_privacy_requests"]);
+    result.facts=["O assistente só consulta e prepara rascunhos.","Excluir dados, definir base legal, responder ao titular e decidir comunicação de incidente são decisões de pessoas.","Este módulo é ferramenta de operação, não aconselhamento jurídico."];
+    result.recommendations=["Comece pelas solicitações de titulares perto do prazo."];
+    result.action={label:"Abrir Privacidade & LGPD",href:"/painel/seguranca/privacidade"};return result;
+  }
   if (/comunicado|mural|enquete|li e entendi|confirma[cç][aã]o de leitura|comunica[cç][aã]o interna/.test(text)) {
     const result=base("internal_communications","Comunicação interna","Os comunicados têm público definido, leitura obrigatória com prazo e aprovação quando atingem a rede, crise, recall, política ou texto de IA.",["getAnnouncements","getPendingAcknowledgements","draftAnnouncement","summarizeAnnouncement","simplifyLanguage","getCrisisCommunications"],["network_announcements","network_announcement_recipients","fact_comms_reach"]);
     result.facts=["As métricas de leitura são agregadas e têm o total de referência.","O nome de quem não leu só aparece em comunicado obrigatório, para gestores com permissão, e a consulta fica registrada.","O Copiloto só prepara texto: não publica, não aprova e não envia."];

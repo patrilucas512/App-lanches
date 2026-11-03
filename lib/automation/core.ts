@@ -144,6 +144,7 @@ export const ACTION_REGISTRY={
   ,knowledge_notify_owner:{risk:"low",module:"knowledge_base",permission:"knowledge:view",idempotent:true,retry:{max:3,backoffSeconds:30}}
   ,comms_create_draft:{risk:"medium",module:"internal_communications",permission:"comms:create",idempotent:true,retry:{max:2,backoffSeconds:120}}
   ,comms_notify_pending:{risk:"low",module:"internal_communications",permission:"comms:view_ack_status",idempotent:true,retry:{max:3,backoffSeconds:300}}
+  ,privacy_remind_dsr_deadline:{risk:"low",module:"privacy_operations",permission:"privacy:handle_dsr",idempotent:true,retry:{max:3,backoffSeconds:300}}
   ,comms_escalate_manager:{risk:"low",module:"internal_communications",permission:"comms:view_ack_status",idempotent:true,retry:{max:3,backoffSeconds:300}}
   ,knowledge_create_task:{risk:"low",module:"knowledge_base",permission:"knowledge:edit",idempotent:true,retry:{max:3,backoffSeconds:30}}
   ,knowledge_create_communication_draft:{risk:"medium",module:"knowledge_base",permission:"knowledge:edit",idempotent:true,retry:{max:2,backoffSeconds:120}}

@@ -80,7 +80,7 @@ export function canDeliverSubjectData(request:{verification_status?:string|null}
 export function consentDecision(input:{kind:"transactional"|"marketing";purpose:string;channel:string;records:any[]|null;registryAvailable:boolean;now:Date;currentTextVersion?:Record<string,number>;requireCurrentVersion?:boolean}){
   if(input.kind==="transactional")return{allowed:true,reason:"TRANSACTIONAL"};
   if(!input.registryAvailable||input.records==null)return{allowed:false,reason:"REGISTRY_UNAVAILABLE"};
-  const relevant=input.records.filter(x=>x.purpose===input.purpose&&(x.channel===input.channel||x.channel==="any")).sort((a,b)=>String(b.recorded_at||b.created_at).localeCompare(String(a.recorded_at||a.created_at)));
+  const relevant=input.records.filter(x=>(x.purpose_key??x.purpose)===input.purpose&&(x.channel===input.channel||x.channel==="any")).sort((a,b)=>String(b.recorded_at||b.created_at).localeCompare(String(a.recorded_at||a.created_at)));
   const latest=relevant[0];
   if(!latest)return{allowed:false,reason:"NO_CONSENT"};
   if(latest.status!=="granted")return{allowed:false,reason:latest.status==="revoked"?"REVOKED":"EXPIRED"};
@@ -200,14 +200,16 @@ export function privacyChecklistFor(change:{creates_personal_fields?:boolean;new
   return{required:items.length>0,items:[...new Set(items)],dpiaSuggested:dpia};
 }
 const PERSONAL_COLUMN=/^(?:.*_)?(name|full_name|phone|whatsapp|email|cpf|cnpj_cpf|document|tax_id|birth_date|birthday|address|street|postal_code|cep|latitude|longitude|lat|lng|location|ip|ip_address|device_id|allerg[a-z]*|health[a-z_]*|voice_url|recording_url|transcript|photo_url|selfie[a-z_]*)$/i;
-const NOT_PERSONAL=/^(?:.*_)?(product|store|establishment|organization|brand|region|cluster|category|plan|template|file|table|column|domain|policy|role|permission|metric|dataset|feature|event|job|queue|vendor|supplier|channel|purpose|source|display)_name$|^(display_name|name_key|table_name|column_name)$/i;
+const NOT_PERSONAL=/^(?:.*_)?(product|store|establishment|organization|brand|region|cluster|category|plan|template|file|table|column|domain|policy|role|permission|metric|dataset|feature|event|job|queue|vendor|supplier|channel|purpose|source|display|company|competitor|legal|trade|business|brand_display)_name$|^(display_name|name_key|table_name|column_name)$/i;
+const AMBIGUOUS=/^(name|location)$/i,PERSON_TABLE=/customer|contact|member|staff|employee|driver|lead|user|^profiles$|recipient|guest|subject|person|people|patient|courier|cliente/i;
 // CI aid: personal-looking columns a migration adds without an entry in the data map become a warning, never a failure.
 export function detectPersonalColumns(sql:string){
   const out:Array<{table:string;column:string}>=[];
   const clean=String(sql||"").replace(/--[^\n]*/g,"");
   for(const m of clean.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:public\.)?"?(\w+)"?\s+([\s\S]*?);/gi))for(const c of m[2].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/gi))out.push({table:m[1],column:c[1]});
   for(const m of clean.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?\s*\(([\s\S]*?)\)\s*;/gi))for(const line of m[2].split(/,(?![^(]*\))/)){const col=line.trim().match(/^"?(\w+)"?\s+[a-z]/i);if(col&&!/^(constraint|primary|unique|foreign|check)$/i.test(col[1]))out.push({table:m[1],column:col[1]})}
-  return out.filter(x=>PERSONAL_COLUMN.test(x.column)&&!NOT_PERSONAL.test(x.column));
+  // A bare "name" or "location" is personal only on a table about people; on a policy or a purpose it is just a label.
+  return out.filter(x=>PERSONAL_COLUMN.test(x.column)&&!NOT_PERSONAL.test(x.column)&&(!AMBIGUOUS.test(x.column)||PERSON_TABLE.test(x.table)));
 }
 export function unmappedPersonalColumns(detected:Array<{table:string;column:string}>,map:Array<{table_name:string;column_name:string}>){
   const known=new Set(map.map(x=>`${x.table_name}.${x.column_name}`.toLowerCase()));

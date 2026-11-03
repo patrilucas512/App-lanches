@@ -51,7 +51,7 @@ export async function runRetention(ctx:any,input:{policyId:string;mode:"dry_run"
   const held=(c:any)=>datasetHeld||live.some((h:any)=>h.scope_type==="subject"&&[c.organization_customer_id,c.id].includes(h.scope_ref));
   if(!run)run=mustData(await ctx.admin.from("retention_runs").insert({context_id:ctx.contextId,policy_id:policy.id,mode:input.mode,status:input.mode==="dry_run"?"previewed":"running",requested_by:ctx.actorId,started_at:now.toISOString()}).select().single(),"execução");
   const items=due.map((c:any)=>({run_id:run.id,context_id:ctx.contextId,record_ref:String(c.organization_customer_id||c.id),decision:held(c)?"held":"due",reason:held(c)?"legal_hold":`${policy.trigger}>${policy.period_days}d`}));
-  const unique=[...new Map(items.map((x:any)=>[x.record_ref,x])).values()],customerOf=new Map(due.map((c:any)=>[String(c.organization_customer_id||c.id),String(c.id)]));
+  const unique:any[]=[...new Map(items.map((x:any)=>[x.record_ref,x])).values()],customerOf=new Map<string,string>(due.map((c:any)=>[String(c.organization_customer_id||c.id),String(c.id)]));
   if(unique.length)await ctx.admin.from("retention_run_items").upsert(unique,{onConflict:"run_id,record_ref",ignoreDuplicates:true});
   const heldCount=unique.filter((x:any)=>x.decision==="held").length;
   // A dry run writes only its own report. Nothing in the customer data changes.
@@ -67,7 +67,7 @@ export async function runRetention(ctx:any,input:{policyId:string;mode:"dry_run"
       await ctx.admin.from("privacy_deletion_plans").update({status:"approved",approval_id:run.approval_id,approved_by:null}).eq("id",preview.plan.id);
       const result=await executePlan({...ctx,actorType:"system"},{planId:preview.plan.id});
       await ctx.admin.from("retention_run_items").update({decision:result.status==="completed"?"processed":"failed",reason:result.status}).eq("run_id",run.id).eq("record_ref",item.record_ref);
-      result.status==="completed"?processed++:failed++;
+      if(result.status==="completed")processed++;else failed++;
     }catch(error:any){await ctx.admin.from("retention_run_items").update({decision:"failed",reason:String(error?.message||"FAILED").slice(0,120)}).eq("run_id",run.id).eq("record_ref",item.record_ref);failed++}
   }
   const report={executable:true,due:unique.length-heldCount,held:heldCount,processed,failed,action:policy.action};

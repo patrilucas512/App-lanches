@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { PrivacyPortalCenter } from "@/components/privacy-portal-center";
 
 type Json = Record<string, any>;
 const money = (cents = 0) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -47,6 +48,7 @@ export function CustomerPortalApp({ slug, initial, initialOrderId }: { slug:stri
       {tab==="addresses"&&<Addresses addresses={data.addresses||[]} busy={busy} save={payload=>action("save_address",payload)} remove={id=>action("delete_address",{id})}/>} 
       {tab==="notifications"&&<><Title eyebrow="ATUALIZAÇÕES" title="Notificações" text="Pedidos, pagamentos e benefícios em uma única central."/><button onClick={()=>action("mark_notifications_read")}>Marcar como lidas</button><div className="portal-list">{(data.notifications||[]).map((n:Json)=><article className={`portal-notification ${n.read_at?"read":""}`} key={n.id}><b>{n.title}</b><p>{n.body}</p><small>{date(n.created_at)}</small></article>)}{!(data.notifications||[]).length&&<Empty text="Nenhuma notificação por enquanto."/>}</div></>}
       {tab==="profile"&&<Profile customer={data.customer} preferences={data.preferences||{}} busy={busy} saveProfile={p=>action("update_profile",p)} savePreferences={p=>action("set_preferences",p)} privacy={p=>action("privacy_request",p)} requestPhone={p=>action("request_phone_change",p)} confirmPhone={p=>action("confirm_phone_change",p)} logoutAll={()=>action("logout_all")}/>} 
+      {tab==="profile"&&<PrivacyPortalCenter slug={slug}/>}
       {tab==="help"&&<Help orders={orders} config={config} busy={busy} submit={p=>action("support",p)} slug={slug}/>} 
     </section></div><nav className="portal-mobile-nav" aria-label="Navegação da conta">{nav.map(([key,label])=><button key={key} className={tab===key?"active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav></main>;
 

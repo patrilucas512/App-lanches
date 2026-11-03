@@ -2,7 +2,7 @@
 /* Orchestrated deletion: map → preview → approval → execution per domain → verification → evidence → answer.
    Nothing is removed before a person approves, legal holds and legal retention always win, and a domain that fails or still
    needs a manual step leaves the request partial. Steps can be re-run: they converge to the same state. */
-import {aggregateExecution,mustData,planDeletion,planSummary} from "./core.ts";
+import {aggregateExecution,canDeliverSubjectData,mustData,planDeletion,planSummary} from "./core.ts";
 import {contextSalt,executeStep,locateSubjectData,resolveSubject,verifyStep} from "./adapters.ts";
 import {dsrEvent,loadRequest,transitionRequest} from "./dsr.ts";
 import {privacyAudit,privacySettings} from "./server.ts";
@@ -12,7 +12,8 @@ async function activeHolds(ctx:any){const{data}=await ctx.admin.from("legal_hold
 
 export async function previewDeletion(ctx:any,input:{requestId?:string|null;customerId?:string|null;organizationCustomerId?:string|null;mode?:string;retentionRunId?:string|null}){
   let request:any=null,mode=MODE_OF[String(input.mode)]||"deletion";
-  if(input.requestId){request=await loadRequest(ctx,input.requestId);mode=MODE_OF[request.request_type]||mode;if(!["deletion","anonymization","blocking","opposition"].includes(request.request_type))throw new Error("REQUEST_TYPE_INVALID")}
+  if(input.requestId){request=await loadRequest(ctx,input.requestId);mode=MODE_OF[request.request_type]||mode;if(!["deletion","anonymization","blocking","opposition"].includes(request.request_type))throw new Error("REQUEST_TYPE_INVALID");
+    if(["received","verifying"].includes(request.status)){await transitionRequest(ctx,{id:request.id,to:"in_progress",note:"Prévia de exclusão gerada."});request=await loadRequest(ctx,request.id)}}
   const subject=await resolveSubject(ctx.admin,{contextId:ctx.contextId,organizationId:ctx.organizationId,customerId:request?.customer_id||input.customerId,organizationCustomerId:request?.organization_customer_id||input.organizationCustomerId});
   if(!subject)throw new Error("SUBJECT_NOT_FOUND");
   const[records,holds]=await Promise.all([locateSubjectData(ctx.admin,subject),activeHolds(ctx)]);
@@ -56,6 +57,8 @@ export async function executePlan(ctx:any,input:{planId:string;limit?:number}){
   if(ctx.actorType&&!["user","system"].includes(ctx.actorType))throw new Error("HUMAN_DECISION_REQUIRED");
   const plan=mustData(await ctx.admin.from("privacy_deletion_plans").select("*").eq("id",input.planId).eq("context_id",ctx.contextId).single(),"plano");
   if(!["approved","running","partially_completed"].includes(plan.status))throw new Error("APPROVAL_REQUIRED");
+  // A subject's request is only acted on after the identity check; retention runs have no subject asking.
+  if(plan.request_id&&!canDeliverSubjectData(await loadRequest(ctx,plan.request_id)))throw new Error("VERIFICATION_REQUIRED");
   await ctx.admin.from("privacy_deletion_plans").update({status:"running",executed_by:plan.executed_by||ctx.actorId,updated_at:new Date().toISOString()}).eq("id",plan.id);
   // Holds created after the preview still win: their domains are skipped now.
   const holds=await activeHolds(ctx),heldDomains=new Set(holds.filter((h:any)=>h.scope_type==="dataset").map((h:any)=>h.domain||h.scope_ref)),subjectHeld=holds.some((h:any)=>h.scope_type==="subject"&&h.scope_ref===plan.subject_ref);
@@ -70,7 +73,7 @@ export async function executePlan(ctx:any,input:{planId:string;limit?:number}){
         if(result.status==="skipped_retained"){await ctx.admin.from("privacy_deletion_steps").update({status:"skipped_retained",executed_at:now}).eq("id",step.id);continue}}
       const ok=await verifyStep(ctx.admin,step);
       await ctx.admin.from("privacy_deletion_steps").update(ok?{status:"verified",executed_at:step.executed_at||now,verified_at:now,error_code:null}:{status:"failed",error_code:"VERIFICATION_FAILED"}).eq("id",step.id);
-      ok?done++:failed++;
+      if(ok)done++;else failed++;
     }catch(error:any){await ctx.admin.from("privacy_deletion_steps").update({status:"failed",error_code:String(error?.message||"FAILED").slice(0,120)}).eq("id",step.id);failed++}
   }
   return finalizePlan(ctx,plan,{done,failed});

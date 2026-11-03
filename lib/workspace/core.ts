@@ -46,3 +46,4 @@ export {SOC_WIDGETS as SECURITY_OPERATIONS_WORKSPACE_WIDGETS} from "@/lib/securi
 export {IDGOV_WIDGETS as IDENTITY_GOVERNANCE_WORKSPACE_WIDGETS} from "@/lib/identity-governance/integrations";
 export {CX_WIDGETS as CUSTOMER_EXPERIENCE_WORKSPACE_WIDGETS} from "@/lib/customer-experience/integrations";
 export {COMMS_WIDGETS as INTERNAL_COMMUNICATIONS_WORKSPACE_WIDGETS} from "@/lib/internal-communications/integrations";
+export {PRIVACY_WIDGETS as PRIVACY_WORKSPACE_WIDGETS} from "@/lib/privacy-operations/integrations";
