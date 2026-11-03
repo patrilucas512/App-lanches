@@ -3,9 +3,10 @@
    deadlines come from settings, every step lands in the request timeline, and the answer goes out only after a person approves. */
 import {createHash,createHmac,randomInt,randomUUID} from "node:crypto";
 import {DSR_CHANNELS,DSR_TYPES,canDeliverSubjectData,canTransitionDsr,dsrAlert,mustData,verificationRequirement} from "./core.ts";
-import {contextSalt,exportSubjectData,resolveSubject} from "./adapters.ts";
+import {contextSalt,exportSubjectData,resolveLeadSubject,resolveRequestSubject,resolveStaffSubject,resolveSubject} from "./adapters.ts";
 import {consentStatus,recordConsent} from "./consents.ts";
 import {emitPrivacyEvent,privacyAudit,privacySettings} from "./server.ts";
+import {privacyRules} from "./policies.ts";
 
 const TERMINAL=["fulfilled","partially_fulfilled","rejected_with_reason","closed"],ERASURE_TYPES=["deletion","anonymization","blocking","opposition"];
 export async function dsrEvent(ctx:any,request:any,input:{type:string;from?:string|null;to?:string|null;note?:string|null;evidence?:Record<string,unknown>}){
@@ -17,20 +18,26 @@ export async function loadRequest(ctx:any,id:string){
   return request;
 }
 
-export async function createRequest(ctx:any,input:{type:string;channel:string;customerId?:string|null;organizationCustomerId?:string|null;subjectCategory?:string;subjectRef?:string|null;details?:string|null;storeId?:string|null;idempotencyKey?:string|null;portalSessionVerified?:boolean}){
+export async function createRequest(ctx:any,input:{type:string;channel:string;customerId?:string|null;organizationCustomerId?:string|null;staffMemberId?:string|null;leadId?:string|null;subjectCategory?:string;subjectRef?:string|null;details?:string|null;storeId?:string|null;idempotencyKey?:string|null;portalSessionVerified?:boolean}){
   if(!(DSR_TYPES as readonly string[]).includes(input.type))throw new Error("REQUEST_TYPE_INVALID");
   if(!(DSR_CHANNELS as readonly string[]).includes(input.channel))throw new Error("CHANNEL_INVALID");
   const category=input.subjectCategory||"end_customer";
   let subject:any=null;
   if(category==="end_customer"){subject=await resolveSubject(ctx.admin,{contextId:ctx.contextId,organizationId:ctx.organizationId,customerId:input.customerId,organizationCustomerId:input.organizationCustomerId});if(!subject)throw new Error("SUBJECT_NOT_FOUND")}
+  // Employees and drivers belong to the store's context; leads only to MasterApp's own (platform) context.
+  else if(["employee","driver"].includes(category)&&input.staffMemberId){if(!ctx.organizationId)throw new Error("TENANT_CONTEXT_REQUIRED");subject=await resolveStaffSubject(ctx.admin,{contextId:ctx.contextId,organizationId:ctx.organizationId,staffMemberId:input.staffMemberId,category:category as "employee"|"driver"});if(!subject)throw new Error("SUBJECT_NOT_FOUND")}
+  else if(category==="lead"&&input.leadId){if(ctx.organizationId)throw new Error("PLATFORM_CONTEXT_REQUIRED");subject=await resolveLeadSubject(ctx.admin,{contextId:ctx.contextId,leadId:input.leadId});if(!subject)throw new Error("SUBJECT_NOT_FOUND")}
   else if(!String(input.subjectRef||"").trim())throw new Error("SUBJECT_REQUIRED");
-  const requirement=verificationRequirement({type:input.type,channel:input.channel,portalSessionVerified:input.portalSessionVerified});
-  const row={organization_id:ctx.organizationId,context_id:ctx.contextId,establishment_id:input.storeId||null,customer_id:subject?.customerIds[0]||null,organization_customer_id:subject?.organizationCustomerId||null,subject_category:category,subject_ref:subject?.subjectRef||String(input.subjectRef).slice(0,120),request_type:input.type,channel:input.channel,details:input.details?String(input.details).slice(0,1000):null,
+  // Deadline and identity level come from the Phase 79 policy when there is one, otherwise from the context's settings.
+  const rules=await privacyRules(ctx),base=verificationRequirement({type:input.type,channel:input.channel,portalSessionVerified:input.portalSessionVerified}),method=rules.verificationMethod(input.type,base.method);
+  const requirement=method==="manual_review"?{...base,method,required:true}:base,deadline=rules.deadlineDays(input.type),receivedAt=new Date();
+  const row={organization_id:ctx.organizationId,context_id:ctx.contextId,establishment_id:input.storeId||null,customer_id:subject?.customerIds?.[0]||null,organization_customer_id:subject?.organizationCustomerId||null,subject_category:category,subject_ref:subject?.subjectRef||String(input.subjectRef).slice(0,120),request_type:input.type,channel:input.channel,details:input.details?String(input.details).slice(0,1000):null,
+    received_at:receivedAt.toISOString(),due_at:deadline.days?new Date(receivedAt.getTime()+deadline.days*864e5).toISOString():null,
     verification_method:requirement.method,verification_status:requirement.required?"pending":input.portalSessionVerified?"verified":"not_required",verified_at:!requirement.required&&input.portalSessionVerified?new Date().toISOString():null,idempotency_key:input.idempotencyKey||null};
   const{data,error}=await ctx.admin.from("customer_privacy_requests").insert(row).select().single();
   if(error?.code==="23505"&&input.idempotencyKey){const{data:existing}=await ctx.admin.from("customer_privacy_requests").select("*").eq("context_id",ctx.contextId).eq("idempotency_key",input.idempotencyKey).single();return{request:existing,duplicate:true}}
   if(error)throw new Error(`solicitação: ${error.message}`);
-  await dsrEvent(ctx,data,{type:"received",to:"received",evidence:{channel:input.channel,verification:requirement.method}});
+  await dsrEvent(ctx,data,{type:"received",to:"received",evidence:{channel:input.channel,verification:requirement.method,deadline_source:deadline.source,policy_id:(deadline as any).policyId||null,policy_version:(deadline as any).policyVersion||null}});
   await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorType==="subject"?null:ctx.actorId,actorType:ctx.actorType||"user",action:"dsr_received",resourceType:"data_subject_request",resourceId:data.id,metadata:{type:input.type,channel:input.channel}});
   await emitPrivacyEvent(ctx.admin,{organizationId:ctx.organizationId,storeId:input.storeId,event:"privacy.dsr_received",aggregateType:"data_subject_request",aggregateId:data.id,payload:{type:input.type,due_at:data.due_at}}).catch(()=>{});
   return{request:data,duplicate:false};
@@ -98,7 +105,7 @@ export async function generateAccessPackage(ctx:any,input:{id:string}){
   const request=await loadRequest(ctx,input.id);
   if(!["access","portability","confirmation"].includes(request.request_type))throw new Error("REQUEST_TYPE_INVALID");
   if(!canDeliverSubjectData(request))throw new Error("VERIFICATION_REQUIRED");
-  const subject=await resolveSubject(ctx.admin,{contextId:ctx.contextId,organizationId:ctx.organizationId,customerId:request.customer_id,organizationCustomerId:request.organization_customer_id});
+  const subject=await resolveRequestSubject(ctx.admin,ctx,request);
   if(!subject)throw new Error("SUBJECT_NOT_FOUND");
   const settings=await privacySettings(ctx.admin,ctx.contextId);
   const payload={...await exportSubjectData(ctx.admin,subject),consents:await consentStatus(ctx.admin,ctx.contextId,subject.subjectRef),request:{id:request.id,type:request.request_type,received_at:request.received_at}};
@@ -172,10 +179,10 @@ export async function approveResponse(ctx:any,input:{id:string}){
 
 // Deadline scan for the worker and the overview: records the alert level and tells the assignee once per level.
 export async function scanDeadlines(ctx:any,now=new Date()){
-  const settings=await privacySettings(ctx.admin,ctx.contextId);
+  const alertDays=(await privacyRules(ctx)).alertDays();
   const{data}=await ctx.admin.from("customer_privacy_requests").select("id,status,due_at,last_alert_level,assignee_id,request_type,establishment_id").eq("context_id",ctx.contextId).not("status","in",`(${TERMINAL.join(",")})`).limit(2000);
   let alerted=0;
-  for(const request of data||[]){const level=dsrAlert({dueAt:request.due_at,status:request.status,now,alertDaysBefore:settings.dsr_alert_days_before});
+  for(const request of data||[]){const level=dsrAlert({dueAt:request.due_at,status:request.status,now,alertDaysBefore:alertDays});
     if(level===request.last_alert_level||!["due_soon","overdue"].includes(level))continue;
     await ctx.admin.from("customer_privacy_requests").update({last_alert_level:level}).eq("id",request.id);
     if(ctx.notify&&request.assignee_id&&request.establishment_id)await ctx.notify(ctx.admin,{organizationId:ctx.organizationId,storeId:request.establishment_id,eventType:`privacy.dsr_${level}`,sourceType:"data_subject_request",sourceId:request.id,recipientUserId:request.assignee_id,priority:level==="overdue"?"critical":"high",requiresAction:true,title:level==="overdue"?"Solicitação de titular vencida":"Solicitação de titular perto do prazo",summary:"Abra Privacidade & LGPD para ver a solicitação.",route:`/painel/seguranca/privacidade?id=${request.id}`}).catch(()=>{});

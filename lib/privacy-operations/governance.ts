@@ -4,6 +4,7 @@
 import {randomUUID} from "node:crypto";
 import {DATA_CATEGORIES,dpiaRequired,mustData,privacyChecklistFor} from "./core.ts";
 import {privacyAudit,privacySettings} from "./server.ts";
+import {privacyRules} from "./policies.ts";
 
 const categories=(list:unknown)=>(Array.isArray(list)?list:[]).map(String).filter(x=>(DATA_CATEGORIES as readonly string[]).includes(x));
 
@@ -52,7 +53,8 @@ export async function exportSubprocessors(ctx:any){
 /* Privacy incidents. The incident itself lives in Phase 59 (category privacy, confidential); this records the assessment,
    the deadlines and evidence, and the human decision about telling the ANPD and the subjects. */
 export async function openPrivacyIncident(ctx:any,input:{title:string;summary:string;severity?:string;source?:"manual"|"soc"|"incident";socAlertRef?:string|null;incidentId?:string|null;storeId?:string|null}){
-  const settings=await privacySettings(ctx.admin,ctx.contextId);
+  // Stays empty until the DPO defines it, in a Phase 79 policy or in the settings.
+  const deadlineDays=(await privacyRules(ctx)).incidentDeadlineDays();
   let incident:any;
   if(input.incidentId){incident=mustData(await ctx.admin.from("operational_incidents").select("id,organization_id,detected_at").eq("id",input.incidentId).eq("organization_id",ctx.organizationId).single(),"incidente")}
   else{
@@ -61,7 +63,7 @@ export async function openPrivacyIncident(ctx:any,input:{title:string;summary:st
     incident=mustData(await ctx.admin.from("operational_incidents").insert({organization_id:ctx.organizationId,store_id:input.storeId||null,incident_number:`PRIV-${new Date().getFullYear()}-${randomUUID().slice(0,8).toUpperCase()}`,title:title.slice(0,180),summary:summary.slice(0,2000),category:"privacy",severity,severity_reason:"Incidente de privacidade registrado em Privacidade & LGPD.",status:"detected",visibility:"confidential",source_type:input.source==="soc"?"security_operations":"privacy_operations",source_id:input.socAlertRef||null,idempotency_key:`privacy:${randomUUID()}`,owner_user_id:ctx.actorId,created_by:ctx.actorId}).select().single(),"incidente");
   }
   const detected=incident.detected_at||new Date().toISOString();
-  const assessment=mustData(await ctx.admin.from("privacy_incident_assessments").insert({incident_id:incident.id,context_id:ctx.contextId,source:input.source||"manual",soc_alert_ref:input.socAlertRef||null,detected_at:detected,notification_due_at:settings.incident_notification_deadline_days?new Date(Date.parse(detected)+settings.incident_notification_deadline_days*864e5).toISOString():null,created_by:ctx.actorId}).select().single(),"avaliação");
+  const assessment=mustData(await ctx.admin.from("privacy_incident_assessments").insert({incident_id:incident.id,context_id:ctx.contextId,source:input.source||"manual",soc_alert_ref:input.socAlertRef||null,detected_at:detected,notification_due_at:deadlineDays?new Date(Date.parse(detected)+Number(deadlineDays)*864e5).toISOString():null,created_by:ctx.actorId}).select().single(),"avaliação");
   await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"privacy_incident_opened",resourceType:"privacy_incident_assessment",resourceId:assessment.id,metadata:{incident_id:incident.id,source:input.source||"manual"}});
   return{incident,assessment};
 }

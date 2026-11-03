@@ -2,6 +2,7 @@
 /* ROPA and legal bases. The system records what the tenant's legal team decided; it never picks a basis on its own. */
 import {DATA_CATEGORIES,LEGAL_BASIS_KEYS,SUBJECT_CATEGORIES,dpiaRequired,mustData,ropaIssues} from "./core.ts";
 import {privacyAudit,privacySettings} from "./server.ts";
+import {privacyRules} from "./policies.ts";
 
 const BASIS_LABELS:Record<string,string>={consent:"Consentimento",contract:"Execução de contrato",legal_obligation:"Cumprimento de obrigação legal",legitimate_interest:"Legítimo interesse",exercise_of_rights:"Exercício regular de direitos",credit_protection:"Proteção do crédito",health_protection:"Tutela da saúde",other:"Outra (descrever)"};
 export async function ensureLegalBases(admin:any,contextId:string){
@@ -29,7 +30,9 @@ export async function saveActivity(ctx:any,input:any){
   if(input.id){const current=mustData(await ctx.admin.from("processing_activities").select("*").eq("id",input.id).eq("context_id",ctx.contextId).single(),"atividade");saved=mustData(await ctx.admin.from("processing_activities").update({...row,status,version:current.version+1}).eq("id",current.id).select().single(),"atividade")}
   else saved=mustData(await ctx.admin.from("processing_activities").insert({...row,status,context_id:ctx.contextId,created_by:ctx.actorId}).select().single(),"atividade");
   await ctx.admin.from("processing_activity_versions").insert({activity_id:saved.id,context_id:ctx.contextId,version:saved.version,snapshot:saved,change_note:input.change_note||null,edited_by:ctx.actorId});
-  const dpia=dpiaRequired({...saved,shares_with_third_parties:(saved.sharing||[]).length>0||(saved.subprocessor_vendor_ids||[]).length>0},settings.dpia_triggers);
+  const base=dpiaRequired({...saved,shares_with_third_parties:(saved.sharing||[]).length>0||(saved.subprocessor_vendor_ids||[]).length>0},settings.dpia_triggers);
+  const byPolicy=(await privacyRules(ctx)).dpiaByPolicy({data_categories:(saved.data_categories||[]).join(","),uses_ai:saved.uses_ai,profiling:saved.profiling,location_monitoring:saved.location_monitoring});
+  const dpia=byPolicy&&!base.required?{required:true,reasons:[...base.reasons,"policy_engine"]}:base;
   await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:input.id?"ropa_updated":"ropa_created",resourceType:"processing_activity",resourceId:saved.id,metadata:{version:saved.version,status,legal_basis:saved.legal_basis_key,dpia_required:dpia.required}});
   return{activity:saved,issues,dpia};
 }

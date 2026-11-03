@@ -1,6 +1,6 @@
 import test from"node:test";import assert from"node:assert/strict";import{readFile,readdir}from"node:fs/promises";
 import{PRIVACY_FLAGS,PRIVACY_PERMISSIONS,PrivacyAccessService,anonymizeValue,canSeeContext,consentDecision,detectPersonalColumns,dsrAlert,dsrDueAt,planDeletion,reidentificationRisks,retentionRunGate,unmappedPersonalColumns,verificationRequirement}from"../lib/privacy-operations/core.ts";
-import{ADAPTER_SPECS,IMPLEMENTED_DOMAINS,PENDING_ADAPTERS,locateSubjectData,resolveSubject}from"../lib/privacy-operations/adapters.ts";
+import{ADAPTER_SPECS,IMPLEMENTED_DOMAINS,contextSalt,executeStep,locateSubjectData,resolveSubject}from"../lib/privacy-operations/adapters.ts";
 import{canonicalAllowedSet,marketingConsentGate,recordConsent}from"../lib/privacy-operations/consents.ts";
 import{approveResponse,confirmVerification,createRequest,generateAccessPackage,loadRequest,saveResponseDraft,scanDeadlines,startVerification,transitionRequest}from"../lib/privacy-operations/dsr.ts";
 import{decidePlan,executePlan,previewDeletion,requestPlanApproval}from"../lib/privacy-operations/deletion.ts";
@@ -79,7 +79,8 @@ test("T03 the data map finds the test subject in every domain",async()=>{
  assert.deepEqual(subject.customerIds,["c1"]);assert.equal(subject.subjectRef,"oc1");
  const found=await locateSubjectData(admin,subject),domains=new Set(found.map(x=>x.domain));
  for(const d of["customers","orders","delivery","reservations","whatsapp","voice","customer_experience","journeys","fiscal","financial","consents"])assert.ok(domains.has(d),`domínio ${d}`);
- for(const p of PENDING_ADAPTERS)assert.ok(found.some(x=>x.domain===p.domain&&x.adapterStatus==="pending"),`pendente ${p.domain}`);
+ // Since Phase 96 every domain has an adapter; a customer without marketplace orders has no manual step left.
+ assert.ok(!found.some(x=>x.adapterStatus==="pending"),"no manual step for this subject");
  assert.ok(!found.some(x=>x.recordId==="o9"),"never the other tenant's order");
 });
 test("T04 canonical consent is read by Marketing, Journeys, CX and WhatsApp",async()=>{
@@ -114,7 +115,7 @@ test("T07 an access request produces the subject's complete package",async()=>{
  const{package:pack}=await generateAccessPackage(ctx,{id:request.id});
  const body=JSON.parse([...admin.files.values()][0]);
  for(const d of["customers","orders","reservations","whatsapp","fiscal"])assert.ok(body.domains[d],`pacote sem ${d}`);
- assert.deepEqual(pack.missing_domains,PENDING_ADAPTERS.map(x=>x.domain));
+ assert.deepEqual(pack.missing_domains,[],"nothing is left out of the package");
  assert.ok(!JSON.stringify(body).includes("Outra Pessoa"),"no other subject in the package");
  const audit=admin.tables.privacy_audit_events.find(e=>e.action==="access_package_generated");
  assert.ok(audit.metadata.sha256&&!JSON.stringify(audit).includes("Maria"));
@@ -126,10 +127,10 @@ test("T08 deletion preview says what is deleted, anonymized and kept",async()=>{
  assert.equal(by.customers.anonymize,2,"customer records stay anonymous for orders");
  assert.equal(by.orders.anonymize,2);assert.equal(by.orders.delete,0);
  assert.equal(by.fiscal.anonymize,1);assert.match(by.fiscal.reasons.join(),/legal_retention:fiscal/);
- assert.equal(by.financial.retain,1);assert.equal(by.workforce.manual,1);
+ assert.equal(by.financial.retain,1);assert.ok(!preview.domains.some(d=>d.manual>0),"no manual step");
  assert.equal(admin.tables.customers.find(c=>c.id==="c1").name,"Maria Teste","a preview changes nothing");
 });
-const approveAndRun=async(admin,request,over={})=>{const ctx=ctxOf(admin,over),preview=await previewDeletion(ctx,{requestId:request.id});await requestPlanApproval(ctx,{planId:preview.plan.id});await decidePlan(ctxOf(admin,{actorId:"dpo"}),{planId:preview.plan.id,decision:"approved",reason:"Pedido verificado"});return{plan:preview.plan,result:await executePlan(ctx,{planId:preview.plan.id})}};
+const approveAndRun=async(admin,request,over={})=>{const ctx=ctxOf(admin,over),preview=await previewDeletion(ctx,{requestId:request.id});await requestPlanApproval(ctx,{planId:preview.plan.id});await decidePlan(ctxOf(admin,{actorId:"dpo"}),{planId:preview.plan.id,decision:"approved",reason:"Pedido verificado"});return{plan:preview.plan,result:await executePlan(ctxOf(admin,{actorId:"operador"}),{planId:preview.plan.id})}};
 test("T09 fiscal and financial records stay, with the personal link anonymized",async()=>{
  const admin=fakeDb(seed()),request=await verifiedRequest(admin,"deletion");await approveAndRun(admin,request);
  const fiscal=admin.tables.fiscal_documents.find(x=>x.id==="fd1");assert.ok(fiscal);assert.equal(fiscal.customer_id,null);assert.equal(fiscal.total_cents,4500);
@@ -156,10 +157,13 @@ test("T12 deletion is idempotent and resumable",async()=>{
  let failing=true;const admin=fakeDb(seed(),{fail:({table,op})=>failing&&table==="whatsapp_messages"&&op==="update"?{message:"transient"}:null});
  const request=await verifiedRequest(admin,"anonymization"),{plan,result}=await approveAndRun(admin,request);
  assert.ok(result.open_domains.includes("whatsapp"));
- failing=false;const again=await executePlan(ctxOf(admin),{planId:plan.id});
+ failing=false;const again=await executePlan(ctxOf(admin,{actorId:"operador"}),{planId:plan.id});
  assert.ok(!again.open_domains.includes("whatsapp"),"resumed and finished");
- const snapshot=JSON.stringify(admin.tables.customers);await executePlan(ctxOf(admin),{planId:plan.id});
- assert.equal(JSON.stringify(admin.tables.customers),snapshot,"a second run converges to the same state");
+ // Running every step again changes nothing: each one converges to the same state.
+ const snapshot=JSON.stringify([admin.tables.customers,admin.tables.orders,admin.tables.whatsapp_messages]),salt=await contextSalt(admin,"ctx");
+ for(const step of admin.tables.privacy_deletion_steps.filter(x=>x.plan_id===plan.id&&x.decision!=="manual"))await executeStep(admin,step,salt);
+ assert.equal(JSON.stringify([admin.tables.customers,admin.tables.orders,admin.tables.whatsapp_messages]),snapshot,"a second run converges to the same state");
+ await assert.rejects(executePlan(ctxOf(admin,{actorId:"operador"}),{planId:plan.id}),/APPROVAL_REQUIRED/,"a completed plan is closed");
 });
 test("T13 anonymization keeps aggregate totals",async()=>{
  const admin=fakeDb(seed()),sum=()=>admin.tables.orders.reduce((n,o)=>n+o.total_cents,0),count=admin.tables.orders.length,before=sum();
@@ -266,7 +270,7 @@ test("T23 a module failure does not block orders",async()=>{
 });
 test("T24 domain adapters cover the brief and pending ones are explicit",()=>{
  for(const d of["customers","orders","delivery","whatsapp","voice","reservations","journeys","customer_experience"])assert.ok(IMPLEMENTED_DOMAINS.includes(d));
- assert.ok(ADAPTER_SPECS.every(s=>s.anonymizeOnly||s.deleteRow||s.legalRetention),"each table says how it is handled");
+ assert.ok(ADAPTER_SPECS.every(s=>s.anonymizeOnly||s.deleteRow||s.legalRetention||s.storage),"each table says how it is handled");
  assert.throws(()=>anonymizeValue("tokenize","x",{salt:"x".repeat(32)}),/TOKENIZATION_REQUIRES_GOVERNED_VAULT/);
  assert.notEqual(anonymizeValue("hash","11900000001",{salt:"a".repeat(32)}),anonymizeValue("hash","11900000001",{salt:"b".repeat(32)}),"salt per tenant");
 });
@@ -277,7 +281,8 @@ test("T25 a deletion request is fulfilled only by a completed plan, never by a c
  assert.equal(admin.tables.customers.find(c=>c.id==="c1").name,"Maria Teste","nothing was deleted, so it cannot be marked done");
  const access=await verifiedRequest(admin,"access");await transitionRequest(ctx,{id:access.id,to:"in_progress"});
  assert.equal((await transitionRequest(ctx,{id:access.id,to:"fulfilled"})).status,"fulfilled","other types keep the manual close");
- const admin2=fakeDb(seed()),req2=await verifiedRequest(admin2,"deletion");const{result}=await approveAndRun(admin2,req2,{});
+ // A marketplace partner without an erasure API is a manual step, so the request stays partial until someone confirms.
+ const admin2=fakeDb({...seed(),marketplace_order_links:[{id:"ml1",internal_order_id:"o1",snapshot_id:"snap1",connection_id:"conn1"}],marketplace_order_snapshots:[{id:"snap1",normalized_snapshot:{customer_name:"Maria Teste",items:[1]}}]}),req2=await verifiedRequest(admin2,"deletion");const{result}=await approveAndRun(admin2,req2,{});
  assert.equal(result.status,"partially_completed","pending domains keep it partial");
  assert.equal(admin2.tables.customer_privacy_requests.find(r=>r.id===req2.id).status,"partially_fulfilled");
 });
