@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* Surveys and review requests. The official channels are injected, so routes, workers and tests share this code. */
 import {createHash,randomBytes} from "node:crypto";
+import {marketingConsentGate} from "../privacy-operations/consents.ts";
 
 export const SURVEY_TRIGGERS=["order_delivered","order_picked_up","table_closed","reservation_completed","support_conversation_closed","subscription_cycle","manual"] as const;
 export const SURVEY_CHANNELS=["whatsapp","qr_table","receipt_link","customer_portal","kiosk"] as const;
@@ -66,6 +67,8 @@ export async function processDispatch(ctx:{admin:any;siteUrl:string;send:(input:
     if(!contact)return finish("skipped",{skip_reason:"no_contact"});
     const decision=eligibility.evaluate({expired:Boolean(dispatch.expires_at&&Date.parse(dispatch.expires_at)<now.getTime()),alreadyAnswered:Boolean(existing?.answered_at),alreadyRequested:Boolean(automation),blocked:Boolean(contact.blocked_at),optedOut:Boolean(contact.marketing_opt_out)||preference?.whatsapp_marketing===false||preference?.transactional_enabled===false,requiresOptIn:settings?.survey_requires_opt_in!==false,marketingStatus:contact.marketing_status==="unknown"?customer?.marketing_status:contact.marketing_status,lastSurveyAt:last?.sent_at,maxFrequencyDays:definition?.max_frequency_days??settings?.max_survey_frequency_days??30,localHour:eligibility.localHour(now,store?.timezone),quietStart:settings?.quiet_start_hour??21,quietEnd:settings?.quiet_end_hour??9,now:now.getTime()}) as any;
     if(decision.decision==="skip")return finish(decision.reason==="expired"?"expired":"skipped",{skip_reason:decision.reason});
+    // With Privacy Operations on for the store, the canonical registry also has to allow it. If it cannot be read, no survey goes out.
+    if(settings?.survey_requires_opt_in!==false){const gate=await marketingConsentGate(admin,{storeId:dispatch.store_id,customerId:dispatch.customer_id,purposeKey:"satisfaction_survey",channel:"whatsapp",now});if(gate.mode==="canonical"&&!gate.allowed)return finish("skipped",{skip_reason:"no_consent"})}
     if(decision.decision==="delay")return finish("queued",{scheduled_at:new Date(now.getTime()+decision.hours*36e5).toISOString(),attempts:dispatch.attempts});
     // A free-form WhatsApp message only reaches a customer inside the 24 hour window; an approved template is out of scope here.
     if(!contact.last_message_at||now.getTime()-Date.parse(contact.last_message_at)>WINDOW_MS)return finish("skipped",{skip_reason:"no_open_window"});

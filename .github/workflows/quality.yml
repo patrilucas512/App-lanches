@@ -29,6 +29,9 @@ jobs:
         run: pnpm qa:secret-scan
       - name: migration-safety
         run: pnpm qa:migration-safety
+      # Warning only: personal-looking columns without an entry in personal_data_map (Phase 95).
+      - name: personal-data-map
+        run: pnpm qa:personal-data
       - name: dependency-audit
         run: pnpm audit --audit-level high
   test-suites:
