@@ -4,7 +4,7 @@ import{PRIVACY_FLAGS,PrivacyAccessService}from"@/lib/privacy-operations/core";im
 import{resolveFinding,saveMapEntry,syncWithDataGovernance}from"@/lib/privacy-operations/inventory";import{exportRopa,saveActivity}from"@/lib/privacy-operations/ropa";import{consentStatus,publishConsentText,recordConsent}from"@/lib/privacy-operations/consents";
 import{applyCorrection,approveResponse,confirmVerification,createRequest,generateAccessPackage,loadRequest,packageLink,revokeAllMarketing,saveResponseDraft,startVerification,transitionRequest,verifyManually}from"@/lib/privacy-operations/dsr";
 import{confirmManualStep,decidePlan,executePlan,previewDeletion,requestPlanApproval}from"@/lib/privacy-operations/deletion";import{createHold,decideRetentionRun,releaseHold,requestRetentionRun,reviewHold,runRetention,savePolicy}from"@/lib/privacy-operations/retention";
-import{assessIncident,decideDesignReview,decideIncidentNotification,dpoOpinion,exportSubprocessors,incidentDrafts,markIncidentNotified,openDesignReview,openPrivacyIncident,saveAiUse,saveDataLocation,saveDpia,saveSubprocessor}from"@/lib/privacy-operations/governance";import{privacyCopilot}from"@/lib/privacy-operations/integrations";
+import{assessIncident,decideDesignReview,decideIncidentNotification,dpoOpinion,exportSubprocessors,incidentDrafts,markIncidentNotified,openDesignReview,openPrivacyIncident,saveAiUse,saveDataLocation,saveDpia,saveSubprocessor}from"@/lib/privacy-operations/governance";import{privacyCopilot}from"@/lib/privacy-operations/integrations";import{disableStore,enableStore,goLiveChecklist}from"@/lib/privacy-operations/golive";import{activePrivacyPolicies,previewDeadlineImpact,privacyPolicyTemplates}from"@/lib/privacy-operations/policies";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,STATUS:Record<string,number>={AUTH:401,FORBIDDEN:403,FEATURE_DISABLED:403,REQUEST_NOT_FOUND:404,SUBJECT_NOT_FOUND:404,PACKAGE_NOT_FOUND:404,PRIVACY_NOT_INSTALLED:503},response=(body:any,status=200)=>NextResponse.json(body,{status,headers:{"cache-control":"private, no-store","x-content-type-options":"nosniff"}});
 const id=(value:unknown)=>{if(!value||!UUID.test(String(value)))throw new Error("INVALID_ID");return String(value)};
 // A database without the Phase 95 migration answers 503 in JSON; nothing else in the app depends on this route.
@@ -17,7 +17,11 @@ async function context(storeId:string,wantPlatform=false){
  if(isNotInstalled(customError)||isNotInstalled(flagError))throw new PrivacyUnavailable();
  if(!local&&!org)throw new Error("FORBIDDEN");
  const plan:any=(subscription as any)?.plans,flags=Object.fromEntries(PRIVACY_FLAGS.map(f=>[f,(flagRow as any)?.[f]===true||plan?.[f]===true])) as Record<string,boolean>;
- if(!flags.privacy_operations_enabled)throw new Error("FEATURE_DISABLED");
+ // What reaches customers is the store's own flag, switched on only through the go-live checklist. A plan flag only
+ // opens the configuration screens, like privacy_setup_enabled.
+ flags.privacy_operations_enabled=(flagRow as any)?.privacy_operations_enabled===true;
+ flags.privacy_setup_enabled=flags.privacy_setup_enabled||plan?.privacy_operations_enabled===true;
+ if(!flags.privacy_operations_enabled&&!flags.privacy_setup_enabled)throw new Error("FEATURE_DISABLED");
  const superadmin=profile?.is_superadmin===true,permissions=new PrivacyAccessService().resolve({orgRole:org?.role,storeRole:local?.role,explicit:(custom||[]).map((x:any)=>x.permission_key)});
  // The platform context (MasterApp as controller of its SaaS customers) is only for MasterApp's own superadmins.
  let ctxRow:any;
@@ -45,7 +49,8 @@ async function run(ctx:any,action:string,body:any):Promise<any>{switch(action){
  case"publish_consent_text":need(ctx,"privacy:manage_consents");return publishConsentText(ctx,{purposeKey:String(body.purpose_key||""),body:String(body.body||""),material:body.material===true});
  case"record_consent":need(ctx,"privacy:manage_consents");tenantOnly(ctx);return recordConsent(ctx,{customerId:id(body.customer_id),subjectRef:String(body.subject_ref||body.customer_id),storeId:ctx.storeId,purposeKey:String(body.purpose_key||""),channel:String(body.channel||"any"),status:body.status==="granted"?"granted":"revoked",origin:"establishment_manual",evidence:{note:String(body.note||"").slice(0,300)}});
  case"consent_status":{need(ctx,"privacy:view_subject_data");const request=await loadRequest(ctx,id(body.request_id));await privacyAudit(ctx.admin,{organizationId:ctx.organizationId,contextId:ctx.contextId,actorId:ctx.actorId,action:"subject_data_viewed",resourceType:"data_subject_request",resourceId:request.id,metadata:{view:"consents"}});return{consents:await consentStatus(ctx.admin,ctx.contextId,request.subject_ref)}}
- case"create_request":need(ctx,"privacy:handle_dsr");tenantOnly(ctx);return createRequest(ctx,{type:String(body.type||""),channel:String(body.channel||"manual"),customerId:body.customer_id?id(body.customer_id):null,subjectCategory:body.subject_category,subjectRef:body.subject_ref,details:body.details,storeId:ctx.storeId,idempotencyKey:body.idempotency_key||null});
+ case"create_request":{need(ctx,"privacy:handle_dsr");const category=String(body.subject_category||"end_customer");if(category!=="lead")tenantOnly(ctx);
+  return createRequest(ctx,{type:String(body.type||""),channel:String(body.channel||"manual"),customerId:body.customer_id?id(body.customer_id):null,staffMemberId:body.staff_member_id?id(body.staff_member_id):null,leadId:body.lead_id?id(body.lead_id):null,subjectCategory:category,subjectRef:body.subject_ref,details:body.details,storeId:ctx.organizationId?ctx.storeId:null,idempotencyKey:body.idempotency_key||null})}
  case"assign":{need(ctx,"privacy:handle_dsr");const request=await loadRequest(ctx,id(body.id));await ctx.admin.from("customer_privacy_requests").update({assignee_id:body.assignee_id?id(body.assignee_id):ctx.actorId,updated_at:new Date().toISOString()}).eq("id",request.id);return{ok:true}}
  case"transition":need(ctx,"privacy:handle_dsr");if(["fulfilled","partially_fulfilled","rejected_with_reason"].includes(body.to))need(ctx,"privacy:approve_dsr");return transitionRequest(ctx,{id:id(body.id),to:String(body.to||""),note:body.note,reason:body.reason});
  case"start_verification":need(ctx,"privacy:handle_dsr");return startVerification(ctx,{id:id(body.id)});
@@ -57,7 +62,7 @@ async function run(ctx:any,action:string,body:any):Promise<any>{switch(action){
  case"revoke_consents":need(ctx,"privacy:handle_dsr");return revokeAllMarketing(ctx,{id:id(body.id)});
  case"save_response_draft":need(ctx,"privacy:handle_dsr");if(body.by_ai===true&&!ctx.flags.privacy_ai_assistance_enabled)throw new Error("FEATURE_DISABLED");return saveResponseDraft(ctx,{id:id(body.id),text:String(body.text||""),byAi:body.by_ai===true});
  case"approve_response":need(ctx,"privacy:approve_dsr");return approveResponse(ctx,{id:id(body.id)});
- case"preview_deletion":need(ctx,"privacy:handle_dsr");tenantOnly(ctx);return previewDeletion(ctx,{requestId:id(body.request_id)});
+ case"preview_deletion":need(ctx,"privacy:handle_dsr");return previewDeletion(ctx,{requestId:id(body.request_id)});
  case"request_plan_approval":need(ctx,"privacy:handle_dsr");return requestPlanApproval(ctx,{planId:id(body.plan_id)});
  case"decide_plan":need(ctx,"privacy:approve_dsr");return decidePlan(ctx,{planId:id(body.plan_id),decision:body.decision==="approved"?"approved":"rejected",reason:String(body.reason||"")});
  case"execute_plan":need(ctx,"privacy:execute_deletion");return executePlan(ctx,{planId:id(body.plan_id)});
@@ -90,6 +95,11 @@ async function run(ctx:any,action:string,body:any):Promise<any>{switch(action){
  case"copilot":{if(!ctx.flags.privacy_ai_assistance_enabled)throw new Error("FEATURE_DISABLED");const data=await privacyDashboard(ctx);let extra:any={};
   if(body.request_id){need(ctx,"privacy:handle_dsr");const request=await loadRequest(ctx,id(body.request_id));extra={request};if(body.tool==="getConsentStatus"){need(ctx,"privacy:view_subject_data");extra.consents=await consentStatus(ctx.admin,ctx.contextId,request.subject_ref)}}
   return privacyCopilot(String(body.tool),data,{...extra,id:body.id})}
+ case"go_live_checklist":need(ctx,"privacy:view");tenantOnly(ctx);return{items:await goLiveChecklist(ctx)};
+ case"enable_store":need(ctx,"privacy:manage_governance");tenantOnly(ctx);return enableStore(ctx,{override:body.override===true,reason:body.reason||null});
+ case"disable_store":need(ctx,"privacy:manage_governance");tenantOnly(ctx);return disableStore(ctx,{reason:String(body.reason||"")});
+ case"policy_overview":{need(ctx,"privacy:view");const[{policies,available},settings]=await Promise.all([activePrivacyPolicies(ctx.admin,ctx.organizationId),privacySettings(ctx.admin,ctx.contextId)]);return{available,active:policies.map((p:any)=>({key:p.key,version:p.version,id:p.id})),templates:privacyPolicyTemplates(settings as any),howToPublish:"Os modelos são publicados pela governança da Fase 79 (Políticas), com versão, testes, aprovação e auditoria."}}
+ case"policy_impact":need(ctx,"privacy:manage_governance");return previewDeadlineImpact(ctx,body.policy);
  default:throw new Error("ACTION_INVALID");
 }}
 export async function POST(req:Request){try{const body=await req.json(),ctx=await context(String(body.store_id||""),body.context==="platform");need(ctx,"privacy:view");return response(await run(ctx,String(body.action||""),body))}catch(error:any){return fail(error)}}

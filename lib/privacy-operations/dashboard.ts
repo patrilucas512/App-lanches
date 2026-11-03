@@ -8,6 +8,7 @@ import {dataLocations,subprocessors} from "./governance.ts";
 import {holdsDueForReview,RETENTION_DATASETS} from "./retention.ts";
 import {IMPLEMENTED_DOMAINS,PENDING_ADAPTERS} from "./adapters.ts";
 import {PRIVACY_SETTINGS_DEFAULTS,privacySettings} from "./server.ts";
+import {goLiveChecklist} from "./golive.ts";
 
 export async function privacyDashboard(ctx:any){
   await Promise.all([ensureLegalBases(ctx.admin,ctx.contextId),ensurePurposes(ctx.admin,ctx.contextId)]);
@@ -49,6 +50,7 @@ export async function privacyDashboard(ctx:any){
     retention:{policies:policies||[],runs:runs||[],datasets:RETENTION_DATASETS},holds:holds||[],holdsToReview:reviewHolds.map((h:any)=>h.id),
     locations,subprocessors:processors,incidents:incidents||[],dpias:dpias||[],designReviews:reviews||[],aiUses:aiUses||[],changes:changes||[],agents:agents||[],
     adapters:{implemented:IMPLEMENTED_DOMAINS,pending:PENDING_ADAPTERS},
+    goLive:ctx.organizationId&&ctx.storeId?await goLiveChecklist(ctx):[],
     settings:{...PRIVACY_SETTINGS_DEFAULTS,...settings},permissions:ctx.permissions,flags:ctx.flags,
     notices:{legal:"Esta área é ferramenta de operação, não aconselhamento jurídico. Textos, prazos e bases legais precisam da validação do encarregado (DPO) ou do jurídico.",backups:"Dados excluídos continuam em backups até a expiração natural deles (Fase 25)."},
   };
@@ -56,8 +58,10 @@ export async function privacyDashboard(ctx:any){
 
 // For the worker: contexts whose store has the module on.
 export async function contextsWithPrivacy(admin:any){
-  const[{data:stores},{data:planned}]=await Promise.all([admin.from("store_feature_flags").select("establishments(organization_id)").eq("privacy_operations_enabled",true).limit(5000),admin.from("subscriptions").select("establishments(organization_id),plans!inner(privacy_operations_enabled)").eq("plans.privacy_operations_enabled",true).in("status",["active","trialing","past_due"]).limit(5000)]);
-  const orgs=[...new Set([...(stores||[]),...(planned||[])].map((x:any)=>x.establishments?.organization_id).filter(Boolean))] as string[];
+  // Only stores that went live through the checklist; a plan flag alone never starts the worker for a store.
+  const{data:stores,error}=await admin.from("store_feature_flags").select("establishments(organization_id)").eq("privacy_operations_enabled",true).limit(5000);
+  if(error)throw error;
+  const orgs=[...new Set((stores||[]).map((x:any)=>x.establishments?.organization_id).filter(Boolean))] as string[];
   if(!orgs.length)return[];
   const{data}=await admin.from("privacy_contexts").select("id,organization_id").in("organization_id",orgs).eq("kind","tenant_controller");
   return data||[];

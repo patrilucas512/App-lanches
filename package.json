@@ -42,6 +42,7 @@
     "test:phase47": "node --test tests/food-quality-phase47.test.mjs",
     "test:phase57": "node --test tests/internal-communications-phase57.test.mjs",
     "test:phase95": "node --test tests/privacy-operations-phase95.test.mjs",
+    "test:phase96": "node --test tests/privacy-completion-phase96.test.mjs",
     "test:phase58": "node --test tests/workforce-planning-phase58.test.mjs",
     "test:phase59": "node --test tests/incident-management-phase59.test.mjs",
     "test:phase60": "node --test tests/customer-360-phase60.test.mjs",

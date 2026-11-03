@@ -6,7 +6,7 @@ import {createHash,randomBytes} from "node:crypto";
 import {anonymizeValue,reidentificationRisks,type SubjectRecord} from "./core.ts";
 
 export type Subject={contextId:string;organizationId:string|null;subjectCategory:string;subjectRef:string;organizationCustomerId:string|null;customerIds:string[];orderIds:string[];contactIds:string[];storeIds:string[];
-  employeeIds:string[];driverIds:string[];leadIds:string[];salesContactIds:string[];snapshotIds:string[];marketplaceConnections:string[];packageIds:string[]};
+  employeeIds:string[];driverIds:string[];leadIds:string[];salesContactIds:string[];snapshotIds:string[];marketplaceConnections:string[];packageIds:string[];voiceCallIds:string[]};
 type Value={technique:string;keep?:string[]}|{literal:unknown};
 // A storage spec owns a file column: the step reads the path, removes the object and clears the column, keeping only a hash.
 type StorageRef={bucket:string|null;column:string;format:"path"|"public_url"};
@@ -32,6 +32,7 @@ export const ADAPTER_SPECS:Spec[]=[
   // A recording path whose bucket is not known cannot be removed automatically, so it becomes a manual step.
   {domain:"storage",table:"voice_call_sessions",step:"storage:voice_recordings",key:"id",by:[["customer_id","customerIds"]],personal:["recording_storage_path"],anonymize:{},storage:{bucket:null,column:"recording_storage_path",format:"path"}},
   {domain:"voice",table:"voice_call_sessions",key:"id",by:[["customer_id","customerIds"]],personal:["source_phone","customer_name","summary"],context:["started_at","state"],anonymize:{source_phone:hash,customer_name:none,summary:none},anonymizeOnly:true},
+  {domain:"voice",table:"voice_transcript_segments",key:"id",by:[["call_session_id","voiceCallIds"]],personal:["redacted_text"],context:["speaker","created_at"],anonymize:{redacted_text:anon("[removido a pedido do titular]")},anonymizeOnly:true},
   {domain:"customer_experience",table:"crm_feedback",key:"id",by:[["customer_id","customerIds"]],personal:["comment"],context:["rating","score","created_at"],anonymize:{comment:none},anonymizeOnly:true,note:"Notas e scores ficam para os indicadores; o comentário sai."},
   {domain:"journeys",table:"customer_journey_enrollments",key:"id",by:[["customer_id","customerIds"]],personal:["context_snapshot","attribution_context"],context:["status","entered_at"],anonymize:{context_snapshot:anon({}),attribution_context:none},anonymizeOnly:true},
   {domain:"fiscal",table:"fiscal_documents",key:"id",by:[["customer_id","customerIds"]],personal:["customer_id"],context:["document_type","document_number","issued_at","total_cents"],anonymize:{customer_id:none},legalRetention:"fiscal",personalLinkFields:["customer_id"],note:"O documento fiscal é mantido pelo prazo legal; só o vínculo com o cadastro sai."},
@@ -90,7 +91,7 @@ async function rowsFor(admin:any,spec:Spec,subject:Subject,columns:string){
     for(const row of data||[])out.set(String(row[spec.key]),row)}
   return[...out.values()];
 }
-const empty=(input:{contextId:string;organizationId:string|null},category:string,ref:string):Subject=>({contextId:input.contextId,organizationId:input.organizationId,subjectCategory:category,subjectRef:ref,organizationCustomerId:null,customerIds:[],orderIds:[],contactIds:[],storeIds:[],employeeIds:[],driverIds:[],leadIds:[],salesContactIds:[],snapshotIds:[],marketplaceConnections:[],packageIds:[]});
+const empty=(input:{contextId:string;organizationId:string|null},category:string,ref:string):Subject=>({contextId:input.contextId,organizationId:input.organizationId,subjectCategory:category,subjectRef:ref,organizationCustomerId:null,customerIds:[],orderIds:[],contactIds:[],storeIds:[],employeeIds:[],driverIds:[],leadIds:[],salesContactIds:[],snapshotIds:[],marketplaceConnections:[],packageIds:[],voiceCallIds:[]});
 async function packagesOf(admin:any,contextId:string,subjectRef:string){
   const{data:requests}=await admin.from("customer_privacy_requests").select("id").eq("context_id",contextId).eq("subject_ref",subjectRef).limit(200);
   const ids=(requests||[]).map((r:any)=>r.id);if(!ids.length)return[];
@@ -108,10 +109,10 @@ export async function resolveSubject(admin:any,input:{contextId:string;organizat
   query=organizationCustomerId?query.eq("organization_customer_id",organizationCustomerId):query.eq("id",String(input.customerId||""));
   const{data:customers}=await query.limit(200);const customerIds=[...new Set([...(customers||[]).map((x:any)=>x.id),...(input.customerId?[input.customerId]:[])])] as string[];
   if(!customerIds.length&&!organizationCustomerId)return null;
-  const[{data:orders},{data:contacts}]=await Promise.all([customerIds.length?admin.from("orders").select("id").in("customer_id",customerIds).limit(5000):{data:[]},customerIds.length?admin.from("whatsapp_contacts").select("id").in("customer_id",customerIds).limit(200):{data:[]}]);
+  const[{data:orders},{data:contacts},{data:calls}]=await Promise.all([customerIds.length?admin.from("orders").select("id").in("customer_id",customerIds).limit(5000):{data:[]},customerIds.length?admin.from("whatsapp_contacts").select("id").in("customer_id",customerIds).limit(200):{data:[]},customerIds.length?admin.from("voice_call_sessions").select("id").in("customer_id",customerIds).limit(2000):{data:[]}]);
   const orderIds=(orders||[]).map((x:any)=>x.id),{data:links}=orderIds.length?await admin.from("marketplace_order_links").select("snapshot_id,connection_id").in("internal_order_id",orderIds.slice(0,1000)):{data:[]};
   const subject=empty(input,"end_customer",organizationCustomerId||customerIds[0]);
-  return{...subject,organizationCustomerId,customerIds,orderIds,contactIds:(contacts||[]).map((x:any)=>x.id),storeIds,snapshotIds:(links||[]).map((x:any)=>x.snapshot_id),marketplaceConnections:[...new Set((links||[]).map((x:any)=>x.connection_id))] as string[],packageIds:await packagesOf(admin,input.contextId,subject.subjectRef)};
+  return{...subject,organizationCustomerId,customerIds,orderIds,contactIds:(contacts||[]).map((x:any)=>x.id),storeIds,snapshotIds:(links||[]).map((x:any)=>x.snapshot_id),marketplaceConnections:[...new Set((links||[]).map((x:any)=>x.connection_id))] as string[],packageIds:await packagesOf(admin,input.contextId,subject.subjectRef),voiceCallIds:(calls||[]).map((x:any)=>x.id)};
 }
 
 // An employee or a driver: both start at the staff member, and a driver profile hangs from it.

@@ -5,7 +5,7 @@
 import {createHmac} from "node:crypto";
 
 export const PRIVACY_PERMISSIONS=["privacy:view","privacy:view_subject_data","privacy:manage_inventory","privacy:manage_ropa","privacy:manage_consents","privacy:handle_dsr","privacy:approve_dsr","privacy:execute_deletion","privacy:manage_retention","privacy:approve_retention_run","privacy:manage_legal_holds","privacy:manage_incidents","privacy:manage_dpia","privacy:dpo","privacy:manage_governance"] as const;
-export const PRIVACY_FLAGS=["privacy_operations_enabled","privacy_dsr_portal_enabled","privacy_retention_execution_enabled","privacy_auto_anonymization_enabled","privacy_ai_assistance_enabled"] as const;
+export const PRIVACY_FLAGS=["privacy_operations_enabled","privacy_dsr_portal_enabled","privacy_retention_execution_enabled","privacy_auto_anonymization_enabled","privacy_ai_assistance_enabled","privacy_setup_enabled"] as const;
 export const CONTEXT_KINDS=["tenant_controller","platform_controller"] as const;
 export const DATA_CATEGORIES=["identification","contact","address","location","payment_reference","order_history","preferences","communication","voice","image","employee","driver","health_allergy","device_technical"] as const;
 export const SENSITIVE_CATEGORIES=["health_allergy"];
