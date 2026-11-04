@@ -1,0 +1,100 @@
+// Fase 98B: regra de cada item do menu do painel (antes dentro de components/dashboard-shell.tsx).
+// `plan` já é o plano somado às flags da loja (lib/store-entitlements.ts). Item sem regra aparece sempre.
+export type MenuPlan = Record<string, unknown>;
+type Rule = (plan: MenuPlan) => boolean;
+
+const rules: Record<string, Rule> = {
+  "overview": (plan) => plan.workspace_enabled !== false && plan.personalized_home_enabled !== false,
+  "cashier": (plan) => plan.cashier_enabled !== false,
+  "network": (plan) => plan.network_governance_enabled !== false,
+  "geo-map": (plan) => plan.geo_management_enabled !== false && plan.network_governance_enabled !== false,
+  "audits": (plan) => plan.operational_audits_enabled !== false,
+  "knowledge": (plan) => plan.knowledge_base_enabled !== false,
+  "quality": (plan) => plan.food_quality_enabled !== false,
+  "assets": (plan) => plan.asset_management_enabled !== false,
+  "documents": (plan) => plan.document_compliance_enabled !== false,
+  "automation": (plan) => plan.automation_center_enabled !== false,
+  "notifications": (plan) => plan.notification_center_enabled !== false,
+  "internal-communications": (plan) => plan.internal_communications_enabled !== false,
+  "my-announcements": (plan) => plan.internal_communications_enabled !== false,
+  "reports": (plan) => plan.advanced_reporting_enabled !== false,
+  "performance-management": (plan) => plan.performance_management_enabled !== false,
+  "my-learning": (plan) => plan.learning_center_enabled !== false,
+  "learning-admin": (plan) => plan.learning_center_enabled !== false,
+  "forecast": (plan) => plan.demand_forecasting_enabled !== false,
+  "menu-engineering": (plan) => plan.menu_engineering_enabled !== false,
+  "marketing-intelligence": (plan) => plan.marketing_intelligence_enabled !== false,
+  "inventory": (plan) => plan.inventory_enabled !== false,
+  "procurement": (plan) => plan.procurement_intelligence_enabled !== false,
+  "logistics": (plan) => plan.advanced_delivery_enabled !== false && plan.drivers_enabled !== false,
+  "finance": (plan) => plan.financial_management_enabled !== false,
+  "franchise-finance": (plan) => plan.franchise_finance_enabled !== false && plan.franchise_management_enabled !== false,
+  "store-opening": (plan) => plan.store_opening_enabled !== false,
+  "fiscal": (plan) => plan.fiscal_module_enabled !== false,
+  "workforce": (plan) => plan.workforce_management_enabled !== false,
+  "workforce-planning": (plan) => plan.workforce_management_enabled !== false && plan.advanced_workforce_planning_enabled !== false,
+  "kitchen": (plan) => plan.kitchen_enabled !== false,
+  "kitchen-orchestration": (plan) => plan.kitchen_enabled !== false && plan.advanced_kds_enabled !== false,
+  "capacity": (plan) => plan.capacity_management_enabled !== false,
+  "central-production": (plan) => plan.central_production_enabled !== false,
+  "supply-chain": (plan) => plan.supply_chain_planning_enabled !== false,
+  "warehouse": (plan) => plan.wms_enabled !== false && plan.inventory_enabled !== false,
+  "transport": (plan) => plan.transport_management_enabled !== false,
+  "ibp": (plan) => plan.ibp_enabled !== false,
+  "digital-twin": (plan) => plan.digital_twin_enabled !== false,
+  "revenue-management": (plan) => plan.revenue_management_enabled !== false,
+  "network-operations": (plan) => plan.network_operations_center_enabled !== false,
+  "service-reliability": (plan) => plan.service_reliability_enabled !== false,
+  "business-continuity": (plan) => plan.business_continuity_enabled !== false,
+  "enterprise-risk": (plan) => plan.enterprise_risk_management_enabled !== false,
+  "change-management": (plan) => plan.enterprise_change_management_enabled !== false,
+  "process-intelligence": (plan) => plan.process_intelligence_enabled !== false,
+  "enterprise-architecture": (plan) => plan.enterprise_architecture_enabled !== false,
+  "enterprise-portfolio": (plan) => plan.enterprise_portfolio_management_enabled !== false,
+  "vendor-management": (plan) => plan.vendor_management_enabled !== false,
+  "security-operations": (plan) => plan.security_operations_center_enabled !== false,
+  "identity-governance": (plan) => plan.identity_governance_enabled !== false,
+  "privacy-operations": (plan) => plan.privacy_operations_enabled !== false,
+  "customer-experience": (plan) => plan.customer_experience_enabled !== false,
+  "data-governance": (plan) => plan.data_catalog_enabled !== false,
+  "voice": (plan) => plan.voice_ai_enabled === true,
+  "subscriptions": (plan) => plan.subscriptions_enabled !== false,
+  "dining": (plan) => plan.reservations_enabled !== false && plan.advanced_dining_room_enabled !== false,
+  "self-service": (plan) => plan.self_service_enabled !== false,
+  "continuity": (plan) => plan.offline_operations_enabled !== false,
+  "incidents": (plan) => plan.incident_management_enabled !== false,
+  "customer360": (plan) => plan.customer_360_enabled !== false,
+  "journeys": (plan) => plan.customer_journeys_enabled !== false,
+  "central-catalog": (plan) => plan.central_catalog_enabled !== false,
+  "hardware": (plan) => plan.hardware_hub_enabled !== false,
+  "marketplace-integrations": (plan) => plan.marketplace_integrations_enabled !== false,
+  "marketplace": (plan) => plan.app_marketplace_enabled !== false,
+  "developers": (plan) => plan.partner_platform_enabled !== false,
+  "security": (plan) => plan.mfa_enabled !== false,
+  "team": (plan) => plan.staff_management_enabled !== false || plan.drivers_enabled !== false || plan.waiter_mode_enabled !== false,
+  "deliveries": (plan) => plan.drivers_enabled !== false && plan.delivery_enabled !== false,
+  "ai-attendant": (plan) => plan.ai_enabled !== false,
+  "whatsapp-supervision": (plan) => plan.whatsapp_enabled !== false,
+  "master-data": (plan) => plan.mdm_enabled !== false,
+  // Fase 98B: itens que não tinham flag
+  "intelligence": (plan) => plan.manager_intelligence_enabled !== false,
+  "analytics": (plan) => plan.analytics_center_enabled !== false,
+  "units": (plan) => plan.multi_unit_enabled !== false,
+  "inbox": (plan) => plan.omnichannel_inbox_enabled !== false,
+  "crm": (plan) => plan.crm_enabled !== false,
+  "integrations": (plan) => plan.integrations_center_enabled !== false,
+  "integration-orchestration": (plan) => plan.integration_orchestration_enabled !== false,
+  "calls": (plan) => plan.waiter_mode_enabled !== false,
+};
+
+// Itens sempre disponíveis (núcleo e conta): atendimento (modos e garçons), cardápio, pedidos, configurações,
+// cobrança, ajuda, suporte.
+export const ALWAYS_AVAILABLE_MENU_KEYS = ["onboarding", "attendance", "orders", "catalog", "customize", "settings", "billing", "help", "saas-support", "waiter"] as const;
+
+export function menuRuleKeys() { return Object.keys(rules); }
+
+export function isMenuItemEntitled(key: string, plan: MenuPlan | null | undefined): boolean {
+  if (!plan) return true;
+  const rule = rules[key];
+  return rule ? rule(plan) : true;
+}

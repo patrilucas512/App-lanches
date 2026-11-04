@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
     const [{ data: plan }, { data: account }] = await Promise.all([
-      admin.from("plans").select("id,code,name,monthly_price_cents,annual_price_cents,active").eq("code", String(body.plan)).eq("active", true).maybeSingle(),
+      admin.from("plans").select("id,code,name,monthly_price_cents,annual_price_cents,active").eq("code", String(body.plan)).eq("active", true).eq("is_public", true).maybeSingle(),
       admin.from("platform_payment_accounts").select("id,provider,environment,active").eq("provider", provider).eq("active", true).maybeSingle(),
     ]);
     if (!plan) return NextResponse.json({ error: "Plano indisponível." }, { status: 404 });
