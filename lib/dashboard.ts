@@ -24,7 +24,9 @@ export async function getDashboardContext() {
   const rawSubscription = establishment.subscriptions as unknown;
   const subscription = (Array.isArray(rawSubscription) ? rawSubscription[0] : rawSubscription) as { plans?: unknown } | null | undefined;
   const rawPlan = subscription?.plans;
-  const basePlan = ((Array.isArray(rawPlan) ? rawPlan[0] : rawPlan) ?? null) as Record<string, unknown> & { id?: string } | null;
+  // Tipo aberto como antes: as telas leem as colunas do plano direto (establishment.plan?.x_enabled).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const basePlan = ((Array.isArray(rawPlan) ? rawPlan[0] : rawPlan) ?? null) as any;
   const { data: networkPlan } = basePlan?.id
     ? await supabase.from("plans").select("network_governance_enabled,franchise_management_enabled,central_catalog_enabled,network_pricing_enabled,network_benchmarking_enabled,food_quality_enabled,lot_tracking_enabled,temperature_tracking_enabled,traceability_enabled,internal_recall_enabled").eq("id", basePlan.id).maybeSingle()
     : { data: null };
