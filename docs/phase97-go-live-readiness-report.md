@@ -62,7 +62,7 @@ Resultado: 15 de 15 passaram na última rodada local (seção "Resultado da bate
 1. **Loja nova recusava todo pedido** ("Estabelecimento indisponível").
    - Causa: sem linha em `service_modes`, que só nascia quando o dono mexia nas configurações de atendimento; o cardápio mostrava "Aberto agora" pelo valor de reserva da tela.
    - Correção: migration `20261104120000_phase97_default_service_mode` (gatilho em `establishment_settings` + preenchimento das lojas antigas), aplicada no dev.
-   - Produção: a única loja já tem a linha, mas a migration precisa ir para produção antes do piloto (🔒 aprovação).
+   - Produção: aplicada com aprovação em 04/11/2026 (versão `20261104030018`); a única loja já tinha a linha, nada foi preenchido.
 2. **Link "Minha conta" levava a 404** em loja sem portal configurado. Agora só aparece quando o portal abre.
 3. **Login de funcionário bloqueado em produção** (achado na 97F): as funções `employee-login` e `activate-*-access` só aceitavam o endereço antigo do app. Corrigido e **publicado em produção com aprovação** em 03/11/2026.
 
@@ -117,7 +117,6 @@ Sem chave, cada recurso fica desligado com mensagem (conferido no código: Strip
 
 - **Urgente, resolvido:** login de funcionário bloqueado pelo navegador (CORS das funções). Publicado com aprovação.
 - **Antes do piloto:**
-  - aplicar a migration de `service_modes`;
   - ligar a proteção contra senhas vazadas no Supabase Auth (advisor de segurança);
   - publicar termos de uso e política de privacidade (não existem páginas).
 - **Advisors de segurança:**
@@ -139,9 +138,8 @@ Sem chave, cada recurso fica desligado com mensagem (conferido no código: Strip
 
 Nenhuma escrita em produção além das aprovadas:
 - separação das variáveis da Vercel;
-- publicação das 5 funções de login.
-
-O histórico de migrations de produção não mudou nesta fase.
+- publicação das 5 funções de login;
+- migration `phase97_default_service_mode` (04/11/2026, versão `20261104030018`), a única entrada nova no histórico de migrations de produção.
 
 ## 8. Roteiro da loja piloto
 
@@ -149,12 +147,11 @@ O histórico de migrations de produção não mudou nesta fase.
 
 ## 9. O que precisa da aprovação do usuário para o piloto começar
 
-1. Aplicar em produção a migration `20261104120000_phase97_default_service_mode`.
-2. Termos de uso e política de privacidade (texto e publicação).
-3. Plano do piloto (plano "Piloto" só com o núcleo ou reduzir o Básico).
-4. Forma de pagamento, uso de WhatsApp e cobrança da assinatura no piloto.
-5. Ligar a proteção contra senhas vazadas no Supabase Auth.
-6. Depois do merge: cadastrar os segredos do GitHub e marcar o check `e2e-core` como obrigatório.
+1. Termos de uso e política de privacidade (texto e publicação).
+2. Plano do piloto (plano "Piloto" só com o núcleo ou reduzir o Básico).
+3. Forma de pagamento, uso de WhatsApp e cobrança da assinatura no piloto.
+4. Ligar a proteção contra senhas vazadas no Supabase Auth.
+5. Depois do merge: cadastrar os segredos do GitHub e marcar o check `e2e-core` como obrigatório.
 
 ## 10. Limitações
 

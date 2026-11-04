@@ -108,7 +108,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 94 | Centro de operações de segurança | Implementada |
 | 95 | Privacidade e LGPD (Privacy Operations) | Implementada e aplicada em produção; flags desligadas; worker não agendado |
 | 96 | Privacidade e LGPD: conclusão e prontidão para uso real | Implementada e aplicada em produção; flags desligadas; worker não agendado |
-| 97 | Go-Live Readiness: homologação, E2E do núcleo e loja piloto | Implementada; migration só no dev; funções de login publicadas em produção |
+| 97 | Go-Live Readiness: homologação, E2E do núcleo e loja piloto | Implementada; migration aplicada em produção; funções de login publicadas em produção |
 
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
@@ -149,7 +149,7 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 ## Diferenças entre repositório e produção
 
 - **Fase 97:**
-  - A migration `20261104120000_phase97_default_service_mode` foi aplicada só no `masterapp-dev`. Produção depende de aprovação; a única loja de produção já tem a linha em `service_modes`.
+  - A migration `20261104120000_phase97_default_service_mode` foi aplicada no `masterapp-dev` e, com aprovação, em produção em 2026-11-04 (versão `20261104030018`). Em produção não havia loja para preencher: a única já tinha a linha em `service_modes`.
   - As funções `employee-login`, `activate-waiter-access`, `activate-kitchen-access`, `activate-cashier-access` e `activate-driver-access` foram publicadas em produção em 2026-11-03, com aprovação, para aceitar `app-lanches-psi.vercel.app`. Antes, o login de funcionário era recusado pelo navegador.
   - O `masterapp-dev` não tinha nenhuma função do Supabase; as 5 de login foram publicadas lá. Faltam as de push e WhatsApp.
   - Variáveis da Vercel separadas por ambiente (ver `docs/ambientes.md`).
