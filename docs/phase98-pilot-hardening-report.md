@@ -148,7 +148,7 @@ No dev, a função `pilot_alert_signals` e a `public_rate_allow` foram corrigida
 - o Piloto está fora da vitrine;
 - o cadastro continua no Básico.
 
-O próximo item da fila é o merge do PR.
+Depois: merge do PR #30 publicado (deploy READY, sem erros de servidor) e item 5 aplicado (`20261104225035`; anon 21 -> 20 em produção, limite conferido nas 3 funções). Próximo: item 6 (`phase98g_internal_functions`).
 
 1. **Migration `20261104134000_phase98d_employee_login_phone`.** Urgente: sem ela, ninguém da equipe entra pelo nome. Só troca a função de busca.
 2. **Migration `20261104130000_phase98a_flags_within_plan`.** Trava as flags e conserta a leitura das políticas.
