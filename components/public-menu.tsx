@@ -41,6 +41,8 @@ export type MenuCategory = {
   products: MenuProduct[];
 };
 export type PublicMenu = {
+  // Set by the page from customer_portal_configs; without it /conta/[slug] answers 404, so the link is hidden.
+  portal_enabled?: boolean;
   establishment: {
     id?: string;
     name: string;
@@ -1085,9 +1087,11 @@ export function PublicMenuView({
             <a href="#cardapio">
               Ver cardápio <span>→</span>
             </a>
-            <a href={`/conta/${menu.establishment.slug}`} className="menu-account-link">
-              Minha conta
-            </a>
+            {menu.portal_enabled && (
+              <a href={`/conta/${menu.establishment.slug}`} className="menu-account-link">
+                Minha conta
+              </a>
+            )}
             {menu.settings.estimated_minutes && (
               <small>
                 Pronto em cerca de <b>{menu.settings.estimated_minutes} min</b>
