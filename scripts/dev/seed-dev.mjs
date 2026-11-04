@@ -106,12 +106,86 @@ async function ensurePortal(store) {
   must(await admin.from("customer_portal_configs").insert({ establishment_id: store, organization_id: establishment.organization_id, enabled: true }), "ligar portal do cliente");
 }
 
+// Fase 98D: garçom, cozinha, caixa e entregador com login, criados pelo mesmo caminho da tela do dono
+// (manage_waiter, manage_kitchen_operator, custom_staff_members) e ativados pela função de ativação real
+// (activate-*-access), como o funcionário faz ao abrir o convite. As senhas vão para o .env.test-login.local.
+const STAFF = {
+  waiter: { name: "Garcom Teste", phone: "(11) 90000-0003", env: "DEV_WAITER" },
+  kitchen: { name: "Cozinha Teste", phone: "(11) 90000-0004", env: "DEV_KITCHEN" },
+  cashier: { name: "Caixa Teste", phone: "(11) 90000-0005", env: "DEV_CASHIER" },
+  driver: { name: "Entregador Teste", phone: "(11) 90000-0002", env: "DEV_DRIVER" },
+};
+
+function saveLogin(values) {
+  const current = existsSync(LOGIN_FILE) ? parseEnv(readFileSync(LOGIN_FILE, "utf8")) : {};
+  const next = { ...current, ...values };
+  writeFileSync(LOGIN_FILE, `# Login fictício do masterapp-dev.\n${Object.entries(next).map(([k, v]) => `${k}=${v}`).join("\n")}\n`);
+}
+
+async function ensureStaffRecords(store, owner) {
+  const ids = {};
+  const { data: waiter } = await admin.from("waiters").select("id").eq("establishment_id", store).eq("name", STAFF.waiter.name).maybeSingle();
+  ids.waiter = waiter?.id || must(await owner.rpc("manage_waiter", { requested_establishment_id: store, requested_waiter_id: null, requested_values: {
+    name: STAFF.waiter.name, phone: STAFF.waiter.phone, email: "", sector: "Salão", status: "active", active_now: true, shift_start: "", shift_end: "",
+    employment_type: "fixed", work_date: "", payment_cycle: "monthly",
+    permissions: { open_tables: true, create_orders: true, close_bills: true, register_payments: true, apply_discount: false, cancel_items: false },
+  } }), "criar garçom").id;
+  const { data: cook } = await admin.from("kitchen_operators").select("id").eq("establishment_id", store).eq("name", STAFF.kitchen.name).maybeSingle();
+  ids.kitchen = cook?.id || must(await owner.rpc("manage_kitchen_operator", { requested_establishment_id: store, requested_operator_id: null, requested_values: {
+    name: STAFF.kitchen.name, phone: STAFF.kitchen.phone, status: "active", access_type: "fixed", work_date: "", payment_cycle: "monthly", device_mode: "dedicated",
+    permissions: { accept_orders: true, print_orders: true, mark_ready: true },
+  } }), "criar operador da cozinha").id;
+  let { data: cashierRole } = await admin.from("staff_roles").select("id").eq("establishment_id", store).eq("financial_role", true).limit(1).maybeSingle();
+  if (!cashierRole) cashierRole = must(await owner.from("staff_roles").insert({ establishment_id: store, name: "Caixa", description: "Operador de caixa", color: "#7b2326", financial_role: true }).select("id").single(), "criar função de caixa");
+  const { data: cashier } = await admin.from("custom_staff_members").select("id").eq("establishment_id", store).eq("name", STAFF.cashier.name).maybeSingle();
+  ids.cashier = cashier?.id || must(await owner.from("custom_staff_members").insert({ establishment_id: store, role_id: cashierRole.id, name: STAFF.cashier.name, phone: STAFF.cashier.phone, status: "active", employment_type: "fixed", payment_cycle: "monthly" }).select("id").single(), "criar operador de caixa").id;
+  ids.driver = must(await admin.from("custom_staff_members").select("id").eq("establishment_id", store).eq("name", STAFF.driver.name).single(), "ler entregador").id;
+  return ids;
+}
+
+async function ensureStaffLogins(store, ownerPassword) {
+  const owner = createClient(url, publishable, session);
+  must(await owner.auth.signInWithPassword({ email: OWNER_EMAIL, password: ownerPassword }), "entrar como dono");
+  const ids = await ensureStaffRecords(store, owner);
+  const saved = existsSync(LOGIN_FILE) ? parseEnv(readFileSync(LOGIN_FILE, "utf8")) : {};
+  const invite = { waiter: ["create_waiter_invite", "requested_waiter_id"], kitchen: ["create_kitchen_invite", "requested_operator_id"],
+    cashier: ["create_cashier_invite", "requested_member_id"], driver: ["create_driver_invite", "requested_member_id"] };
+  const tables = { waiter: "waiters", kitchen: "kitchen_operators", cashier: "custom_staff_members", driver: "custom_staff_members" };
+  const logins = {};
+  for (const [kind, staff] of Object.entries(STAFF)) {
+    const { data: row } = await admin.from(tables[kind]).select("user_id").eq("id", ids[kind]).single();
+    if (row?.user_id && saved[`${staff.env}_PASSWORD`]) continue;
+    const [rpc, arg] = invite[kind];
+    const created = must(await owner.rpc(rpc, { [arg]: ids[kind] }), `convite ${kind}`);
+    const token = typeof created === "string" ? created : created?.token;
+    const password = `Dev-${randomBytes(12).toString("base64url")}`;
+    const response = await fetch(`${url}/functions/v1/activate-${kind}-access`, {
+      method: "POST", headers: { "content-type": "application/json", apikey: publishable, authorization: `Bearer ${publishable}`, origin: "http://localhost:3000" },
+      body: JSON.stringify({ token, password }),
+    });
+    if (!response.ok) throw new Error(`ativar ${kind}: ${response.status} ${(await response.text()).slice(0, 200)}`);
+    logins[`${staff.env}_NAME`] = staff.name;
+    logins[`${staff.env}_PASSWORD`] = password;
+    saveLogin(logins);
+  }
+  return Object.keys(STAFF);
+}
+
+// Fase 98B: a loja de teste roda no plano Piloto, o mesmo que a loja piloto vai usar.
+async function ensurePilotPlan(store) {
+  const { data: pilot } = await admin.from("plans").select("id").eq("code", "piloto").maybeSingle();
+  if (!pilot) return console.warn("Plano Piloto ausente: aplique a migration 20261104131000_phase98b_pilot_plan.");
+  must(await admin.from("subscriptions").update({ plan_id: pilot.id }).eq("establishment_id", store), "mudar para o plano Piloto");
+}
+
 const password = await ensureOwner();
 const store = await ensureStore(password);
 await ensureMenu(store);
 await ensureTable(store);
 await ensureDriver(store);
 await ensurePortal(store);
+await ensurePilotPlan(store);
+await ensureStaffLogins(store, password);
 const totals = {};
 for (const table of ["products", "restaurant_tables", "driver_profiles"]) totals[table] = (await admin.from(table).select("id", { count: "exact", head: true }).eq("establishment_id", store)).count;
 console.log(JSON.stringify({ store: STORE_SLUG, owner: OWNER_EMAIL, loginFile: LOGIN_FILE, ...totals }));

@@ -2,7 +2,7 @@ import test from "node:test";import assert from "node:assert/strict";import {rea
 const read=p=>readFile(new URL("../"+p,import.meta.url),"utf8");
 const [migration,hardening,ui,provider,webhook,exportRoute,magic,route,copilot,planner,dashboard]=await Promise.all([
  read("supabase/migrations/20261011191318_fiscal_documents_phase19.sql"),read("supabase/migrations/20261011191912_fiscal_documents_phase19_hardening.sql"),read("components/fiscal-phase19-console.tsx"),read("lib/fiscal/provider.ts"),read("app/api/fiscal/webhook/[provider]/route.ts"),read("app/api/fiscal/export/route.ts"),read("app/api/fiscal/document/[token]/route.ts"),read("app/api/intelligence/route.ts"),read("lib/intelligence/copilot-tools.ts"),read("lib/intelligence/action-planner.ts"),read("components/dashboard-shell.tsx")
-]);const sql=migration+hardening,all=sql+ui+provider+webhook+exportRoute+magic+route+copilot+planner+dashboard;const has=(...x)=>x.every(v=>all.includes(v));
+]);const sql=migration+hardening,all=sql+ui+provider+webhook+exportRoute+magic+route+copilot+planner+dashboard+(await readFile(new URL('../lib/menu-entitlements.ts',import.meta.url),'utf8'));const has=(...x)=>x.every(v=>all.includes(v));
 test("01 flags do plano e unidade",()=>["fiscal_module_enabled","fiscal_auto_issue_enabled","supplier_document_import_enabled","accounting_export_enabled"].forEach(x=>assert.ok(sql.includes(x))));
 test("02 perfil fiscal por organização e unidade",()=>assert.ok(has("create table public.fiscal_profiles","organization_id","store_id","declared_tax_regime")));
 test("03 abstração FiscalProvider completa",()=>["issue(","cancel(","status(","pdf(","xml(","list(","validate("].forEach(x=>assert.ok(provider.includes(x))));
@@ -32,7 +32,7 @@ test("26 Copiloto expõe cinco ferramentas somente leitura",()=>["getFiscalDocum
 test("27 Copiloto consulta resumo controlado",()=>assert.ok(route.includes('rpc("fiscal_phase19_summary"')));
 test("28 IA não cancela nem altera impostos",()=>assert.match(planner,/cancel\.\*\(nota\|documento fiscal\).*alter\.\*\(ncm\|cfop/));
 test("29 módulo não se declara motor tributário",()=>assert.ok(has("never infers tax rules","não calcula tributos","não interpreta impostos")));
-test("30 navegação fiscal é condicionada ao plano",()=>assert.ok(has('key: "fiscal"','plan.fiscal_module_enabled !== false')));
+test("30 navegação fiscal é condicionada ao plano",()=>assert.ok(has('key: "fiscal"','"fiscal": { label: "Fiscal", flags: ["fiscal_module_enabled"] }')));
 test("31 AccountingConnector é genérico",()=>assert.ok(provider.includes("export interface AccountingConnector")));
 test("32 provider real não é inventado",()=>{assert.ok(provider.includes("manual"));assert.ok(provider.includes("sandbox_adapter"));assert.doesNotMatch(provider,/sefaz|focusnfe|nuvemfiscal/i);});
 test("33 segredos não são renderizados no cliente",()=>{assert.doesNotMatch(ui,/access_token|client_secret|certificate_password/i);assert.ok(ui.includes("cofre do servidor"));});

@@ -20,6 +20,7 @@ const links = [
   ["/superadmin/cupons", "%", "Cupons"],
   ["/superadmin/suporte", "?", "Suporte"],
   ["/superadmin/avisos", "!", "Avisos"],
+  ["/superadmin/alertas", "⚠", "Alertas do piloto"],
   ["/superadmin/logs", "≡", "Auditoria"],
   ["/superadmin/seguranca", "◈", "Segurança"],
   ["/superadmin/performance", "⌁", "Performance"],

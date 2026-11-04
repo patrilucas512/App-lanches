@@ -18,12 +18,21 @@ export async function getDashboardContext() {
   let storeQuery = supabase.from("establishments").select("id,name,slug,unit_status,capacity_level").eq("organization_id", establishment.organization_id).order("name");
   if (!organizationMember?.all_stores) storeQuery = storeQuery.in("id", memberships.map((item: { establishment_id: string }) => item.establishment_id));
   const { data: availableStores } = await storeQuery;
-  const basePlan = establishment.subscriptions?.[0]?.plans?.[0] ?? null;
+  // `subscriptions` (establishment_id único) e `plans` (muitos-para-um) chegam do PostgREST como objeto, não
+  // lista. Ler `subscriptions[0].plans[0]` deixava o plano sempre nulo: o menu e as telas ignoravam o plano
+  // (achado na Fase 98C pelo E2E). Aceita os dois formatos.
+  const rawSubscription = establishment.subscriptions as unknown;
+  const subscription = (Array.isArray(rawSubscription) ? rawSubscription[0] : rawSubscription) as { plans?: unknown } | null | undefined;
+  const rawPlan = subscription?.plans;
+  // Tipo aberto como antes: as telas leem as colunas do plano direto (establishment.plan?.x_enabled).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const basePlan = ((Array.isArray(rawPlan) ? rawPlan[0] : rawPlan) ?? null) as any;
   const { data: networkPlan } = basePlan?.id
     ? await supabase.from("plans").select("network_governance_enabled,franchise_management_enabled,central_catalog_enabled,network_pricing_enabled,network_benchmarking_enabled,food_quality_enabled,lot_tracking_enabled,temperature_tracking_enabled,traceability_enabled,internal_recall_enabled").eq("id", basePlan.id).maybeSingle()
     : { data: null };
   const { data: storeFlags } = basePlan ? await supabase.from("store_feature_flags").select("*").eq("establishment_id", establishment.id).maybeSingle() : { data: null };
-  const plan = basePlan ? mergeStoreFlags({ ...basePlan, ...(networkPlan ?? {}) }, storeFlags) : null;
+  const unmergedPlan = basePlan ? { ...basePlan, ...(networkPlan ?? {}) } : null;
+  const plan = unmergedPlan ? mergeStoreFlags(unmergedPlan, storeFlags) : null;
   const { data: organization } = await supabase.from("organizations").select("id,name,loyalty_mode,status").eq("id", establishment.organization_id).maybeSingle();
-  return { supabase, userId, member, plan, organization, organizationMember, availableStores: availableStores ?? [], establishment: { ...establishment, plan, organization, availableStores: availableStores ?? [] } };
+  return { supabase, userId, member, plan, organization, organizationMember, availableStores: availableStores ?? [], establishment: { ...establishment, plan, basePlan: unmergedPlan, organization, availableStores: availableStores ?? [] } };
 }

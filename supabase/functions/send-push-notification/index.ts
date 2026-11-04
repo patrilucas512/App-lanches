@@ -1,7 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
-const VAPID_PUBLIC_KEY = "BCP0CejQDRaVxSo35ZtUDs5wFYbrTNnAJZDrlFBaI1hzPONZR89meKlAFlVOFXHu7TDUZFT-n_CAy0K1kUuCobQ";
+// Fase 98E: chave pública VAPID por ambiente (segredo da função VAPID_PUBLIC_KEY), em par com a privada do banco
+// (private.app_secrets.vapid_private_key). Sem o segredo, a chave atual só vale no projeto de produção.
+const PRODUCTION_VAPID_PUBLIC_KEY = "BCP0CejQDRaVxSo35ZtUDs5wFYbrTNnAJZDrlFBaI1hzPONZR89meKlAFlVOFXHu7TDUZFT-n_CAy0K1kUuCobQ";
+const PRODUCTION_SUPABASE_REF = "qjwmjwubtgqginwhmajv";
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")?.trim()
+  || ((Deno.env.get("SUPABASE_URL") || "").includes(PRODUCTION_SUPABASE_REF) ? PRODUCTION_VAPID_PUBLIC_KEY : "");
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const deliveryEvents = ["new_delivery_offer", "driver_assigned", "picked_up", "on_route", "driver_arrived", "delivered", "delivery_incident", "delivery_delay_alert"] as const;
 type Audience = "customer" | "kitchen" | "waiter" | "driver" | "operations";
@@ -28,6 +33,7 @@ Deno.serve(async (request: Request) => {
 
     const { data: privateKey, error: keyError } = await supabase.rpc("get_push_private_key");
     if (keyError || !privateKey) throw keyError || new Error("Missing VAPID key");
+    if (!VAPID_PUBLIC_KEY) throw new Error("Missing VAPID_PUBLIC_KEY for this environment");
     webpush.setVapidDetails("mailto:patricklucas512@gmail.com", VAPID_PUBLIC_KEY, privateKey);
 
     const sentEndpoints = new Set<string>();

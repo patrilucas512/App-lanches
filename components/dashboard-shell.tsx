@@ -1,3 +1,5 @@
+import { isMenuItemEntitled, moduleOffReason, type MenuPlan } from "@/lib/menu-entitlements";
+import { ModuleUnavailable } from "@/components/module-unavailable";
 import Link from "next/link";
 import { Brand } from "@/components/ui";
 import { DashboardMobileNav } from "@/components/dashboard-mobile-nav";
@@ -154,80 +156,10 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
   const name = brand ? brandName(brand) : "MasterApp";
   const logo = brand ? brandLogo(brand) : "";
   const plan = (brand as EstablishmentBrand & { plan?: (PlanEntitlements & FoodQualityEntitlements & WorkforcePlanningEntitlements & IncidentEntitlements & Customer360Entitlements & JourneyEntitlements & CatalogEntitlements & CapacityEntitlements & FranchiseFinanceEntitlements & StoreOpeningEntitlements & GeoEntitlements & AuditEntitlements & KnowledgeEntitlements & TransportEntitlements & StoreOnlyEntitlements) | null } | undefined)?.plan;
-  const isEntitled = (link: DashboardLink) => {
-    if (!plan) return true;
-    if (link.key === "overview") return plan.workspace_enabled !== false && plan.personalized_home_enabled !== false;
-    if (link.key === "cashier") return plan.cashier_enabled !== false;
-    if (link.key === "network") return plan.network_governance_enabled !== false;
-    if (link.key === "geo-map") return plan.geo_management_enabled !== false && plan.network_governance_enabled !== false;
-    if (link.key === "audits") return plan.operational_audits_enabled !== false;
-    if (link.key === "knowledge") return plan.knowledge_base_enabled !== false;
-    if (link.key === "quality") return plan.food_quality_enabled !== false;
-    if (link.key === "assets") return plan.asset_management_enabled !== false;
-    if (link.key === "documents") return plan.document_compliance_enabled !== false;
-    if (link.key === "automation") return plan.automation_center_enabled !== false;
-    if (link.key === "notifications") return plan.notification_center_enabled !== false;
-    if (link.key === "internal-communications" || link.key === "my-announcements") return plan.internal_communications_enabled !== false;
-    if (link.key === "reports") return plan.advanced_reporting_enabled !== false;
-    if (link.key === "performance-management") return plan.performance_management_enabled !== false;
-    if (link.key === "my-learning" || link.key === "learning-admin") return plan.learning_center_enabled !== false;
-    if (link.key === "forecast") return plan.demand_forecasting_enabled !== false;
-    if (link.key === "menu-engineering") return plan.menu_engineering_enabled !== false;
-    if (link.key === "marketing-intelligence") return plan.marketing_intelligence_enabled !== false;
-    if (link.key === "inventory") return plan.inventory_enabled !== false;
-    if (link.key === "procurement") return plan.procurement_intelligence_enabled !== false;
-    if (link.key === "logistics") return plan.advanced_delivery_enabled !== false && plan.drivers_enabled !== false;
-    if (link.key === "finance") return plan.financial_management_enabled !== false;
-    if (link.key === "franchise-finance") return plan.franchise_finance_enabled !== false && plan.franchise_management_enabled !== false;
-    if (link.key === "store-opening") return plan.store_opening_enabled !== false;
-    if (link.key === "fiscal") return plan.fiscal_module_enabled !== false;
-    if (link.key === "workforce") return plan.workforce_management_enabled !== false;
-    if (link.key === "workforce-planning") return plan.workforce_management_enabled !== false && plan.advanced_workforce_planning_enabled !== false;
-    if (link.key === "kitchen") return plan.kitchen_enabled !== false;
-    if (link.key === "kitchen-orchestration") return plan.kitchen_enabled !== false && plan.advanced_kds_enabled !== false;
-    if (link.key === "capacity") return plan.capacity_management_enabled !== false;
-    if (link.key === "central-production") return plan.central_production_enabled !== false;
-    if (link.key === "supply-chain") return plan.supply_chain_planning_enabled !== false;
-    if (link.key === "warehouse") return plan.wms_enabled !== false && plan.inventory_enabled !== false;
-    if (link.key === "transport") return plan.transport_management_enabled !== false;
-    if (link.key === "ibp") return plan.ibp_enabled !== false;
-    if (link.key === "digital-twin") return plan.digital_twin_enabled !== false;
-    if (link.key === "revenue-management") return plan.revenue_management_enabled !== false;
-    if (link.key === "network-operations") return plan.network_operations_center_enabled !== false;
-    if (link.key === "service-reliability") return plan.service_reliability_enabled !== false;
-    if (link.key === "business-continuity") return plan.business_continuity_enabled !== false;
-    if (link.key === "enterprise-risk") return plan.enterprise_risk_management_enabled !== false;
-    if (link.key === "change-management") return plan.enterprise_change_management_enabled !== false;
-    if (link.key === "process-intelligence") return plan.process_intelligence_enabled !== false;
-    if (link.key === "enterprise-architecture") return plan.enterprise_architecture_enabled !== false;
-    if (link.key === "enterprise-portfolio") return plan.enterprise_portfolio_management_enabled !== false;
-    if (link.key === "vendor-management") return plan.vendor_management_enabled !== false;
-    if (link.key === "security-operations") return plan.security_operations_center_enabled !== false;
-    if (link.key === "identity-governance") return plan.identity_governance_enabled !== false;
-    if (link.key === "privacy-operations") return plan.privacy_operations_enabled !== false;
-    if (link.key === "customer-experience") return plan.customer_experience_enabled !== false;
-    if (link.key === "data-governance") return plan.data_catalog_enabled !== false;
-    if (link.key === "voice") return plan.voice_ai_enabled === true;
-    if (link.key === "subscriptions") return plan.subscriptions_enabled !== false;
-    if (link.key === "dining") return plan.reservations_enabled !== false && plan.advanced_dining_room_enabled !== false;
-    if (link.key === "self-service") return plan.self_service_enabled !== false;
-    if (link.key === "continuity") return plan.offline_operations_enabled !== false;
-    if (link.key === "incidents") return plan.incident_management_enabled !== false;
-    if (link.key === "customer360") return plan.customer_360_enabled !== false;
-    if (link.key === "journeys") return plan.customer_journeys_enabled !== false;
-    if (link.key === "central-catalog") return plan.central_catalog_enabled !== false;
-    if (link.key === "hardware") return plan.hardware_hub_enabled !== false;
-    if (link.key === "marketplace-integrations") return plan.marketplace_integrations_enabled !== false;
-    if (link.key === "marketplace") return plan.app_marketplace_enabled !== false;
-    if (link.key === "developers") return plan.partner_platform_enabled !== false;
-    if (link.key === "security") return plan.mfa_enabled !== false;
-    if (link.key === "team") return plan.staff_management_enabled !== false || plan.drivers_enabled !== false || plan.waiter_mode_enabled !== false;
-    if (link.key === "deliveries") return plan.drivers_enabled !== false && plan.delivery_enabled !== false;
-    if (link.key === "ai-attendant") return plan.ai_enabled !== false;
-    if (link.key === "whatsapp-supervision") return plan.whatsapp_enabled !== false;
-    if (link.key === "master-data") return plan.mdm_enabled !== false;
-    return true;
-  };
+  const isEntitled = (link: DashboardLink) => isMenuItemEntitled(link.key, plan as MenuPlan | null);
+  // Fase 98C: a tela de um módulo desligado mostra o aviso padrão em vez do conteúdo.
+  const basePlan = (brand as { basePlan?: MenuPlan | null } | undefined)?.basePlan ?? null;
+  const moduleOff = Boolean(plan) && !isMenuItemEntitled(active, plan as MenuPlan | null);
   const entitledLinks = allLinks.filter(isEntitled);
   const links = role === "attendant" ? attendantLinks.filter(isEntitled)
     : role === "kitchen" ? entitledLinks.filter(link => link.key === "kitchen" || link.key === "my-announcements")
@@ -260,7 +192,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
       <DashboardTopbar links={links} currentLabel={currentLabel} dateLabel={dateLabel} roleLabel={roleLabel(role)} storeSlug={storeSlug} />
       <DashboardMobileNav links={links} active={active} storeSlug={storeSlug} currentLabel={currentLabel} roleLabel={roleLabel(role)} brandName={name} brandLogo={logo} />
       {scope?.availableStores && scope.availableStores.length > 0 && <StoreScopeSwitcher activeStoreId={brand?.id ?? ""} organizationName={scope.organization?.name ?? name} stores={scope.availableStores} />}
-      <div className="dashboard-content">{children}</div>
+      <div className="dashboard-content">{moduleOff ? <ModuleUnavailable moduleKey={active} reason={moduleOffReason(active, plan as MenuPlan, basePlan)} role={role} /> : children}</div>
       {brand?.id && plan?.global_search_enabled !== false && plan?.command_palette_enabled !== false && <GlobalCommandPalette storeId={brand.id} />}
       {brand?.id && plan?.notification_center_enabled !== false && <NotificationBell storeId={brand.id} organizationId={scope?.organization?.id ?? undefined} />}
       {brand?.id && plan?.knowledge_base_enabled !== false && <ContextualKnowledgeHelp storeId={brand.id} />}

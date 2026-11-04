@@ -1,4 +1,5 @@
 "use client";
+import { LegalLinks } from "@/components/legal-links";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PrivacyPortalCenter } from "@/components/privacy-portal-center";
 
@@ -17,6 +18,7 @@ export function CustomerPortalLogin({ slug, config }: { slug: string; config: Js
       <form onSubmit={submit}>{step==="phone"?<label>Telefone com DDD<input inputMode="tel" autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(21) 99999-9999" required/></label>:<label>Código temporário<input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="000000" minLength={6} required/></label>}<button disabled={busy}>{busy?"Aguarde...":step==="phone"?"Receber código":"Entrar na minha conta"}</button>{step==="code"&&<button type="button" className="portal-link-button" onClick={()=>{setStep("phone");setCode("");setMessage("")}}>Usar outro número</button>}<p role="status">{message}</p></form>
       <small>Seu código nunca será solicitado por um funcionário. Sessões podem ser encerradas a qualquer momento.</small>
     </section>
+    <LegalLinks audience="customer" className="legal-links portal-legal-links" />
   </main>;
 }
 
@@ -50,7 +52,7 @@ export function CustomerPortalApp({ slug, initial, initialOrderId }: { slug:stri
       {tab==="profile"&&<Profile customer={data.customer} preferences={data.preferences||{}} busy={busy} saveProfile={p=>action("update_profile",p)} savePreferences={p=>action("set_preferences",p)} privacy={p=>action("privacy_request",p)} requestPhone={p=>action("request_phone_change",p)} confirmPhone={p=>action("confirm_phone_change",p)} logoutAll={()=>action("logout_all")}/>} 
       {tab==="profile"&&<PrivacyPortalCenter slug={slug}/>}
       {tab==="help"&&<Help orders={orders} config={config} busy={busy} submit={p=>action("support",p)} slug={slug}/>} 
-    </section></div><nav className="portal-mobile-nav" aria-label="Navegação da conta">{nav.map(([key,label])=><button key={key} className={tab===key?"active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav></main>;
+    </section></div><nav className="portal-mobile-nav" aria-label="Navegação da conta">{nav.map(([key,label])=><button key={key} className={tab===key?"active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav><LegalLinks audience="customer" className="legal-links portal-legal-links" /></main>;
 
   async function payNow(order:Json){const provider=String(order.payment_method||"").startsWith("pagarme")?"pagarme":"mercado_pago";const response=await fetch("/api/order-payments/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({order_id:order.id,tracking_token:order.tracking_token,provider})});const result=await response.json();if(response.ok&&result.url)window.location.href=result.url;else setMessage(result.error||"Pagamento indisponível.");}
 }
