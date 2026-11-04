@@ -101,16 +101,28 @@ Sem chave, cada recurso fica desligado com mensagem (conferido no código: Strip
 - O menu do atendente passou a ser filtrado (Voz aparecia com a voz desligada).
 - "Minha conta" não leva mais a 404.
 
+- **Cozinha** (vistos nas capturas do E2E e corrigidos, com teste e captura de conferência):
+  - o recibo de troco tinha texto claro sobre fundo creme no tema da loja;
+  - o pagamento aparecia como "cash" na tela e "CASH" nos dois recibos impressos, agora "Dinheiro";
+  - o botão "Aceitar e imprimir" ficava espremido pela regra geral de `footer` do site.
+
 **Pendente** (achado, não corrigido):
-- **Cozinha:**
-  - o recibo de troco no cartão da cozinha tem texto claro sobre fundo creme, quase ilegível;
-  - o cartão mostra "PAGAMENTO: cash" em vez de "Dinheiro";
-  - o botão "Aceitar e imprimir" fica espremido em três linhas.
 - **Menu do painel:**
   - continua longo para uma lanchonete, porque os planos ligam muitos módulos (seção 3);
   - itens sem flag nenhuma: Inteligência, Analytics, Unidades, Caixa de Entrada, CRM, Integrações, Chamados.
 - **Telas com módulo desligado:** algumas abrem normalmente e outras voltam para `/painel` sem explicar.
-- **Lighthouse:** não foi rodado. O ambiente local roda o build em modo de prévia, e a homologação pede login da Vercel; fica para quando o bypass existir.
+- **Lighthouse (celular, build local):**
+
+  | Página | Desempenho | Acessibilidade | Boas práticas | Primeira pintura | LCP |
+  |---|---|---|---|---|---|
+  | Cardápio público (também mostra o acompanhamento) | 56 | 94 | 75 | 8,4 s | 8,4 s |
+  | Portal do cliente | 60 | 93 | 79 | 6,8 s | 6,8 s |
+
+  - **Principal custo:** CSS que bloqueia a pintura, cerca de 577 KiB sem uso no cardápio. O build local (`vinext`) junta o CSS do app inteiro num arquivo de 618 KB; `app/globals.css` sozinho tem 429 KB.
+  - **Valor a confirmar:** a Vercel compila com `next build`, que divide o CSS por página, então o número real precisa ser medido na homologação (depende do bypass).
+  - **Produção não foi medida:** o cardápio público grava eventos de visita, o que seria escrita em produção.
+  - **Outros achados:** contraste insuficiente em textos, só 40% do texto em tamanho legível no celular, 321 KiB de JavaScript sem uso.
+  - **Correção:** nenhuma correção de desempenho foi feita nesta fase. Separar o CSS global por módulo é uma mudança grande e precisa de medição no build real antes.
 - **Primeiro acesso completo** (cadastro → primeiro pedido): não percorrido de ponta a ponta. O cadastro exige confirmação por e-mail.
 
 ## 7. Problemas encontrados em produção (somente leitura)
@@ -157,6 +169,7 @@ Nenhuma escrita em produção além das aprovadas:
 
 - **E2E local, não na homologação.** A bateria rodou contra o build local ligado ao masterapp-dev. Na homologação depende do bypass e da chave secreta, que o agente não pôde gerar nem cadastrar (bloqueio de permissão).
 - **Workers do dev:** agendados, mas não validados (faltam os segredos no Vault).
+- **Banco do dev mais lento:** às vezes estoura o limite de 3 s do usuário anônimo ao fazer pedido. A primeira chamada após ficar parado levou cerca de 600 ms medidos, e o pico observado foi de 2,7 s; nas seguintes, 11 ms. Em produção, o pico observado é 0,6 s. O E2E no CI repete uma vez em caso de falha.
 - **Faixa "HOMOLOGAÇÃO":** testada por teste unitário; não vista na tela da prévia (exige login da Vercel).
 - **Menu do painel (97E):** coberto por testes unitários e pela bateria existente; não visto no navegador.
 
@@ -172,12 +185,12 @@ Nenhuma escrita em produção além das aprovadas:
 4. Impedir que dono e gerente liguem flags fora do plano (`store_feature_flags`).
 5. E2E das contas de funcionário (seed com garçom, caixa, cozinha e entregador com login) e do entregador de ponta a ponta.
 6. Chave pública VAPID por ambiente (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`) para push funcionar na homologação.
-7. Correções de experiência da cozinha (recibo ilegível, "cash", botão espremido) e mensagem clara quando um módulo está desligado.
+7. Mensagem clara quando um módulo está desligado (hoje algumas telas voltam para `/painel` sem explicar).
 8. Alertas automáticos a partir das consultas do roteiro do piloto (pedidos travados, pagamento falho, worker parado).
 9. Revisão das 21 funções públicas `SECURITY DEFINER` e redução das 273 expostas a usuários logados.
 10. Plano "Piloto" com só o núcleo, e limpeza dos módulos ligados por padrão nos planos.
-11. Lighthouse no cardápio público e no acompanhamento, no celular, depois que a homologação aceitar o bypass.
+11. Medir o Lighthouse na homologação (build da Vercel) e, se o CSS continuar acima de ~100 KB no cardápio, separar `app/globals.css` por módulo; corrigir contraste e tamanho de fonte do cardápio no celular.
 
 ## Resultado da bateria
 
-Última rodada em 04/11/2026, contra o build local (`vite preview`) ligado ao `masterapp-dev`: **15 testes, 15 passaram** (10 no desktop e 5 no celular, os marcados `@mobile`). Nas rodadas anteriores, as falhas eram os dois defeitos corrigidos (pedido recusado e link do portal) e ajustes dos próprios testes (seletores, impressão do navegador, tempo).
+Últimas rodadas em 04/11/2026 (duas seguidas, depois das correções da cozinha), contra o build local (`vite preview`) ligado ao `masterapp-dev`: **15 testes, 15 passaram** (10 no desktop e 5 no celular, os marcados `@mobile`). Nas rodadas anteriores, as falhas eram os dois defeitos corrigidos (pedido recusado e link do portal) e ajustes dos próprios testes (seletores, impressão do navegador, tempo).
