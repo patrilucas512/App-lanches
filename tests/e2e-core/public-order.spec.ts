@@ -53,6 +53,11 @@ test("portal do cliente abre a tela de acesso @mobile", async ({ page }) => {
   await expect(page.locator("body")).not.toContainText(/Application error|Internal Server Error/);
 });
 
+test("loja inexistente mostra página não encontrada, não erro do servidor", async ({ page }) => {
+  const response = await page.goto("/loja/loja-que-nao-existe-e2e");
+  expect(response?.status()).toBe(404);
+});
+
 test("QR da loja leva ao cardápio público", async ({ page }) => {
   await page.goto(`/q/${STORE_SLUG}`);
   await expect(page).toHaveURL(new RegExp(`/loja/${STORE_SLUG}`));
