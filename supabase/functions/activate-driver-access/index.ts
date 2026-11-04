@@ -1,8 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.8";
 
-const allowedOrigins = new Set(["https://mesa-viva-patrilucas.patricklucas512.chatgpt.site", "http://localhost:3000"]);
-const cors = (origin: string | null) => ({ "Access-Control-Allow-Origin": origin && allowedOrigins.has(origin) ? origin : "https://mesa-viva-patrilucas.patricklucas512.chatgpt.site", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" });
+const PRIMARY_ORIGIN = "https://app-lanches-psi.vercel.app";
+// Production, local dev and this project's Vercel previews (homologação, which uses the dev database).
+const isAllowedOrigin = (origin: string) =>
+  origin === PRIMARY_ORIGIN || origin === "http://localhost:3000" || /^https:\/\/app-lanches-[a-z0-9-]+-lucas-patrick\.vercel\.app$/.test(origin);
+const cors = (origin: string | null) => ({ "Access-Control-Allow-Origin": origin && isAllowedOrigin(origin) ? origin : PRIMARY_ORIGIN, "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin" });
 const reply = (origin: string | null, status: number, body: Record<string, unknown>) => new Response(JSON.stringify(body), { status, headers: { ...cors(origin), "Content-Type": "application/json" } });
 const normalizePhone = (value: string) => { const digits = value.replace(/\D/g, ""); if (digits.length === 10 || digits.length === 11) return `55${digits}`; return digits.startsWith("55") && (digits.length === 12 || digits.length === 13) ? digits : null; };
 
