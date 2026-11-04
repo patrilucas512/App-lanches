@@ -452,7 +452,8 @@ button.table-qr-card { color:inherit; }
 .ticket-items b { font-size:11px; }
 .ticket-items span { color:var(--muted); font-size:8px; }
 .ticket-items em { background:#fff0d2; border-radius:5px; font-size:8px; font-style:normal; padding:7px; }
-.kitchen-ticket > footer { display:flex; flex-direction:column; gap:6px; }
+/* The site-wide footer rule (centered, 55px padding) squeezed the ticket buttons into a narrow column. */
+.kitchen-ticket > footer { align-items:stretch; display:flex; flex-direction:column; gap:6px; padding:0; }
 .kitchen-ticket > footer button { background:var(--ink); border:0; border-radius:8px; color:white; font-size:8px; font-weight:800; padding:11px; }
 .kitchen-ticket > footer .print-ticket { background:#eee9df; color:var(--ink); }
 .kitchen-waiter-pickup { background:#def1e8; border:1px solid #a7d5bf; border-radius:8px; display:flex; flex-direction:column; gap:3px; padding:11px; }
@@ -1394,7 +1395,8 @@ button.table-qr-card { color:inherit; }
 .public-cash-total strong { font-size:18px; }
 .public-cash-change { border-top:1px solid var(--menu-border); padding-top:12px; }
 .public-cash-change strong { color:var(--menu-accent); font-size:22px; }
-.ticket-cash-change { background:#fff4d9; border:2px solid #111; display:grid; gap:4px; margin-top:12px; padding:9px; }
+/* Light receipt on a ticket that may be dark (store theme): it needs its own dark text. */
+.ticket-cash-change { background:#fff4d9; border:2px solid #111; color:#111; display:grid; gap:4px; margin-top:12px; padding:9px; }
 .ticket-cash-change span { display:flex; font-size:10px; justify-content:space-between; }
 .ticket-cash-change > strong { border-top:1px solid #111; font-size:15px; margin-top:4px; padding-top:5px; text-align:center; }
 .kitchen-delivery-stage { background:#fff4d9; border:1px solid #d49a2b; border-radius:9px; display:flex; flex-direction:column; gap:3px; margin-top:12px; padding:9px 11px; }
