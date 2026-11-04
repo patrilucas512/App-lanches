@@ -34,6 +34,8 @@ type GeoEntitlements = { geo_management_enabled?:boolean; territory_management_e
 type AuditEntitlements = { operational_audits_enabled?:boolean; audit_offline_enabled?:boolean; audit_scoring_enabled?:boolean; audit_followups_enabled?:boolean; audit_ai_assistant_enabled?:boolean };
 type KnowledgeEntitlements = { knowledge_base_enabled?:boolean; knowledge_semantic_search_enabled?:boolean; knowledge_ai_assistant_enabled?:boolean; knowledge_offline_enabled?:boolean; knowledge_customer_safe_content_enabled?:boolean; central_production_enabled?:boolean; internal_requisitions_enabled?:boolean; interstore_transfers_enabled?:boolean; production_batch_traceability_enabled?:boolean; production_planning_enabled?:boolean; supply_chain_planning_enabled?:boolean; multi_echelon_inventory_enabled?:boolean; redistribution_recommendations_enabled?:boolean; supply_scenarios_enabled?:boolean; dynamic_safety_stock_enabled?:boolean; wms_enabled?:boolean; wms_directed_putaway_enabled?:boolean; wms_wave_picking_enabled?:boolean; wms_handling_units_enabled?:boolean; wms_offline_enabled?:boolean; wms_slotting_enabled?:boolean };
 type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enabled?:boolean; digital_twin_enabled?:boolean; revenue_management_enabled?:boolean; commercial_recommendations_enabled?:boolean; network_operations_center_enabled?:boolean; noc_network_view_enabled?:boolean; service_reliability_enabled?:boolean; reliability_release_guardrails_enabled?:boolean; reliability_network_view_enabled?:boolean; reliability_backtesting_enabled?:boolean; business_continuity_enabled?:boolean; continuity_advanced_failover_enabled?:boolean; continuity_exercises_enabled?:boolean; enterprise_risk_management_enabled?:boolean; third_party_risk_enabled?:boolean; risk_kri_monitoring_enabled?:boolean; risk_concentration_analysis_enabled?:boolean; enterprise_change_management_enabled?:boolean; change_advisory_enabled?:boolean; change_conflict_detection_enabled?:boolean; post_change_validation_enabled?:boolean; data_catalog_enabled?:boolean; data_contracts_enabled?:boolean; data_lineage_enabled?:boolean; data_observability_enabled?:boolean; process_intelligence_enabled?:boolean; enterprise_architecture_enabled?:boolean; enterprise_portfolio_management_enabled?:boolean; vendor_management_enabled?:boolean; vendor_due_diligence_enabled?:boolean; vendor_renewal_management_enabled?:boolean; vendor_exit_planning_enabled?:boolean; vendor_sla_management_enabled?:boolean; security_operations_center_enabled?:boolean; identity_governance_enabled?:boolean; security_detection_engine_enabled?:boolean; security_investigation_workbench_enabled?:boolean; security_response_orchestration_enabled?:boolean; security_threat_hunting_enabled?:boolean; security_ai_assistance_enabled?:boolean };
+// Flags that exist only per store; lib/dashboard.ts merges them into the plan.
+type StoreOnlyEntitlements = { delivery_enabled?:boolean; whatsapp_enabled?:boolean; ai_enabled?:boolean; mdm_enabled?:boolean; drivers_enabled?:boolean };
 
 const allLinks: DashboardLink[] = [
   { key: "overview", href: "/home", label: "Minha Home", icon: "⌂", group: "principal" },
@@ -151,8 +153,8 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
   const colors = brand ? operationTheme(brand) : operationColors;
   const name = brand ? brandName(brand) : "MasterApp";
   const logo = brand ? brandLogo(brand) : "";
-  const plan = (brand as EstablishmentBrand & { plan?: (PlanEntitlements & FoodQualityEntitlements & WorkforcePlanningEntitlements & IncidentEntitlements & Customer360Entitlements & JourneyEntitlements & CatalogEntitlements & CapacityEntitlements & FranchiseFinanceEntitlements & StoreOpeningEntitlements & GeoEntitlements & AuditEntitlements & KnowledgeEntitlements & TransportEntitlements) | null } | undefined)?.plan;
-  const entitledLinks = allLinks.filter(link => {
+  const plan = (brand as EstablishmentBrand & { plan?: (PlanEntitlements & FoodQualityEntitlements & WorkforcePlanningEntitlements & IncidentEntitlements & Customer360Entitlements & JourneyEntitlements & CatalogEntitlements & CapacityEntitlements & FranchiseFinanceEntitlements & StoreOpeningEntitlements & GeoEntitlements & AuditEntitlements & KnowledgeEntitlements & TransportEntitlements & StoreOnlyEntitlements) | null } | undefined)?.plan;
+  const isEntitled = (link: DashboardLink) => {
     if (!plan) return true;
     if (link.key === "overview") return plan.workspace_enabled !== false && plan.personalized_home_enabled !== false;
     if (link.key === "cashier") return plan.cashier_enabled !== false;
@@ -220,9 +222,14 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     if (link.key === "developers") return plan.partner_platform_enabled !== false;
     if (link.key === "security") return plan.mfa_enabled !== false;
     if (link.key === "team") return plan.staff_management_enabled !== false || plan.drivers_enabled !== false || plan.waiter_mode_enabled !== false;
+    if (link.key === "deliveries") return plan.drivers_enabled !== false && plan.delivery_enabled !== false;
+    if (link.key === "ai-attendant") return plan.ai_enabled !== false;
+    if (link.key === "whatsapp-supervision") return plan.whatsapp_enabled !== false;
+    if (link.key === "master-data") return plan.mdm_enabled !== false;
     return true;
-  });
-  const links = role === "attendant" ? attendantLinks
+  };
+  const entitledLinks = allLinks.filter(isEntitled);
+  const links = role === "attendant" ? attendantLinks.filter(isEntitled)
     : role === "kitchen" ? entitledLinks.filter(link => link.key === "kitchen" || link.key === "my-announcements")
     : role === "catalog_editor" ? entitledLinks.filter(link => link.key === "catalog" || link.key === "central-catalog" || link.key === "my-announcements") : entitledLinks;
   const dateLabel = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "long" }).format(new Date());

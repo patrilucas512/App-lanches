@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { mergeStoreFlags } from "@/lib/store-entitlements";
 
 export async function getDashboardContext() {
   const supabase = await createClient();
@@ -21,7 +22,8 @@ export async function getDashboardContext() {
   const { data: networkPlan } = basePlan?.id
     ? await supabase.from("plans").select("network_governance_enabled,franchise_management_enabled,central_catalog_enabled,network_pricing_enabled,network_benchmarking_enabled,food_quality_enabled,lot_tracking_enabled,temperature_tracking_enabled,traceability_enabled,internal_recall_enabled").eq("id", basePlan.id).maybeSingle()
     : { data: null };
-  const plan = basePlan ? { ...basePlan, ...(networkPlan ?? {}) } : null;
+  const { data: storeFlags } = basePlan ? await supabase.from("store_feature_flags").select("*").eq("establishment_id", establishment.id).maybeSingle() : { data: null };
+  const plan = basePlan ? mergeStoreFlags({ ...basePlan, ...(networkPlan ?? {}) }, storeFlags) : null;
   const { data: organization } = await supabase.from("organizations").select("id,name,loyalty_mode,status").eq("id", establishment.organization_id).maybeSingle();
   return { supabase, userId, member, plan, organization, organizationMember, availableStores: availableStores ?? [], establishment: { ...establishment, plan, organization, availableStores: availableStores ?? [] } };
 }
