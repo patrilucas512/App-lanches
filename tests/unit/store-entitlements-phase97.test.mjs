@@ -28,9 +28,9 @@ test("the dashboard reads the store flags and the menu hides core links of modul
   // Fase 98B: as regras saíram do componente para lib/menu-entitlements.ts.
   const rules = read("lib/menu-entitlements.ts");
   assert.match(shell, /isMenuItemEntitled\(link\.key, plan/);
-  assert.match(rules, /"deliveries": \(plan\) => plan\.drivers_enabled !== false && plan\.delivery_enabled !== false/);
-  assert.match(rules, /"ai-attendant": \(plan\) => plan\.ai_enabled !== false/);
-  assert.match(rules, /"whatsapp-supervision": \(plan\) => plan\.whatsapp_enabled !== false/);
+  assert.match(rules, /"deliveries": \{ label: "Entregas", flags: \["drivers_enabled", "delivery_enabled"\] \}/);
+  assert.match(rules, /"ai-attendant": \{ label: "Atendente IA", flags: \["ai_enabled"\] \}/);
+  assert.match(rules, /"whatsapp-supervision": \{ label: "Supervisão", flags: \["whatsapp_enabled"\] \}/);
   // Attendants used to get their list with no check at all (Voz showed with voice off).
   assert.match(shell, /role === "attendant" \? attendantLinks\.filter\(isEntitled\)/);
 });

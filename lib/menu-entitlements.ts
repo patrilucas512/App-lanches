@@ -1,100 +1,114 @@
-// Fase 98B: regra de cada item do menu do painel (antes dentro de components/dashboard-shell.tsx).
-// `plan` já é o plano somado às flags da loja (lib/store-entitlements.ts). Item sem regra aparece sempre.
+// Fases 98B/98C: o que liga cada item do menu do painel (e a tela dele).
+// `plan` é o plano já somado às flags da loja (lib/store-entitlements.ts). Item sem regra aparece sempre.
+// mode "all" (padrão): todas as flags diferentes de false; "any": basta uma; "strict": precisa ser true.
 export type MenuPlan = Record<string, unknown>;
-type Rule = (plan: MenuPlan) => boolean;
+export type ModuleRule = { label: string; flags: readonly string[]; mode?: "all" | "any" | "strict" };
 
-const rules: Record<string, Rule> = {
-  "overview": (plan) => plan.workspace_enabled !== false && plan.personalized_home_enabled !== false,
-  "cashier": (plan) => plan.cashier_enabled !== false,
-  "network": (plan) => plan.network_governance_enabled !== false,
-  "geo-map": (plan) => plan.geo_management_enabled !== false && plan.network_governance_enabled !== false,
-  "audits": (plan) => plan.operational_audits_enabled !== false,
-  "knowledge": (plan) => plan.knowledge_base_enabled !== false,
-  "quality": (plan) => plan.food_quality_enabled !== false,
-  "assets": (plan) => plan.asset_management_enabled !== false,
-  "documents": (plan) => plan.document_compliance_enabled !== false,
-  "automation": (plan) => plan.automation_center_enabled !== false,
-  "notifications": (plan) => plan.notification_center_enabled !== false,
-  "internal-communications": (plan) => plan.internal_communications_enabled !== false,
-  "my-announcements": (plan) => plan.internal_communications_enabled !== false,
-  "reports": (plan) => plan.advanced_reporting_enabled !== false,
-  "performance-management": (plan) => plan.performance_management_enabled !== false,
-  "my-learning": (plan) => plan.learning_center_enabled !== false,
-  "learning-admin": (plan) => plan.learning_center_enabled !== false,
-  "forecast": (plan) => plan.demand_forecasting_enabled !== false,
-  "menu-engineering": (plan) => plan.menu_engineering_enabled !== false,
-  "marketing-intelligence": (plan) => plan.marketing_intelligence_enabled !== false,
-  "inventory": (plan) => plan.inventory_enabled !== false,
-  "procurement": (plan) => plan.procurement_intelligence_enabled !== false,
-  "logistics": (plan) => plan.advanced_delivery_enabled !== false && plan.drivers_enabled !== false,
-  "finance": (plan) => plan.financial_management_enabled !== false,
-  "franchise-finance": (plan) => plan.franchise_finance_enabled !== false && plan.franchise_management_enabled !== false,
-  "store-opening": (plan) => plan.store_opening_enabled !== false,
-  "fiscal": (plan) => plan.fiscal_module_enabled !== false,
-  "workforce": (plan) => plan.workforce_management_enabled !== false,
-  "workforce-planning": (plan) => plan.workforce_management_enabled !== false && plan.advanced_workforce_planning_enabled !== false,
-  "kitchen": (plan) => plan.kitchen_enabled !== false,
-  "kitchen-orchestration": (plan) => plan.kitchen_enabled !== false && plan.advanced_kds_enabled !== false,
-  "capacity": (plan) => plan.capacity_management_enabled !== false,
-  "central-production": (plan) => plan.central_production_enabled !== false,
-  "supply-chain": (plan) => plan.supply_chain_planning_enabled !== false,
-  "warehouse": (plan) => plan.wms_enabled !== false && plan.inventory_enabled !== false,
-  "transport": (plan) => plan.transport_management_enabled !== false,
-  "ibp": (plan) => plan.ibp_enabled !== false,
-  "digital-twin": (plan) => plan.digital_twin_enabled !== false,
-  "revenue-management": (plan) => plan.revenue_management_enabled !== false,
-  "network-operations": (plan) => plan.network_operations_center_enabled !== false,
-  "service-reliability": (plan) => plan.service_reliability_enabled !== false,
-  "business-continuity": (plan) => plan.business_continuity_enabled !== false,
-  "enterprise-risk": (plan) => plan.enterprise_risk_management_enabled !== false,
-  "change-management": (plan) => plan.enterprise_change_management_enabled !== false,
-  "process-intelligence": (plan) => plan.process_intelligence_enabled !== false,
-  "enterprise-architecture": (plan) => plan.enterprise_architecture_enabled !== false,
-  "enterprise-portfolio": (plan) => plan.enterprise_portfolio_management_enabled !== false,
-  "vendor-management": (plan) => plan.vendor_management_enabled !== false,
-  "security-operations": (plan) => plan.security_operations_center_enabled !== false,
-  "identity-governance": (plan) => plan.identity_governance_enabled !== false,
-  "privacy-operations": (plan) => plan.privacy_operations_enabled !== false,
-  "customer-experience": (plan) => plan.customer_experience_enabled !== false,
-  "data-governance": (plan) => plan.data_catalog_enabled !== false,
-  "voice": (plan) => plan.voice_ai_enabled === true,
-  "subscriptions": (plan) => plan.subscriptions_enabled !== false,
-  "dining": (plan) => plan.reservations_enabled !== false && plan.advanced_dining_room_enabled !== false,
-  "self-service": (plan) => plan.self_service_enabled !== false,
-  "continuity": (plan) => plan.offline_operations_enabled !== false,
-  "incidents": (plan) => plan.incident_management_enabled !== false,
-  "customer360": (plan) => plan.customer_360_enabled !== false,
-  "journeys": (plan) => plan.customer_journeys_enabled !== false,
-  "central-catalog": (plan) => plan.central_catalog_enabled !== false,
-  "hardware": (plan) => plan.hardware_hub_enabled !== false,
-  "marketplace-integrations": (plan) => plan.marketplace_integrations_enabled !== false,
-  "marketplace": (plan) => plan.app_marketplace_enabled !== false,
-  "developers": (plan) => plan.partner_platform_enabled !== false,
-  "security": (plan) => plan.mfa_enabled !== false,
-  "team": (plan) => plan.staff_management_enabled !== false || plan.drivers_enabled !== false || plan.waiter_mode_enabled !== false,
-  "deliveries": (plan) => plan.drivers_enabled !== false && plan.delivery_enabled !== false,
-  "ai-attendant": (plan) => plan.ai_enabled !== false,
-  "whatsapp-supervision": (plan) => plan.whatsapp_enabled !== false,
-  "master-data": (plan) => plan.mdm_enabled !== false,
-  // Fase 98B: itens que não tinham flag
-  "intelligence": (plan) => plan.manager_intelligence_enabled !== false,
-  "analytics": (plan) => plan.analytics_center_enabled !== false,
-  "units": (plan) => plan.multi_unit_enabled !== false,
-  "inbox": (plan) => plan.omnichannel_inbox_enabled !== false,
-  "crm": (plan) => plan.crm_enabled !== false,
-  "integrations": (plan) => plan.integrations_center_enabled !== false,
-  "integration-orchestration": (plan) => plan.integration_orchestration_enabled !== false,
-  "calls": (plan) => plan.waiter_mode_enabled !== false,
+export const MODULE_RULES: Record<string, ModuleRule> = {
+  "overview": { label: "Minha Home", flags: ["workspace_enabled", "personalized_home_enabled"] },
+  "cashier": { label: "Caixa", flags: ["cashier_enabled"] },
+  "network": { label: "Rede", flags: ["network_governance_enabled"] },
+  "geo-map": { label: "Rede · Mapa", flags: ["geo_management_enabled", "network_governance_enabled"] },
+  "audits": { label: "Auditorias", flags: ["operational_audits_enabled"] },
+  "knowledge": { label: "Conhecimento", flags: ["knowledge_base_enabled"] },
+  "quality": { label: "Qualidade", flags: ["food_quality_enabled"] },
+  "assets": { label: "Ativos e Manutenção", flags: ["asset_management_enabled"] },
+  "documents": { label: "Documentos e Obrigações", flags: ["document_compliance_enabled"] },
+  "automation": { label: "Automação", flags: ["automation_center_enabled"] },
+  "notifications": { label: "Central de Notificações", flags: ["notification_center_enabled"] },
+  "internal-communications": { label: "Comunicação Interna", flags: ["internal_communications_enabled"] },
+  "my-announcements": { label: "Comunicados", flags: ["internal_communications_enabled"] },
+  "reports": { label: "Relatórios", flags: ["advanced_reporting_enabled"] },
+  "performance-management": { label: "Metas e Performance", flags: ["performance_management_enabled"] },
+  "my-learning": { label: "Meu aprendizado", flags: ["learning_center_enabled"] },
+  "learning-admin": { label: "Centro de Aprendizado", flags: ["learning_center_enabled"] },
+  "forecast": { label: "Previsão", flags: ["demand_forecasting_enabled"] },
+  "menu-engineering": { label: "Engenharia de Cardápio", flags: ["menu_engineering_enabled"] },
+  "marketing-intelligence": { label: "Marketing · Inteligência", flags: ["marketing_intelligence_enabled"] },
+  "inventory": { label: "Estoque", flags: ["inventory_enabled"] },
+  "procurement": { label: "Compras", flags: ["procurement_intelligence_enabled"] },
+  "logistics": { label: "Central de Despacho", flags: ["advanced_delivery_enabled", "drivers_enabled"] },
+  "finance": { label: "Financeiro", flags: ["financial_management_enabled"] },
+  "franchise-finance": { label: "Franquias · Financeiro", flags: ["franchise_finance_enabled", "franchise_management_enabled"] },
+  "store-opening": { label: "Expansão · Novas Unidades", flags: ["store_opening_enabled"] },
+  "fiscal": { label: "Fiscal", flags: ["fiscal_module_enabled"] },
+  "workforce": { label: "Gestão de Pessoas", flags: ["workforce_management_enabled"] },
+  "workforce-planning": { label: "Escalas e Cobertura", flags: ["workforce_management_enabled", "advanced_workforce_planning_enabled"] },
+  "kitchen": { label: "Cozinha", flags: ["kitchen_enabled"] },
+  "kitchen-orchestration": { label: "KDS Avançado", flags: ["kitchen_enabled", "advanced_kds_enabled"] },
+  "capacity": { label: "Capacidade", flags: ["capacity_management_enabled"] },
+  "central-production": { label: "Produção Central", flags: ["central_production_enabled"] },
+  "supply-chain": { label: "Supply Chain", flags: ["supply_chain_planning_enabled"] },
+  "warehouse": { label: "Armazém WMS", flags: ["wms_enabled", "inventory_enabled"] },
+  "transport": { label: "Transporte TMS", flags: ["transport_management_enabled"] },
+  "ibp": { label: "Planejamento IBP", flags: ["ibp_enabled"] },
+  "digital-twin": { label: "Digital Twin", flags: ["digital_twin_enabled"] },
+  "revenue-management": { label: "Revenue Management", flags: ["revenue_management_enabled"] },
+  "network-operations": { label: "Central da Rede", flags: ["network_operations_center_enabled"] },
+  "service-reliability": { label: "Confiabilidade", flags: ["service_reliability_enabled"] },
+  "business-continuity": { label: "Continuidade de Negócios", flags: ["business_continuity_enabled"] },
+  "enterprise-risk": { label: "Riscos Empresariais", flags: ["enterprise_risk_management_enabled"] },
+  "change-management": { label: "Mudanças", flags: ["enterprise_change_management_enabled"] },
+  "process-intelligence": { label: "Process Intelligence", flags: ["process_intelligence_enabled"] },
+  "enterprise-architecture": { label: "Arquitetura Empresarial", flags: ["enterprise_architecture_enabled"] },
+  "enterprise-portfolio": { label: "Portfólio Estratégico", flags: ["enterprise_portfolio_management_enabled"] },
+  "vendor-management": { label: "Terceiros & Fornecedores", flags: ["vendor_management_enabled"] },
+  "security-operations": { label: "Security Operations Center", flags: ["security_operations_center_enabled"] },
+  "identity-governance": { label: "Governança de Acessos", flags: ["identity_governance_enabled"] },
+  "privacy-operations": { label: "Privacidade & LGPD", flags: ["privacy_operations_enabled"] },
+  "customer-experience": { label: "Clientes · Experiência & Reputação", flags: ["customer_experience_enabled"] },
+  "data-governance": { label: "Governança de Dados", flags: ["data_catalog_enabled"] },
+  "voice": { label: "Voz", mode: "strict", flags: ["voice_ai_enabled"] },
+  "subscriptions": { label: "Assinaturas", flags: ["subscriptions_enabled"] },
+  "dining": { label: "Salão", flags: ["reservations_enabled", "advanced_dining_room_enabled"] },
+  "self-service": { label: "Autoatendimento", flags: ["self_service_enabled"] },
+  "continuity": { label: "Continuidade", flags: ["offline_operations_enabled"] },
+  "incidents": { label: "Incidentes", flags: ["incident_management_enabled"] },
+  "customer360": { label: "Clientes · Perfil 360", flags: ["customer_360_enabled"] },
+  "journeys": { label: "Jornadas de clientes", flags: ["customer_journeys_enabled"] },
+  "central-catalog": { label: "Catálogo central", flags: ["central_catalog_enabled"] },
+  "hardware": { label: "Hardware", flags: ["hardware_hub_enabled"] },
+  "marketplace-integrations": { label: "Canais de delivery", flags: ["marketplace_integrations_enabled"] },
+  "marketplace": { label: "Marketplace", flags: ["app_marketplace_enabled"] },
+  "developers": { label: "Desenvolvedores", flags: ["partner_platform_enabled"] },
+  "security": { label: "Segurança", flags: ["mfa_enabled"] },
+  "team": { label: "Equipe", mode: "any", flags: ["staff_management_enabled", "drivers_enabled", "waiter_mode_enabled"] },
+  "deliveries": { label: "Entregas", flags: ["drivers_enabled", "delivery_enabled"] },
+  "ai-attendant": { label: "Atendente IA", flags: ["ai_enabled"] },
+  "whatsapp-supervision": { label: "Supervisão", flags: ["whatsapp_enabled"] },
+  "master-data": { label: "Dados Mestres", flags: ["mdm_enabled"] },
+  "intelligence": { label: "Inteligência", flags: ["manager_intelligence_enabled"] },
+  "analytics": { label: "Analytics & Dados", flags: ["analytics_center_enabled"] },
+  "units": { label: "Unidades", flags: ["multi_unit_enabled"] },
+  "inbox": { label: "Caixa de Entrada", flags: ["omnichannel_inbox_enabled"] },
+  "crm": { label: "CRM", flags: ["crm_enabled"] },
+  "integrations": { label: "Integrações", flags: ["integrations_center_enabled"] },
+  "integration-orchestration": { label: "Orquestração iPaaS", flags: ["integration_orchestration_enabled"] },
+  "calls": { label: "Chamados", flags: ["waiter_mode_enabled"] },
 };
 
 // Itens sempre disponíveis (núcleo e conta): atendimento (modos e garçons), cardápio, pedidos, configurações,
 // cobrança, ajuda, suporte.
 export const ALWAYS_AVAILABLE_MENU_KEYS = ["onboarding", "attendance", "orders", "catalog", "customize", "settings", "billing", "help", "saas-support", "waiter"] as const;
 
-export function menuRuleKeys() { return Object.keys(rules); }
+export function menuRuleKeys() { return Object.keys(MODULE_RULES); }
+
+function flagOn(plan: MenuPlan, flag: string, strict: boolean) { return strict ? plan[flag] === true : plan[flag] !== false; }
 
 export function isMenuItemEntitled(key: string, plan: MenuPlan | null | undefined): boolean {
   if (!plan) return true;
-  const rule = rules[key];
-  return rule ? rule(plan) : true;
+  const rule = MODULE_RULES[key];
+  if (!rule) return true;
+  if (rule.mode === "any") return rule.flags.some((f) => flagOn(plan, f, false));
+  return rule.flags.every((f) => flagOn(plan, f, rule.mode === "strict"));
+}
+
+// Por que o módulo está desligado: "plan" quando alguma flag que falta é controlada pelo plano; "store" quando
+// só faltam chaves que existem apenas na loja (entrega, WhatsApp, atendente), desligadas pela própria loja ou
+// pelo administrador. `basePlan` é o plano sem as flags da loja.
+export function moduleOffReason(key: string, merged: MenuPlan, basePlan: MenuPlan | null | undefined): "plan" | "store" {
+  const rule = MODULE_RULES[key];
+  if (!rule || !basePlan) return "plan";
+  const missing = rule.flags.filter((f) => !flagOn(merged, f, rule.mode === "strict"));
+  return missing.some((f) => Object.prototype.hasOwnProperty.call(basePlan, f)) ? "plan" : "store";
 }

@@ -1,0 +1,5 @@
+.module-unavailable { margin: 24px auto; max-width: 560px; text-align: left; }
+.module-unavailable h1 { font-size: 26px; line-height: 1.2; margin: 6px 0 12px; }
+.module-unavailable p { font-size: 15px; line-height: 1.5; }
+.module-unavailable-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .06em; margin: 0; text-transform: uppercase; }
+.module-unavailable-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; }

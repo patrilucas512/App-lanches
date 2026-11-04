@@ -47,6 +47,26 @@ test("caixa abre para o dono", async () => {
   await expect(page.locator("main")).toContainText(/Caixa/);
 });
 
+// Fase 98C: módulo desligado (Digital Twin fica fora do Básico e do Piloto) mostra o aviso padrão, some do menu
+// e a API responde 403 FEATURE_DISABLED.
+test("módulo fora do plano mostra o aviso padrão, some do menu e a API recusa", async () => {
+  await page.goto("/painel/planejamento/digital-twin");
+  await expect(page).toHaveURL(/\/painel\/modulo-indisponivel\?m=digital-twin/);
+  const notice = page.locator("section.module-unavailable");
+  await expect(notice).toContainText("Módulo não disponível");
+  await expect(notice).toContainText("Digital Twin não faz parte do plano desta loja.");
+  await expect(notice.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/painel/assinatura");
+  await expect(page.getByRole("navigation").first().getByRole("link", { name: "Digital Twin" })).toHaveCount(0);
+  await notice.screenshot({ path: test.info().outputPath("modulo-indisponivel.png") });
+
+  const html = await (await page.request.get("/painel")).text();
+  const storeId = html.match(/storeId\\?":\\?"([0-9a-f-]{36})/)?.[1];
+  expect(storeId, "id da loja no painel").toBeTruthy();
+  const api = await page.request.get(`/api/digital-twin?store_id=${storeId}`);
+  expect(api.status()).toBe(403);
+  expect(await api.json()).toMatchObject({ error: "FEATURE_DISABLED" });
+});
+
 test("pedido feito no cardápio aparece para o dono e na cozinha, e o cliente vê quando fica pronto", async ({ browser }) => {
   test.setTimeout(150_000);
   const customerName = `Cliente E2E ${Date.now().toString().slice(-6)}`;

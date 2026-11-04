@@ -1,4 +1,5 @@
-import { isMenuItemEntitled, type MenuPlan } from "@/lib/menu-entitlements";
+import { isMenuItemEntitled, moduleOffReason, type MenuPlan } from "@/lib/menu-entitlements";
+import { ModuleUnavailable } from "@/components/module-unavailable";
 import Link from "next/link";
 import { Brand } from "@/components/ui";
 import { DashboardMobileNav } from "@/components/dashboard-mobile-nav";
@@ -156,6 +157,9 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
   const logo = brand ? brandLogo(brand) : "";
   const plan = (brand as EstablishmentBrand & { plan?: (PlanEntitlements & FoodQualityEntitlements & WorkforcePlanningEntitlements & IncidentEntitlements & Customer360Entitlements & JourneyEntitlements & CatalogEntitlements & CapacityEntitlements & FranchiseFinanceEntitlements & StoreOpeningEntitlements & GeoEntitlements & AuditEntitlements & KnowledgeEntitlements & TransportEntitlements & StoreOnlyEntitlements) | null } | undefined)?.plan;
   const isEntitled = (link: DashboardLink) => isMenuItemEntitled(link.key, plan as MenuPlan | null);
+  // Fase 98C: a tela de um módulo desligado mostra o aviso padrão em vez do conteúdo.
+  const basePlan = (brand as { basePlan?: MenuPlan | null } | undefined)?.basePlan ?? null;
+  const moduleOff = Boolean(plan) && !isMenuItemEntitled(active, plan as MenuPlan | null);
   const entitledLinks = allLinks.filter(isEntitled);
   const links = role === "attendant" ? attendantLinks.filter(isEntitled)
     : role === "kitchen" ? entitledLinks.filter(link => link.key === "kitchen" || link.key === "my-announcements")
@@ -188,7 +192,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
       <DashboardTopbar links={links} currentLabel={currentLabel} dateLabel={dateLabel} roleLabel={roleLabel(role)} storeSlug={storeSlug} />
       <DashboardMobileNav links={links} active={active} storeSlug={storeSlug} currentLabel={currentLabel} roleLabel={roleLabel(role)} brandName={name} brandLogo={logo} />
       {scope?.availableStores && scope.availableStores.length > 0 && <StoreScopeSwitcher activeStoreId={brand?.id ?? ""} organizationName={scope.organization?.name ?? name} stores={scope.availableStores} />}
-      <div className="dashboard-content">{children}</div>
+      <div className="dashboard-content">{moduleOff ? <ModuleUnavailable moduleKey={active} reason={moduleOffReason(active, plan as MenuPlan, basePlan)} role={role} /> : children}</div>
       {brand?.id && plan?.global_search_enabled !== false && plan?.command_palette_enabled !== false && <GlobalCommandPalette storeId={brand.id} />}
       {brand?.id && plan?.notification_center_enabled !== false && <NotificationBell storeId={brand.id} organizationId={scope?.organization?.id ?? undefined} />}
       {brand?.id && plan?.knowledge_base_enabled !== false && <ContextualKnowledgeHelp storeId={brand.id} />}
