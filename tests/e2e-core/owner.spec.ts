@@ -11,8 +11,16 @@ let page: Page;
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(120_000);
   context = await browser.newContext();
-  // "Aceitar e imprimir" opens the print dialog, which blocks a headless page. Pretend the print finished.
-  await context.addInitScript(() => { window.print = () => { window.dispatchEvent(new Event("afterprint")); }; });
+  // "Aceitar e imprimir" prints from a hidden iframe; the print dialog blocks a headless page. Every window the page
+  // reaches (its own and the iframe's contentWindow) pretends the print finished.
+  await context.addInitScript(() => {
+    const stub = (target: Window) => { target.print = () => { target.dispatchEvent(new Event("afterprint")); }; };
+    stub(window);
+    const original = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, "contentWindow");
+    Object.defineProperty(HTMLIFrameElement.prototype, "contentWindow", {
+      get() { const target = original?.get?.call(this) as Window | null; if (target) stub(target); return target; },
+    });
+  });
   page = await context.newPage();
   await page.goto("/login");
   await page.locator("input[name=email]").first().fill(owner.email);
@@ -60,6 +68,8 @@ test("pedido feito no card√°pio aparece para o dono e na cozinha, e o cliente v√
   const card = page.locator("article.kitchen-ticket").filter({ hasText: customerName });
   await expect(card).toBeVisible();
   await expect(card).toContainText("TROCO: R$ 8,10");
+  await expect(card).toContainText("PAGAMENTO: Dinheiro");
+  await card.screenshot({ path: test.info().outputPath("comanda-cozinha.png") });
   // The kitchen accepts the order ("Aceitar pedido" or "Aceitar e imprimir") and marks it ready.
   await card.scrollIntoViewIfNeeded();
   await card.getByRole("button", { name: /^Aceitar/ }).click();
