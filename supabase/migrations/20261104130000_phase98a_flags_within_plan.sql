@@ -1,3 +1,4 @@
+-- quality: allow-nonconcurrent-index reason=new-empty-flag-audit-tables (os índices são de tabelas criadas nesta migration)
 -- Fase 98A: dono e gerente só ligam flags permitidas pelo plano da loja.
 --
 -- Regra do app (lib/store-entitlements.ts, private.cx_flag_enabled e demais leitores): um módulo está ligado

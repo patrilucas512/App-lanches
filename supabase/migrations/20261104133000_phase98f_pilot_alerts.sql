@@ -1,3 +1,4 @@
+-- quality: allow-nonconcurrent-index reason=new-empty-pilot-alert-tables (os índices são de tabelas criadas nesta migration)
 -- Fase 98F: alertas automáticos do piloto (as consultas do docs/loja-piloto-runbook.md, seção 4.2).
 --
 -- private.evaluate_pilot_alerts() roda dentro do banco (pg_cron), sem depender do app nem do bypass da Vercel:

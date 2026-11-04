@@ -1,3 +1,4 @@
+-- quality: allow-nonconcurrent-index reason=new-empty-legal-acceptance-tables (os índices são de tabelas criadas nesta migration)
 -- Fase 98I: o cadastro registra o aceite dos termos de uso e da política de privacidade (versão e data).
 -- O formulário de /cadastro exige a caixa "Li e aceito" e envia as versões nos metadados do signUp
 -- (legal_terms_version, legal_privacy_version). Este gatilho grava o aceite com a data do SERVIDOR no momento
