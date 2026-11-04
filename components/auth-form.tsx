@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { LEGAL_LINKS, SAAS_PRIVACY_VERSION, SAAS_TERMS_VERSION } from "@/lib/legal";
+import "@/components/legal-document.css";
 
 export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; notice?: string }) {
   const [loading, setLoading] = useState(false);
@@ -22,12 +24,15 @@ export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; noti
         const emailConfirmation = String(data.get("email_confirmation")).trim().toLowerCase();
         if (password.length < 8) throw new Error("A senha precisa ter pelo menos 8 caracteres.");
         if (email !== emailConfirmation) throw new Error("Os dois endereços de e-mail precisam ser iguais.");
+        if (data.get("legal_accept") !== "on") throw new Error("Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.");
         const redirectOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
         const { data: signup, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { full_name: String(data.get("name") ?? ""), phone: String(data.get("phone") ?? "") },
+            // Fase 98I: a versão aceita vai com o cadastro; o banco grava o aceite com a data do servidor
+            // (public.legal_acceptances, gatilho em auth.users).
+            data: { full_name: String(data.get("name") ?? ""), phone: String(data.get("phone") ?? ""), legal_terms_version: SAAS_TERMS_VERSION, legal_privacy_version: SAAS_PRIVACY_VERSION },
             emailRedirectTo: `${redirectOrigin}/auth/callback?next=/onboarding`,
           },
         });
@@ -67,6 +72,7 @@ export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; noti
     {mode === "signup" && <div className="field"><label>CONFIRME O E-MAIL</label><input name="email_confirmation" type="email" autoComplete="email" required placeholder="Digite novamente o mesmo e-mail" /><small>Use um endereço que você consegue abrir agora.</small></div>}
     <div className="field"><label>SENHA</label><div className="password-input-wrap"><input name="password" type={passwordVisible ? "text" : "password"} minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} required placeholder="Mínimo de 8 caracteres" /><button type="button" className="password-visibility" aria-label={passwordVisible ? "Ocultar senha" : "Visualizar senha"} onClick={() => setPasswordVisible(value => !value)}>{passwordVisible ? "◉" : "👁"}</button></div></div>
     {mode === "login" && <Link className="auth-recovery-link" href="/recuperar-senha">Esqueci minha senha</Link>}
+    {mode === "signup" && <label className="auth-legal-accept"><input name="legal_accept" type="checkbox" required /><span>Li e aceito os <Link href={LEGAL_LINKS.saasTerms} target="_blank">Termos de Uso</Link> e a <Link href={LEGAL_LINKS.saasPrivacy} target="_blank">Política de Privacidade</Link>.</span></label>}
     {(message || notice) && <div className={`form-message ${(notice || message.startsWith("Enviamos") || message.startsWith("Login realizado")) ? "form-success" : ""}`}>{message || notice}</div>}
     <button type="submit" className="button dark wide" disabled={loading}>{loading ? "Aguarde..." : mode === "signup" ? "Criar conta grátis →" : "Entrar no painel →"}</button>
     {mode === "login" && <Link className="auth-recovery-link" href="/auth/sso">Entrar com SSO corporativo</Link>}

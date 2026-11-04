@@ -74,7 +74,7 @@ export default function Home() {
         <div><span className="kicker">COMECE HOJE</span><h2>Seu próximo pedido<br />começa aqui.</h2></div>
         <div><p>Crie sua conta, configure seu estabelecimento e publique o primeiro cardápio ainda hoje.</p><Link className="button light" href="/cadastro">Criar minha conta →</Link></div>
       </section>
-      <footer><Brand /><span>© 2026 MasterApp. Tecnologia para quem serve.</span><nav><Link href="/planos">Planos</Link><Link href="/login">Entrar</Link></nav></footer>
+      <footer><Brand /><span>© 2026 MasterApp. Tecnologia para quem serve.</span><nav><Link href="/planos">Planos</Link><Link href="/login">Entrar</Link><Link href="/termos">Termos de uso</Link><Link href="/privacidade">Privacidade</Link></nav></footer>
     </main>
   );
 }

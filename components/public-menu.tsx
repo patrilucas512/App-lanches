@@ -6,6 +6,7 @@ import { subscribeToPush } from "@/lib/push-notifications";
 import { PixPayment } from "@/components/pix-payment";
 import { CustomerInstallCard } from "@/components/app-install-prompt";
 import { operationTheme, readableText } from "@/lib/operation-theme";
+import { LegalLinks } from "@/components/legal-links";
 
 type Addon = {
   id?: string;
@@ -1866,6 +1867,7 @@ export function PublicMenuView({
           </aside>
         </div>
       )}
+      <LegalLinks audience="customer" className="legal-links menu-legal-links" />
     </main>
   );
 }
