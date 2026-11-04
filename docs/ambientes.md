@@ -71,3 +71,30 @@ Antes de 03/11/2026, `NEXT_PUBLIC_SUPABASE_URL` e `MASTERAPP_ENVIRONMENT` valiam
   select id, status_code, left(content::text, 120) from net._http_response order by id desc limit 20;
   ```
   `status_code` 200 é sucesso; 401 indica token ausente no Vault; uma página de login da Vercel indica bypass ausente.
+
+## Push (VAPID) por ambiente (Fase 98E)
+
+A chave pública VAPID vem de `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (app) e do segredo `VAPID_PUBLIC_KEY` (função `send-push-notification`). Ela precisa formar par com a chave privada guardada no banco do mesmo ambiente (`private.app_secrets`, nome `vapid_private_key`).
+
+| Ambiente | Sem a variável | Com a variável |
+|---|---|---|
+| Produção | usa a chave atual, que já está no código (nada muda) | usa a cadastrada (deve ser a mesma de hoje) |
+| Dev e homologação | push desligado (o navegador não é inscrito) | push funciona com o par do dev |
+
+**Gerar o par do dev/homologação** (no computador, uma vez):
+
+```bash
+npx web-push generate-vapid-keys --json
+```
+
+Depois, com os dois valores:
+1. **Banco `masterapp-dev`** (SQL Editor do dev, nunca o de produção):
+   ```sql
+   insert into private.app_secrets(name, value) values ('vapid_private_key', '<privateKey>')
+   on conflict (name) do update set value = excluded.value;
+   ```
+2. **Função no dev:** Supabase → `masterapp-dev` → Edge Functions → Secrets → `VAPID_PUBLIC_KEY` = `<publicKey>`.
+3. **Vercel → Preview:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = `<publicKey>` (ambiente **Preview** apenas).
+4. **Local:** a mesma linha no `.env.local`.
+
+**Produção (só com aprovação):** cadastrar em Production `NEXT_PUBLIC_VAPID_PUBLIC_KEY` com a **chave atual** (a que está em `lib/push-notifications.ts`, `PRODUCTION_VAPID_PUBLIC_KEY`) e o segredo `VAPID_PUBLIC_KEY` igual na função de produção. Enquanto não for cadastrado, o fallback mantém tudo como está.
