@@ -45,14 +45,16 @@ begin
   end loop;
 end $$;
 
--- Plano Piloto: limites copiados do plano ativo mais barato; só o núcleo ligado (lib/plan-tiers.ts PILOT_PLAN_FLAGS).
+-- Plano Piloto: só o núcleo ligado (lib/plan-tiers.ts PILOT_PLAN_FLAGS) e sem limite de equipe, produtos ou
+-- pedidos (o Básico de produção limita a 1 garçom, 1 caixa, 1 entregador e 500 pedidos/mês, o que travaria a
+-- operação da loja piloto). Uma unidade. Os limites de voz/API vêm do plano mais barato (os módulos ficam
+-- desligados de qualquer forma; as colunas têm checagem de valor mínimo).
 insert into public.plans(code, name, description, monthly_price_cents, annual_price_cents, max_products, max_team_members,
   max_monthly_orders, max_waiters, max_qr_codes, max_cashiers, max_inventory_items, max_drivers, max_establishments,
   max_concurrent_calls, included_voice_minutes, max_api_clients, max_webhook_endpoints, max_app_installations,
   features, active, is_public, sort_order)
 select 'piloto', 'Piloto', 'Loja piloto: cardápio, pedidos (mesa, retirada e delivery), pagamento, cozinha e impressão, garçom, caixa, entregador, acompanhamento, notificações, WhatsApp e relatórios de vendas.',
-  0, 0, b.max_products, b.max_team_members, b.max_monthly_orders, b.max_waiters, b.max_qr_codes, b.max_cashiers,
-  b.max_inventory_items, b.max_drivers, 1, b.max_concurrent_calls, b.included_voice_minutes, b.max_api_clients,
+  0, 0, null, null, null, null, null, null, null, null, 1, b.max_concurrent_calls, b.included_voice_minutes, b.max_api_clients,
   b.max_webhook_endpoints, b.max_app_installations, '[]'::jsonb, true, false, 0
 from (select * from public.plans where active and code <> 'piloto' order by monthly_price_cents, sort_order limit 1) b
 on conflict (code) do nothing;

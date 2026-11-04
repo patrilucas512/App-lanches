@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { PILOT_PLAN_FLAGS, BASIC_PLAN_FLAGS, PROFESSIONAL_PLAN_FLAGS, NEW_MENU_FLAGS, STORE_ONLY_ADVANCED_FLAGS } from "../../lib/plan-tiers.ts";
-import { isMenuItemEntitled, menuRuleKeys } from "../../lib/menu-entitlements.ts";
+import { PILOT_PLAN_FLAGS, BASIC_PLAN_FLAGS, PROFESSIONAL_PLAN_FLAGS, NEW_MENU_FLAGS, STORE_ONLY_ADVANCED_FLAGS, STORE_OPERATIONAL_FLAGS } from "../../lib/plan-tiers.ts";
+import { isMenuItemEntitled, menuRuleKeys, MODULE_RULES } from "../../lib/menu-entitlements.ts";
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const pilotMigration = read("supabase/migrations/20261104131000_phase98b_pilot_plan.sql");
@@ -20,17 +20,17 @@ const allLinkKeys = [...ownerMenu.matchAll(/\{ key: "([^"]+)", href:/g)].map((m)
 
 // Plano Piloto como o banco devolve: todas as flags desligadas, menos o núcleo. Loja sem linha em
 // store_feature_flags (é o caso de quem se cadastra pelo /cadastro): só chaves operacionais da loja não existem.
-const menuFlags = [...read("lib/menu-entitlements.ts").matchAll(/plan\.([a-z0-9_]+_enabled)/g)].map((m) => m[1]);
+// As chaves operacionais (entrega, WhatsApp, atendente) não existem no plano: sem linha da loja ficam
+// indefinidas e o item aparece; o dono desliga em Configurações.
+const menuFlags = Object.values(MODULE_RULES).flatMap((r) => r.flags).filter((f) => !STORE_OPERATIONAL_FLAGS.includes(f));
 const everyFlag = new Set([...PROFESSIONAL_PLAN_FLAGS, ...NEW_MENU_FLAGS, ...STORE_ONLY_ADVANCED_FLAGS, ...menuFlags]);
 const pilotPlan = Object.fromEntries([...everyFlag].map((k) => [k, false]));
 for (const k of PILOT_PLAN_FLAGS) pilotPlan[k] = true;
-pilotPlan.delivery_enabled = true;
-pilotPlan.whatsapp_enabled = true;
 
 test("plano Piloto mostra só o núcleo no menu", () => {
   const visible = allLinkKeys.filter((key) => isMenuItemEntitled(key, pilotPlan));
   assert.deepEqual(visible.sort(), [
-    "attendance", "calls", "cashier", "catalog", "customize", "deliveries", "billing", "help", "kitchen",
+    "ai-attendant", "attendance", "calls", "cashier", "catalog", "customize", "deliveries", "billing", "help", "kitchen",
     "notifications", "onboarding", "orders", "overview", "saas-support", "security", "settings", "team", "whatsapp-supervision",
   ].sort());
 });
@@ -73,7 +73,7 @@ test("parte 1 é compatível com as lojas existentes", () => {
 
 test("Piloto fora da vitrine, sem preço e sem troca pelo próprio dono", () => {
   assert.match(pilotMigration, /select 'piloto', 'Piloto'/);
-  assert.match(pilotMigration, /0, 0, b\.max_products/);
+  assert.match(pilotMigration, /0, 0, null, null, null, null, null, null, null, null, 1,/);
   assert.match(pilotMigration, /'\[\]'::jsonb, true, false, 0/);
   assert.match(pilotMigration, /from public\.plans p where p\.active and p\.is_public/);
   assert.match(pilotMigration, /and active and \(is_public or private\.is_superadmin\(\)\)/);
