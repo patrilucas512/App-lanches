@@ -52,7 +52,7 @@ async function createStoreLikeOnboarding() {
   must(await admin.from("establishment_members").insert({ establishment_id: store, user_id: userId, role: "owner" }), "vincular dono à loja");
   must(await admin.from("establishment_settings").insert({ establishment_id: store }), "criar configurações");
   must(await admin.from("subscriptions").insert({ establishment_id: store, organization_id: organizationId, plan_id: planId, status: "trialing", billing_cycle: "monthly", trial_ends_at: new Date(Date.now() + 14 * 864e5).toISOString() }), "criar assinatura");
-  must(await admin.from("business_hours").insert([0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ establishment_id: store, weekday, opens_at: "18:00", closes_at: "23:00", closed: weekday === 0 }))), "criar horários");
+  must(await admin.from("business_hours").insert([0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ establishment_id: store, weekday, opens_at: "00:00", closes_at: "23:59", closed: false }))), "criar horários");
   return store;
 }
 
@@ -98,11 +98,20 @@ async function ensureDriver(store) {
   if (!profile) must(await admin.from("driver_profiles").insert({ establishment_id: store, custom_staff_member_id: member.id, phone: "(11) 90000-0002", vehicle_type: "motorcycle", vehicle_model: "Moto Teste", vehicle_plate: "TST0A00", approval_status: "approved", active: true, driver_kind: "fixed" }), "criar entregador");
 }
 
+// The core E2E (Phase 97C) covers the customer portal, which answers 404 while the store has no enabled config.
+async function ensurePortal(store) {
+  const { data: found } = await admin.from("customer_portal_configs").select("establishment_id").eq("establishment_id", store).maybeSingle();
+  if (found) return void must(await admin.from("customer_portal_configs").update({ enabled: true }).eq("establishment_id", store), "ligar portal do cliente");
+  const { data: establishment } = await admin.from("establishments").select("organization_id").eq("id", store).single();
+  must(await admin.from("customer_portal_configs").insert({ establishment_id: store, organization_id: establishment.organization_id, enabled: true }), "ligar portal do cliente");
+}
+
 const password = await ensureOwner();
 const store = await ensureStore(password);
 await ensureMenu(store);
 await ensureTable(store);
 await ensureDriver(store);
+await ensurePortal(store);
 const totals = {};
 for (const table of ["products", "restaurant_tables", "driver_profiles"]) totals[table] = (await admin.from(table).select("id", { count: "exact", head: true }).eq("establishment_id", store)).count;
 console.log(JSON.stringify({ store: STORE_SLUG, owner: OWNER_EMAIL, loginFile: LOGIN_FILE, ...totals }));
