@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { assertSafePreviewEnvironment } from "./build/dev-environment-guard";
+
+assertSafePreviewEnvironment();
 
 const nextConfig: NextConfig = {
   // Types are checked in CI by scripts/quality/typecheck-baseline.mjs, which knows the legacy diagnostics.

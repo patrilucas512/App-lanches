@@ -60,3 +60,20 @@ export function assertSafeDevEnvironment(root: string) {
   const missing = findMissingDevFeatures(merged);
   if (missing.length) console.warn(`\nRecursos desativados por falta de variável no .env.local:\n${missing.map((item) => `  - ${item}`).join("\n")}\n`);
 }
+
+// Vercel Preview is the staging environment and runs against masterapp-dev. The build stops if a
+// preview would reach the production database, or if it is missing MASTERAPP_ENVIRONMENT=staging.
+export function findPreviewEnvironmentProblems(env: Env) {
+  if (env.VERCEL_ENV !== "preview") return [];
+  const problems = findDevEnvironmentProblems(env);
+  if (env.MASTERAPP_ENVIRONMENT?.trim() !== "staging") problems.push("MASTERAPP_ENVIRONMENT precisa ser staging nas prévias da Vercel.");
+  for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]) {
+    if (!env[name]?.trim()) problems.push(`${name} está ausente na prévia.`);
+  }
+  return problems;
+}
+
+export function assertSafePreviewEnvironment(env: Env = process.env) {
+  const problems = findPreviewEnvironmentProblems(env);
+  if (problems.length) throw new Error(`Build de homologação bloqueado para proteger os dados reais:\n${problems.map((problem) => `  - ${problem}`).join("\n")}\nAjuste as variáveis de Preview na Vercel conforme docs/ambientes.md.`);
+}
