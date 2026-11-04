@@ -148,6 +148,11 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 
 ## Diferenças entre repositório e produção
 
+- **Fase 98 (endurecimento para a loja piloto):** relatório em `docs/phase98-pilot-hardening-report.md`.
+  - As 8 migrations `20261104130000` a `20261104137000` foram aplicadas **só no `masterapp-dev`** em 2026-11-04 (versões na seção 7 do relatório). Produção não foi tocada; a ordem proposta de aplicação está na seção 8.
+  - No dev: a loja `lanchonete-teste` está no plano **Piloto**, tem garçom, cozinha, caixa e entregador com login (senhas no `.env.test-login.local`) e o job `masterapp-pilot-alerts` roda a cada 5 minutos.
+  - Login de funcionário por nome estava quebrado (telefone sem o 55); a correção é a migration `20261104134000`, que é a primeira da fila para produção.
+
 - **Fase 97:**
   - A migration `20261104120000_phase97_default_service_mode` foi aplicada no `masterapp-dev` e, com aprovação, em produção em 2026-11-04 (versão `20261104030018`). Em produção não havia loja para preencher: a única já tinha a linha em `service_modes`.
   - As funções `employee-login`, `activate-waiter-access`, `activate-kitchen-access`, `activate-cashier-access` e `activate-driver-access` foram publicadas em produção em 2026-11-03, com aprovação, para aceitar `app-lanches-psi.vercel.app`. Antes, o login de funcionário era recusado pelo navegador.
