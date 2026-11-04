@@ -8,7 +8,7 @@ async function isPortalEnabled(slug: string) {
     const admin = createAdminClient();
     const { data: store } = await admin.from("establishments").select("id").eq("slug", slug).eq("active", true).maybeSingle();
     if (!store) return false;
-    const { data: config } = await admin.from("customer_portal_configs").select("id").eq("establishment_id", store.id).eq("enabled", true).maybeSingle();
+    const { data: config } = await admin.from("customer_portal_configs").select("establishment_id").eq("establishment_id", store.id).eq("enabled", true).maybeSingle();
     return Boolean(config);
   } catch {
     return false;

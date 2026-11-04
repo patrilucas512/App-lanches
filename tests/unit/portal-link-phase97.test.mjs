@@ -9,7 +9,7 @@ const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "
 test("the public menu shows 'Minha conta' only when the portal is enabled", () => {
   assert.match(read("components/public-menu.tsx"), /\{menu\.portal_enabled && \(\s*<a href=\{`\/conta\/\$\{menu\.establishment\.slug\}`\}/);
   const page = read("app/loja/[slug]/page.tsx");
-  assert.match(page, /from\("customer_portal_configs"\)\.select\("id"\)\.eq\("establishment_id", store\.id\)\.eq\("enabled", true\)/);
+  assert.match(page, /from\("customer_portal_configs"\)\.select\("establishment_id"\)\.eq\("establishment_id", store\.id\)\.eq\("enabled", true\)/);
   assert.match(page, /menu\.portal_enabled = slug !== "demo" && await isPortalEnabled\(slug\)/);
 });
 
