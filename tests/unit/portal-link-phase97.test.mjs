@@ -16,3 +16,10 @@ test("the public menu shows 'Minha conta' only when the portal is enabled", () =
 test("the portal page uses the same rule", () => {
   assert.match(read("app/conta/[slug]/page.tsx"), /from\("customer_portal_configs"\)\.select\("\*"\)\.eq\("establishment_id",store\.id\)\.eq\("enabled",true\)\.maybeSingle\(\); if\(!config\)notFound\(\)/);
 });
+
+test("an unknown store slug is a 404, not a 500", () => {
+  // Seen in production on 2026-11-04: get_public_menu returns null and the page set service_mode on it.
+  const page = read("app/loja/[slug]/page.tsx");
+  assert.match(page, /const menu = published \|\| await menuResponse\.json\(\) as PublicMenu \| null;\s*if \(!menu\) return null;/);
+  assert.match(page, /const menu = await getMenu\(slug\);\s*if \(!menu\) notFound\(\);/);
+});

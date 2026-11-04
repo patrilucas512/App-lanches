@@ -42,7 +42,9 @@ async function getMenu(slug: string): Promise<PublicMenu | null> {
   ]);
   const published = publishedResponse.ok ? await publishedResponse.json() as PublicMenu | null : null;
   if (!published && !menuResponse.ok) return null;
-  const menu = published || await menuResponse.json() as PublicMenu;
+  // get_public_menu answers 200 with null for an unknown or inactive store: that is a 404, not a 500.
+  const menu = published || await menuResponse.json() as PublicMenu | null;
+  if (!menu) return null;
   if (modeResponse.ok) menu.service_mode = await modeResponse.json();
   const gatewayResponse = await fetch(`${url}/rest/v1/rpc/get_public_payment_gateways`, { method: "POST", headers, body: JSON.stringify({ requested_slug: slug }), next: { revalidate: 30 } });
   if (gatewayResponse.ok) menu.payment_gateways = await gatewayResponse.json();
