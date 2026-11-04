@@ -1,0 +1,47 @@
+name: E2E do núcleo
+# Phase 97C: runs the core end-to-end tests against the Vercel preview of each commit (homologação,
+# masterapp-dev database). Vercel reports the finished preview through deployment_status.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Endereço da homologação a testar
+        default: https://app-lanches-git-staging-lucas-patrick.vercel.app
+permissions:
+  contents: read
+concurrency:
+  group: e2e-core-${{ github.event.deployment.sha || github.ref }}
+  cancel-in-progress: true
+jobs:
+  e2e-core:
+    # Only successful previews; production deployments are never tested here.
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: ${{ github.event.deployment_status.target_url || inputs.base_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
+      E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.deployment.sha || github.sha }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Conferir segredos
+        run: |
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || { echo "::error::Falta o segredo VERCEL_AUTOMATION_BYPASS_SECRET (ver docs/ambientes.md)"; exit 1; }
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e-core
+      # Screenshots only: traces and error-context snapshots carry typed field values, including the test password.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-core-screenshots
+          path: test-results/e2e-core/artifacts/**/*.png
+          if-no-files-found: ignore
+          retention-days: 14

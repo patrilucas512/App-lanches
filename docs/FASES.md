@@ -108,6 +108,7 @@ Os números 3 a 17, 22 e 23 também aparecem em migrations antigas da série de 
 | 94 | Centro de operações de segurança | Implementada |
 | 95 | Privacidade e LGPD (Privacy Operations) | Implementada e aplicada em produção; flags desligadas; worker não agendado |
 | 96 | Privacidade e LGPD: conclusão e prontidão para uso real | Implementada e aplicada em produção; flags desligadas; worker não agendado |
+| 97 | Go-Live Readiness: homologação, E2E do núcleo e loja piloto | Implementada; migration aplicada em produção; funções de login publicadas em produção |
 
 ## Migrations de índices das Fases 77, 78, 79 e 87: resolvido
 
@@ -140,11 +141,19 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 
 - A Vercel compila com `next build` (configurado no projeto). O build `vinext` do `package.json` continua existindo para a Cloudflare, mas não é usado na Vercel.
 - Cada merge na `main` publica em produção automaticamente.
+- Desde 2026-11-03 as prévias (Preview) são a homologação: usam o `masterapp-dev`, mostram a faixa "HOMOLOGAÇÃO" e têm o endereço fixo `app-lanches-git-staging-lucas-patrick.vercel.app` (branch `staging`). Detalhes em `docs/ambientes.md`.
 - As chaves do Supabase de produção chegam pela integração oficial Supabase ↔ Vercel, ligada ao projeto `qjwmjwubtgqginwhmajv`. `MASTERAPP_ENVIRONMENT=production` foi cadastrada à mão.
 - Os jobs do `pg_cron` apontam para `app-lanches-psi.vercel.app` desde 2026-11-02. Os workers das Fases 38, 57 e 93 conferem o token no Vault pela função `verify_worker_secret` (aplicada em produção); o de webhooks da Fase 20 já fazia isso. `NEXT_PUBLIC_SITE_URL` foi cadastrada em 2026-11-03. `CUSTOMER_PORTAL_OTP_SECRET` é opcional: sem ela, o código do portal usa `SUPABASE_SECRET_KEY`. Faltam só as chaves opcionais (Stripe, OpenAI).
 - O código de acesso do portal do cliente (`/conta/<loja>`) vai por WhatsApp. Sem uma conexão em `whatsapp_connections` com status `connected`, nenhum código é enviado.
 
 ## Diferenças entre repositório e produção
+
+- **Fase 97:**
+  - A migration `20261104120000_phase97_default_service_mode` foi aplicada no `masterapp-dev` e, com aprovação, em produção em 2026-11-04 (versão `20261104030018`). Em produção não havia loja para preencher: a única já tinha a linha em `service_modes`.
+  - As funções `employee-login`, `activate-waiter-access`, `activate-kitchen-access`, `activate-cashier-access` e `activate-driver-access` foram publicadas em produção em 2026-11-03, com aprovação, para aceitar `app-lanches-psi.vercel.app`. Antes, o login de funcionário era recusado pelo navegador.
+  - O `masterapp-dev` não tinha nenhuma função do Supabase; as 5 de login foram publicadas lá. Faltam as de push e WhatsApp.
+  - Variáveis da Vercel separadas por ambiente (ver `docs/ambientes.md`).
+  - Os jobs dos workers no dev apontam para a homologação; os segredos do Vault do dev ainda não existem.
 
 - **Fase 96:** as 3 migrations (`20261103130000`, `20261103131000`, `20261103132000`) foram aplicadas no `masterapp-dev` (versões `20261103073107`, `20261103073348` e `20261103073414`) e, depois do merge do PR #25, em produção em 2026-11-03 (versões `20261103231311`, `20261103231333` e `20261103231336`). Em produção nenhuma loja ou plano tem flag de privacidade ligada, e não há `privacy_worker_secret` no Vault nem job do worker. A flag nova `privacy_setup_enabled` começa desligada, e `privacy_operations_enabled` só liga pelo checklist de go-live (gatilho no banco). O dev tem 50 mil clientes fictícios "Volume Teste" do teste de volume.
 

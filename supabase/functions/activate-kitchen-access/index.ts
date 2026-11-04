@@ -1,14 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.8";
 
-const allowedOrigins = new Set([
-  "https://mesa-viva-patrilucas.patricklucas512.chatgpt.site",
-  "http://localhost:3000",
-]);
+const PRIMARY_ORIGIN = "https://app-lanches-psi.vercel.app";
+// Production, local dev and this project's Vercel previews (homologação, which uses the dev database).
+const isAllowedOrigin = (origin: string) =>
+  origin === PRIMARY_ORIGIN || origin === "http://localhost:3000" || /^https:\/\/app-lanches-[a-z0-9-]+-lucas-patrick\.vercel\.app$/.test(origin);
 
 function headers(origin: string | null) {
   return {
-    "Access-Control-Allow-Origin": origin && allowedOrigins.has(origin) ? origin : "https://mesa-viva-patrilucas.patricklucas512.chatgpt.site",
+    "Access-Control-Allow-Origin": origin && isAllowedOrigin(origin) ? origin : PRIMARY_ORIGIN,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",

@@ -44,3 +44,7 @@ next-env.d.ts
 /outputs/
 /work/
 work-dev.*.log
+
+# Playwright (Fase 97C)
+/test-results/
+/playwright-report/

@@ -45,3 +45,25 @@ test("env files are checked even when the process environment looks safe", (t) =
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("Vercel previews must be staging and must not reach the production database", async () => {
+  const { findPreviewEnvironmentProblems, assertSafePreviewEnvironment } = await import("../../build/dev-environment-guard.ts");
+  const staging = { VERCEL_ENV: "preview", MASTERAPP_ENVIRONMENT: "staging", NEXT_PUBLIC_SUPABASE_URL: "https://bfmrcvjxbmxxmdustrgo.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example" };
+  assert.deepEqual(findPreviewEnvironmentProblems(staging), []);
+  assert.equal(findPreviewEnvironmentProblems({ ...staging, NEXT_PUBLIC_SUPABASE_URL: `https://${PRODUCTION_REF}.supabase.co` }).length, 1);
+  assert.equal(findPreviewEnvironmentProblems({ ...staging, SUPABASE_SERVICE_ROLE_KEY: jwt(PRODUCTION_REF) }).length, 1);
+  assert.equal(findPreviewEnvironmentProblems({ ...staging, MASTERAPP_ENVIRONMENT: "production" }).length, 2);
+  assert.equal(findPreviewEnvironmentProblems({ ...staging, NEXT_PUBLIC_SUPABASE_URL: "" }).length, 1);
+  assert.equal(findPreviewEnvironmentProblems({ ...staging, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: undefined }).length, 1);
+  assert.throws(() => assertSafePreviewEnvironment({ ...staging, NEXT_PUBLIC_SUPABASE_URL: `https://${PRODUCTION_REF}.supabase.co` }), /homologação bloqueado/);
+  // Production and local builds are not affected.
+  assert.deepEqual(findPreviewEnvironmentProblems({ VERCEL_ENV: "production", NEXT_PUBLIC_SUPABASE_URL: `https://${PRODUCTION_REF}.supabase.co` }), []);
+  assert.deepEqual(findPreviewEnvironmentProblems({ NEXT_PUBLIC_SUPABASE_URL: `https://${PRODUCTION_REF}.supabase.co` }), []);
+});
+
+test("the staging banner shows on homologação", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../../components/dev-environment-banner.tsx", import.meta.url), "utf8");
+  assert.match(source, /MASTERAPP_ENVIRONMENT === "staging"/);
+  assert.match(source, /HOMOLOGAÇÃO/);
+});

@@ -1,5 +1,19 @@
 import { notFound } from "next/navigation";
 import { PublicMenuView, type PublicMenu } from "@/components/public-menu";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+// Same rule as app/conta/[slug]/page.tsx, so "Minha conta" never links to a 404.
+async function isPortalEnabled(slug: string) {
+  try {
+    const admin = createAdminClient();
+    const { data: store } = await admin.from("establishments").select("id").eq("slug", slug).eq("active", true).maybeSingle();
+    if (!store) return false;
+    const { data: config } = await admin.from("customer_portal_configs").select("establishment_id").eq("establishment_id", store.id).eq("enabled", true).maybeSingle();
+    return Boolean(config);
+  } catch {
+    return false;
+  }
+}
 
 const demo: PublicMenu = {
   establishment: { name: "Bistrô Aurora", slug: "demo", accent_color: "#6d2627" },
@@ -40,5 +54,6 @@ export default async function PublicMenuPage({ params, searchParams }: { params:
   const query = await searchParams;
   const menu = await getMenu(slug);
   if (!menu) notFound();
+  menu.portal_enabled = slug !== "demo" && await isPortalEnabled(slug);
   return <PublicMenuView menu={menu} tableNumber={query.mesa} source={query.origem} />;
 }
