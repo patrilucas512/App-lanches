@@ -142,6 +142,14 @@ No dev, a função `pilot_alert_signals` e a `public_rate_allow` foram corrigida
 
 ## 8. O que precisa de aprovação para ir a produção (em ordem, uma a uma)
 
+**Atualização de 04/11/2026:** os itens 1, 2 e 3 foram aplicados em produção com aprovação. Versões: `20261104222401`, `20261104222503` e `20261104222612`. Cada um foi conferido logo depois, só lendo:
+- as 4 contas da equipe são encontradas pelo login;
+- o dono lê as flags da loja e não grava direto;
+- o Piloto está fora da vitrine;
+- o cadastro continua no Básico.
+
+O próximo item da fila é o merge do PR.
+
 1. **Migration `20261104134000_phase98d_employee_login_phone`.** Urgente: sem ela, ninguém da equipe entra pelo nome. Só troca a função de busca.
 2. **Migration `20261104130000_phase98a_flags_within_plan`.** Trava as flags e conserta a leitura das políticas.
 3. **Migration `20261104131000_phase98b_pilot_plan`.** Cria o Piloto e as flags do menu; compatível.
