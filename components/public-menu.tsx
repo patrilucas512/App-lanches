@@ -1004,8 +1004,8 @@ export function PublicMenuView({
           "--menu-brand-surface": menu.establishment.menu_surface_color || "#151411",
           "--menu-brand-text": "var(--op-background-text)",
           "--menu-brand-muted": "var(--op-background-muted)",
-          "--menu-surface-text": "var(--op-text)",
-          "--menu-surface-muted": "var(--op-muted)",
+          // Fase 99F: --menu-surface-text e --menu-surface-muted vêm do CSS (.menu-page e .menu-light).
+          // Definidas aqui, venciam o tema claro e deixavam o texto dos campos branco sobre o creme.
           "--menu-link": "var(--op-link)",
           "--menu-on-accent": "var(--op-on-accent)",
           "--menu-light-text": readableText(menu.establishment.secondary_color || "#f5efe5", "#181612"),

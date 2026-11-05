@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+// Fase 99F: regras usadas só no painel e no superadmin (fora do globals.css)
+import "@/app/painel/dashboard.css";
 
 const links = [
   ["/superadmin/dashboard", "▦", "Dashboard"],

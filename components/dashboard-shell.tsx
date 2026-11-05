@@ -12,6 +12,8 @@ import { GlobalCommandPalette } from "@/components/global-command-palette";
 import { NotificationBell } from "@/components/notification-bell";
 import { ContextualKnowledgeHelp } from "@/components/contextual-knowledge-help";
 import { ReportProblemButton } from "@/components/report-problem-button";
+// Fase 99F: regras usadas só no painel e no superadmin (fora do globals.css, que vai para todas as rotas)
+import "@/app/painel/dashboard.css";
 import "@/app/global-search.css";
 import "@/app/painel/notificacoes/notifications.css";
 
