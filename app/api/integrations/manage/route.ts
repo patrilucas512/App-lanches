@@ -1,3 +1,4 @@
+import { livePlanOfStores } from "@/lib/plan-reading";
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -17,8 +18,7 @@ async function audit(admin: ReturnType<typeof createAdminClient>, organizationId
 async function validateStoreIds(admin: ReturnType<typeof createAdminClient>, organizationId: string, values: unknown[]) { const ids = [...new Set(values.map(String).filter(Boolean))]; if (!ids.length) return []; const { data } = await admin.from("establishments").select("id").eq("organization_id", organizationId).in("id", ids); if ((data || []).length !== ids.length) throw new Error("Uma ou mais unidades não pertencem à organização."); return ids; }
 async function planEntitlements(admin: ReturnType<typeof createAdminClient>, organizationId: string) {
   const { data } = await admin.from("establishments").select("subscriptions(status,plans(public_api_enabled,webhooks_enabled,marketplace_integrations_enabled,developer_portal_enabled,max_api_clients,max_webhook_endpoints))").eq("organization_id", organizationId);
-  for (const store of data || []) for (const subscription of (store as any).subscriptions || []) if (["active", "trialing", "past_due"].includes(subscription.status) && subscription.plans?.length) return subscription.plans[0];
-  return null;
+  return livePlanOfStores(data);
 }
 function requireEntitlement(plan: any, key: string, label: string) { if (plan && plan[key] !== true) throw new Error(`${label} não está incluído no plano atual.`); }
 async function requireCapacity(admin: ReturnType<typeof createAdminClient>, organizationId: string, table: "api_clients" | "webhook_endpoints", limit: unknown, label: string) { if (limit == null) return; const { count } = await admin.from(table).select("id", { count: "exact", head: true }).eq("organization_id", organizationId).neq("status", "revoked"); if ((count || 0) >= Number(limit)) throw new Error(`Limite de ${label} atingido para o plano atual.`); }

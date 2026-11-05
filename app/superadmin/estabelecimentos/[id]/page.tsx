@@ -1,3 +1,4 @@
+import { firstOf } from "@/lib/plan-reading";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EstablishmentActions, TrialButton } from "@/components/superadmin-actions";
@@ -23,7 +24,7 @@ export default async function EstablishmentDetail({ params }: { params: Promise<
     supabase.from("custom_staff_members").select("id", { count: "exact", head: true }).eq("establishment_id", id).is("archived_at", null),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("establishment_id", id).gte("created_at", monthStart.toISOString()),
   ]);
-  const store = storeQ.data; if (!store) notFound(); const subscription = store.subscriptions?.[0]; const plan = subscription?.plans; const orders = ordersQ.data ?? [];
+  const store = storeQ.data; if (!store) notFound(); const subscription = firstOf(store.subscriptions); const plan = firstOf(subscription?.plans); const orders = ordersQ.data ?? [];
   const tabs = ["visao-geral","dados","responsavel","assinatura","uso","cardapio","pedidos","garcons","mesas","pagamentos","qr-codes","logs","suporte"];
   return <><PageHead eyebrow="ESTABELECIMENTO" title={store.name} description={`/${store.slug} · cadastrado em ${date(store.created_at)}`} action={<EstablishmentActions id={id} blocked={Boolean(store.blocked_at)} menuActive={store.public_menu_active !== false} />} />
     <nav className="sa-tabs">{tabs.map(tab => <a key={tab} href={`#${tab}`}>{tab.replaceAll("-", " ")}</a>)}</nav>
