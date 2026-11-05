@@ -1,10 +1,11 @@
+import { storeModuleEnabledBySlug, moduleUnavailableBody } from "@/lib/module-gate";
 import {NextResponse} from "next/server";
 import {createAdminClient} from "@/lib/supabase/admin";
 import {readPortalToken,secureHash} from "@/lib/customer-portal";
 import {cancelMercadoPagoSubscription}from"@/lib/customer-subscriptions";
 
 export async function POST(request:Request,{params}:{params:Promise<{slug:string}>}){
-  const{slug}=await params;const token=await readPortalToken();if(!token)return NextResponse.json({error:"Sessão expirada."},{status:401});
+  const{slug}=await params;if(!(await storeModuleEnabledBySlug(slug,"subscriptions")))return NextResponse.json(moduleUnavailableBody("subscriptions"),{status:403});const token=await readPortalToken();if(!token)return NextResponse.json({error:"Sessão expirada."},{status:401});
   try{
     const body=await request.json();const admin=createAdminClient();const common={requested_session_hash:secureHash(`session:${token}`),requested_slug:slug,requested_subscription_id:String(body.subscription_id||"")};
     if((body.action==="cancel"&&body.confirm===true)||body.action==="reactivate"){

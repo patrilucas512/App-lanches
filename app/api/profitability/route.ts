@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-ts-comment */
 // @ts-nocheck -- Aggregates operational, warehouse and forecasting sources with explicit tenant guards.
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,7 +11,7 @@ const rows = (result: any) => result?.error ? [] : result?.data || [];
 const now = () => new Date().toISOString();
 
 async function authorize(storeId: string, permission = "menu_profitability:view") {
-  if (!uuid.test(storeId)) throw new Error("Unidade inválida.");
+  if (!uuid.test(storeId)) throw new Error("Unidade inválida."); await requireModuleEnabled(storeId,"menu-engineering");
   const client = await createClient(), { data: claims } = await client.auth.getClaims(), userId = String(claims?.claims?.sub || "");
   if (!userId) throw new Error("Sessão expirada.");
   const { data: store } = await client.from("establishments").select("id,name,organization_id,timezone").eq("id", storeId).maybeSingle();

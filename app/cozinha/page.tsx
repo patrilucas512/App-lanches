@@ -2,6 +2,7 @@ import { EstablishmentTheme } from "@/components/establishment-theme";
 import { brandName } from "@/lib/operation-theme";
 import { redirect } from "next/navigation";
 import { KitchenBoard } from "@/components/kitchen-board";
+import { ReportProblemButton } from "@/components/report-problem-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function KitchenPage() {
@@ -30,5 +31,5 @@ export default async function KitchenPage() {
     supabase.rpc("get_printer_connector_status", { requested_establishment_id: establishment.id }),
     supabase.from("business_hours").select("weekday,opens_at,closes_at,closed").eq("establishment_id", establishment.id).order("weekday"),
   ]);
-  return <EstablishmentTheme brand={establishment || {}}><KitchenBoard establishmentId={establishment.id} establishmentName={brandName(establishment)} operatorName={operator?.name || (member.role === "owner" ? "Administrador" : "Gerente")} canReturnToAdmin={member.role === "owner" || member.role === "manager"} canPrint={member.role !== "kitchen" || operator?.permissions?.print_orders !== false} autoPrint={serviceMode?.auto_print_kitchen ?? false} paperWidth={serviceMode?.printer_paper_width === 80 ? 80 : 58} directPrinter={(directPrinter || { configured: false, online: false }) as never} businessHours={businessHours || []} initial={{ tickets: tickets || [], tableOrders: tableOrders || [], publicOrders: publicOrders || [], deliveries: deliveries || [], deliveryDestinations: deliveryDestinations || [], sessions: sessions || [], tables: tables || [], tableItems: tableItems || [], publicItems: publicItems || [] }} /></EstablishmentTheme>;
+  return <EstablishmentTheme brand={establishment || {}}><KitchenBoard establishmentId={establishment.id} establishmentName={brandName(establishment)} operatorName={operator?.name || (member.role === "owner" ? "Administrador" : "Gerente")} canReturnToAdmin={member.role === "owner" || member.role === "manager"} canPrint={member.role !== "kitchen" || operator?.permissions?.print_orders !== false} autoPrint={serviceMode?.auto_print_kitchen ?? false} paperWidth={serviceMode?.printer_paper_width === 80 ? 80 : 58} directPrinter={(directPrinter || { configured: false, online: false }) as never} businessHours={businessHours || []} initial={{ tickets: tickets || [], tableOrders: tableOrders || [], publicOrders: publicOrders || [], deliveries: deliveries || [], deliveryDestinations: deliveryDestinations || [], sessions: sessions || [], tables: tables || [], tableItems: tableItems || [], publicItems: publicItems || [] }} /><ReportProblemButton storeId={establishment.id} /></EstablishmentTheme>;
 }

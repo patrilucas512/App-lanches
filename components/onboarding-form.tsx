@@ -174,8 +174,10 @@ export function OnboardingForm({ initial }: { initial?: OnboardingInitialData })
     <div className="form-actions">
       {step > 0 && <button type="button" className="button ghost" onClick={() => { setMessage(""); setStep(current => current - 1); }}>Voltar</button>}
       {step < steps.length - 1
-        ? <button type="button" className="button dark" onClick={next}>Continuar →</button>
-        : <button type="submit" className="button dark" disabled={loading}>{loading ? "Publicando..." : "Publicar minha loja →"}</button>}
+        // chaves diferentes: sem elas o React reaproveita o mesmo botão, troca o type para submit durante o clique
+        // em "Continuar" da etapa Produto e o navegador publica a loja sem mostrar a revisão (Fase 99E)
+        ? <button key="next" type="button" className="button dark" onClick={next}>Continuar →</button>
+        : <button key="publish" type="submit" className="button dark" disabled={loading}>{loading ? "Publicando..." : "Publicar minha loja →"}</button>}
     </div>
   </form>;
 }

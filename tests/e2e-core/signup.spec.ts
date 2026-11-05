@@ -76,3 +76,84 @@ test("páginas legais abrem como rascunho e estão linkadas no cardápio e no si
   await page.goto("/");
   await expect(page.locator("footer").getByRole("link", { name: "Termos de uso" })).toHaveAttribute("href", "/termos");
 });
+
+// Fase 99E: do cadastro ao primeiro pedido. Conta nova (confirmada pela API só no dev), onboarding completo pela tela,
+// loja publicada, pedido de retirada no cardápio novo e o pedido chegando ao painel do dono. Tudo apagado no fim.
+test("loja nova: cadastro, onboarding, cardápio publicado e primeiro pedido no painel @mobile", async ({ page, browser }) => {
+  test.skip(!url.includes(DEV_REF) || !secret, "Sem a chave secreta do masterapp-dev.");
+  test.setTimeout(300_000);
+  const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
+  const stamp = Date.now().toString(36);
+  const slug = `e2e-loja-${stamp}`;
+  const email = `e2e.loja.${stamp}@masterapp-dev.test`;
+  const password = `E2e-${stamp}-${Math.random().toString(36).slice(2, 10)}`;
+  const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true,
+    user_metadata: { full_name: "Loja E2E", phone: "(11) 90000-0098", legal_terms_version: "2026-11-04-rascunho", legal_privacy_version: "2026-11-04-rascunho" } });
+  expect(error).toBeNull();
+  const userId = data.user!.id;
+  const field = (label: string) => page.locator(".field").filter({ has: page.locator("label", { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) }) }).locator("input");
+  try {
+    await page.goto("/login");
+    // enviar antes da página ficar interativa recarrega o formulário; repete até chegar ao onboarding
+    await expect(async () => {
+      await page.waitForLoadState("networkidle");
+      await page.locator("input[name=email]").first().fill(email);
+      await page.locator("input[name=password]").first().fill(password);
+      await page.getByRole("button", { name: /^Entrar no painel/ }).click();
+      await page.waitForURL(/\/onboarding/, { timeout: 25_000 });
+    }).toPass({ timeout: 80_000 });
+
+    const next = () => page.getByRole("button", { name: "Continuar →" }).click();
+    // campos controlados: o que for digitado antes da página ficar interativa se perde
+    await page.waitForLoadState("networkidle");
+    await expect(async () => {
+      await field("NOME DO ESTABELECIMENTO").fill(`Loja E2E ${stamp}`);
+      await field("LINK PERSONALIZADO (OPCIONAL)").fill(slug);
+      await field("WHATSAPP PARA PEDIDOS").fill("5511900000098");
+      await expect(field("LINK PERSONALIZADO (OPCIONAL)")).toHaveValue(slug, { timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+    await next();
+    await expect(page.getByRole("heading", { level: 1, name: "Identidade" })).toBeVisible();
+    await next();
+    await field("ABERTURA").fill("00:00");
+    await field("FECHAMENTO").fill("23:59");
+    await field("PEDIDO MÍNIMO (R$)").fill("0");
+    await next();
+    await next(); // pagamentos: Pix, dinheiro e crédito na entrega já vêm marcados
+    await next(); // entrega
+    await field("NOME DO PRODUTO").fill("Hambúrguer da Casa");
+    await field("PREÇO (R$)").fill("29,90");
+    await next();
+    // a revisão aparece antes de publicar (antes da 99E o clique em "Continuar" publicava direto)
+    await expect(page.getByRole("heading", { level: 1, name: "Publicar" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Seu cardápio está no ar." })).toHaveCount(0);
+    await page.getByRole("button", { name: /Publicar minha loja/ }).click();
+    await expect(page.getByRole("heading", { name: "Seu cardápio está no ar." })).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole("link", { name: "Abrir meu cardápio" })).toHaveAttribute("href", `/loja/${slug}`);
+
+    const customer = await browser.newPage();
+    await customer.goto(`/loja/${slug}`);
+    await expect(customer.getByRole("heading", { name: "Hambúrguer da Casa" })).toBeVisible();
+    await expect(async () => {
+      await customer.getByRole("button", { name: "Aumentar quantidade de Hambúrguer da Casa" }).click();
+      await expect(customer.getByRole("button", { name: "Diminuir quantidade de Hambúrguer da Casa" })).toBeEnabled({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
+    await customer.getByRole("button", { name: /Sacola|Ver sacola/ }).first().click();
+    await customer.getByRole("button", { name: /^Continuar/ }).click();
+    await customer.getByPlaceholder("Ex.: Maria Oliveira").fill("Primeiro Cliente E2E");
+    await customer.getByRole("button", { name: /^Retirada/ }).click();
+    // loja nova vem com Pix primeiro; o campo de troco só aparece em dinheiro
+    await customer.locator("select[name=payment]").selectOption("cash");
+    await customer.getByPlaceholder("Ex.: 100,00").fill("30,00");
+    await customer.getByRole("button", { name: /Enviar para a cozinha/ }).click();
+    await expect(customer.getByRole("heading", { name: /^Pedido #\d+$/ })).toBeVisible({ timeout: 30_000 });
+    await customer.close();
+
+    await page.goto("/painel/pedidos");
+    await expect(page.getByText("Primeiro Cliente E2E").first()).toBeVisible({ timeout: 30_000 });
+  } finally {
+    const { data: store } = await admin.from("establishments").select("id").eq("slug", slug).maybeSingle();
+    if (store) await admin.from("establishments").delete().eq("id", store.id);
+    await admin.auth.admin.deleteUser(userId);
+  }
+});

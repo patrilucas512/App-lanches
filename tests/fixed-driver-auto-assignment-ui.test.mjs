@@ -21,7 +21,7 @@ test("delivery tracking stays visible until secure completion", async () => {
 });
 
 test("driver access and delivery notes use responsive readable surfaces", async () => {
-  const css = await read("../app/globals.css");
+  const css = await read("../app/globals.css") + "\n" + await read("../app/painel/dashboard.css"); // Fase 99F
   assert.match(css, /\.auth-panel/);
   assert.match(css, /\.establishment-theme :is\(\.custody-step,\.driver-address-card/);
   assert.match(css, /\.driver-console \{ min-width:0; overflow-x:hidden; \}/);

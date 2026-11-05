@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +9,7 @@ import { EntityMatchingService, GoldenRecordService, IdentifierNormalizationServ
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const reply=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{"cache-control":"private, no-store","x-content-type-options":"nosniff"}});
 async function context(storeId:string){
-  if(!UUID.test(storeId))throw new Error("FORBIDDEN");
+  if(!UUID.test(storeId))throw new Error("FORBIDDEN"); await requireModuleEnabled(storeId,"master-data");
   const client=await createClient(),{data}=await client.auth.getClaims(),userId=String(data?.claims?.sub||"");if(!userId)throw new Error("AUTH");
   const admin=createAdminClient(),{data:store}=await admin.from("establishments").select("id,organization_id").eq("id",storeId).maybeSingle();if(!store)throw new Error("FORBIDDEN");
   const[{data:local},{data:org},{data:custom}]=await Promise.all([
@@ -41,7 +42,7 @@ async function dashboard(c:any){
   return{entities,identifiers,candidates,golden:goldenR.data||[],quality,merges:mergesR.data||[],crosswalks:crosswalkR.data||[],changes,reconciliation,sources:sourcesR.data||[],rules:rulesR.data||[],stewards:stewardsR.data||[],cards:{masterEntities:entities.filter((x:any)=>x.status==="active").length,duplicatesPending:candidates.filter((x:any)=>x.status==="pending").length,criticalQualityIssues:quality.filter((x:any)=>x.severity==="critical"&&!["resolved","false_positive"].includes(x.status)).length,unmappedIds:(crosswalkR.data||[]).filter((x:any)=>x.status==="unmapped").length,reconciliationIssues:reconciliation.filter((x:any)=>["completed_with_issues","failed"].includes(x.status)).length,pendingChangeRequests:changes.filter((x:any)=>["draft","submitted"].includes(x.status)).length,staleMasterRecords:(goldenR.data||[]).filter((x:any)=>x.status==="stale").length},permissions:[...c.permissions],principles:{operationalDomainsRemainAuthoritative:true,automaticCriticalMerge:false,historicalRecordsDestroyed:false,customerIdentityOwner:"Customer 360"}};
 }
 
-export async function GET(req:Request){try{const c=await context(String(new URL(req.url).searchParams.get("store_id")||""));requirePermission(c,"mdm:view");return reply(await dashboard(c))}catch(error:any){const message=error?.message||"Falha MDM";return reply({error:message},message==="AUTH"?401:message==="FORBIDDEN"?403:500)}}
+export async function GET(req:Request){try{const c=await context(String(new URL(req.url).searchParams.get("store_id")||""));requirePermission(c,"mdm:view");return reply(await dashboard(c))}catch(error:any){const message=error?.message||"Falha MDM";return reply({error:message},message==="AUTH"?401:message==="FORBIDDEN"||message==="FEATURE_DISABLED"?403:500)}}
 
 export async function POST(req:Request){try{
   const body=await req.json(),c=await context(String(body.store_id||"")),action=String(body.action||"");requirePermission(c,"mdm:view");

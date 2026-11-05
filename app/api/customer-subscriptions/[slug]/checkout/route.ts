@@ -1,3 +1,4 @@
+import { storeModuleEnabledBySlug, moduleUnavailableBody } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readPortalToken, requestFingerprint, secureHash } from "@/lib/customer-portal";
@@ -5,7 +6,7 @@ import { createCustomerSubscriptionCheckout } from "@/lib/customer-subscriptions
 import type { GatewayEnvironment,GatewayProvider } from "@/lib/order-payments/providers";
 
 export async function POST(request:Request,{params}:{params:Promise<{slug:string}>}){try{
-  const {slug}=await params;const token=await readPortalToken();if(!token)return NextResponse.json({error:"Sessão expirada."},{status:401});
+  const {slug}=await params;if(!(await storeModuleEnabledBySlug(slug,"subscriptions")))return NextResponse.json(moduleUnavailableBody("subscriptions"),{status:403});const token=await readPortalToken();if(!token)return NextResponse.json({error:"Sessão expirada."},{status:401});
   const body=await request.json() as Record<string,unknown>;if(body.consent!==true)return NextResponse.json({error:"Confirme a cobrança recorrente e os termos."},{status:400});
   const provider=String(body.provider||"mercado_pago") as GatewayProvider;if(!["mercado_pago","pagarme"].includes(provider))return NextResponse.json({error:"Provedor inválido."},{status:400});
   const admin=createAdminClient();const consent=`Estou de acordo com a cobrança recorrente, o preço, a periodicidade, a renovação e os termos do plano. Provedor: ${provider}.`;

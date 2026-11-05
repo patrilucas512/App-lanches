@@ -7,7 +7,7 @@ const read = path => fs.readFile(new URL(`../${path}`, import.meta.url), "utf8")
 test("cashier team uses the complete operator action card", async () => {
   const [manager, css] = await Promise.all([
     read("components/custom-staff-manager.tsx"),
-    read("app/globals.css"),
+    read("app/globals.css").then(async (css) => css + "\n" + await read("app/painel/dashboard.css")), // Fase 99F
   ]);
 
   assert.match(manager, /Equipe do caixa/);

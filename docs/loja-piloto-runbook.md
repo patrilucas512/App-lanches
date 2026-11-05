@@ -1,4 +1,6 @@
-# Roteiro da loja piloto (Fase 97G)
+# Roteiro da loja piloto (Fases 97G e 99H)
+
+**Loja piloto escolhida em 05/11/2026: MARIAH EL LANCHES** (`app-lanches`). Ela já está cadastrada em produção, com cardápio, zona de entrega, terminal de caixa e impressão automática da cozinha. Por isso a seção 2 vira uma conferência do que já existe, não um cadastro do zero.
 
 Este roteiro **só documenta**. Nada aqui foi executado em produção. Cada passo marcado com 🔒 é escrita em produção e precisa da aprovação explícita do dono antes.
 
@@ -71,7 +73,10 @@ Se o Pix for de verdade, estornar pelo painel do gateway depois do teste.
 
 ### 4.1 Onde olhar
 
-- **Erros do app:** Vercel → `app-lanches` → Observability / Logs (o plano Hobby guarda só 1 hora de logs; olhar diariamente).
+- **Painel do piloto (Fase 99H):** Superadmin → Painel do piloto. Pedidos de hoje, tempo médio por etapa, pedidos parados, pagamentos falhos, impressoras, alertas abertos, erros do app e relatos abertos. Só leitura.
+- **Alertas do piloto (Fase 98F):** Superadmin → Alertas do piloto. Avaliados a cada 5 minutos.
+- **Erros do app (Fase 99G):** guardados 14 dias na tabela `app_error_events`, sem dados pessoais. Mais de 10 em 15 minutos viram alerta para o superadmin.
+- **Erros do app (Vercel):** Vercel → `app-lanches` → Observability / Logs (o plano Hobby guarda só 1 hora de logs; olhar diariamente).
 - **Status do sistema:** `/status` e Superadmin → Logs, Performance e Qualidade.
 - **Suporte:** Superadmin → Suporte (chamados das lojas) e `/painel/suporte` no lado da loja.
 - **Incidentes:** `/painel/incidentes` (incident management está ligado nos planos).
@@ -79,7 +84,7 @@ Se o Pix for de verdade, estornar pelo painel do gateway depois do teste.
 
 ### 4.2 Alertas mínimos (consultas só de leitura, SQL Editor de produção)
 
-Rodar uma vez por dia na primeira semana; virar alerta automático na Fase 98.
+Desde a Fase 98F estas regras rodam sozinhas (Alertas do piloto). As consultas ficam aqui para conferência manual.
 
 ```sql
 -- Pedidos travados: abertos há mais de 60 minutos
@@ -117,6 +122,7 @@ select status_code, count(*) from net._http_response where created > now() - int
 ## 6. Suporte ao piloto (Fase 24)
 
 - A loja abre chamado em `/painel/suporte`; o superadmin responde em Superadmin → Suporte.
+- **Relatar problema (Fase 99H):** botão no canto inferior esquerdo do painel, da cozinha, do caixa e do entregador. Abre chamado na Central de Suporte com a página (sem endereço completo nem identificadores), o horário, o navegador e o papel da pessoa. Não captura nada da tela; só o texto escrito. Limite de 10 relatos por pessoa por hora. Aparece como "Piloto: problema em …".
 - Na primeira semana: contato direto (WhatsApp do dono do MasterApp) para problemas que impedem vender.
 - Combinar com a loja um horário de checagem diária nos primeiros 7 dias.
 - Registrar cada problema como chamado, mesmo os resolvidos por telefone, para virar lista da Fase 98.
@@ -129,3 +135,49 @@ select status_code, count(*) from net._http_response where created > now() - int
 4. Uso do WhatsApp no piloto.
 5. Cobrança da assinatura no piloto (gratuito, manual ou pelo app).
 6. Data do teste de fumaça e quem faz.
+
+## 8. Checklist do dia 1
+
+| # | Item | Quem |
+|---|---|---|
+| 1 | Migrations da Fase 99 aplicadas em produção (lista do `docs/phase99-launch-closure-report.md`) | dono do MasterApp aprova, Claude aplica |
+| 2 | Loja piloto no plano certo, conferido com a prévia de "Alinhar loja ao plano" | dono do MasterApp |
+| 3 | Cardápio, horários, área de entrega e formas de pagamento revisados pela loja | dono da loja |
+| 4 | Equipe com acesso ativado (garçom, cozinha, caixa, entregador), cada um entrou uma vez | dono da loja |
+| 4a | Terminal de caixa cadastrado (Configurações → Terminais de caixa): sem ele o caixa não abre o turno | dono da loja |
+| 4b | Zona de entrega com o nome do bairro como o cliente vai digitar (a cotação compara o nome) | dono da loja |
+| 5 | Impressora dá sinal (Painel do piloto → Impressoras) | dono da loja |
+| 6 | Teste de fumaça da seção 3 feito, com um pedido real de baixo valor | dono da loja |
+| 7 | Painel do piloto sem pedidos parados e Alertas do piloto sem alertas abertos | dono do MasterApp |
+| 8 | Cada pessoa da equipe sabe onde fica "Relatar problema" | dono da loja |
+| 9 | Contato direto combinado para problema que impede vender | os dois |
+
+## 9. Primeira semana
+
+- **Todo dia, no fim do expediente:** Painel do piloto (pedidos parados, tempos por etapa, pagamentos falhos), Alertas do piloto e relatos abertos na Central de Suporte.
+- **Todo dia:** responder cada relato do piloto no mesmo dia, mesmo que seja "visto, corrigindo".
+- **Dias 2, 4 e 7:** conversa curta com a loja: o que travou, o que demorou, o que ninguém usou.
+- **Erro novo no núcleo** (pedido, cozinha, caixa, entrega, pagamento): investigar no mesmo dia; correção com teste, revisada antes de publicar.
+- **Nada de recurso novo ligado na loja durante a semana** sem prévia e aprovação.
+
+## 10. Reversão rápida
+
+| Situação | Primeiro passo | Depois |
+|---|---|---|
+| Deploy novo quebrou o núcleo | Vercel → Deployments → deploy anterior → **Instant Rollback** | corrigir na branch, com teste |
+| Módulo atrapalhando a loja | 🔒 desligar a flag da loja (Superadmin → Estabelecimentos → Alinhar loja ao plano, ou Feature Management) | registrar no relato |
+| Alertas demais | 🔒 ajustar o limite da regra em `pilot_alert_rules` | registrar o motivo |
+| Pagamento online falhando | a loja desliga o Pix online e aceita dinheiro/maquininha | abrir chamado no gateway |
+| Loja não consegue vender | voltar para comanda em papel e anotar os pedidos | registrar tudo no relato para lançar depois |
+
+## 11. Critérios para aprovar o piloto
+
+O piloto está aprovado para abrir mais lojas quando, em **7 dias seguidos de operação**:
+
+1. nenhum pedido perdido (todo pedido criado chegou à cozinha e teve fim: entregue, concluído ou cancelado com motivo);
+2. nenhum alerta crítico sem resposta no mesmo dia;
+3. pedidos parados resolvidos em menos de 1 hora;
+4. erros do app no núcleo investigados e, se forem do app, corrigidos;
+5. todos os relatos do piloto respondidos e os que impedem vender resolvidos;
+6. a loja confirma que quer continuar usando;
+7. termos de uso e política de privacidade publicados (pendência da Fase 96, seção 1.1).

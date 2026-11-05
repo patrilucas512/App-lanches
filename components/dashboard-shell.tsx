@@ -11,6 +11,9 @@ import { SecuritySessionBeacon } from "@/components/security-session-beacon";
 import { GlobalCommandPalette } from "@/components/global-command-palette";
 import { NotificationBell } from "@/components/notification-bell";
 import { ContextualKnowledgeHelp } from "@/components/contextual-knowledge-help";
+import { ReportProblemButton } from "@/components/report-problem-button";
+// Fase 99F: regras usadas só no painel e no superadmin (fora do globals.css, que vai para todas as rotas)
+import "@/app/painel/dashboard.css";
 import "@/app/global-search.css";
 import "@/app/painel/notificacoes/notifications.css";
 
@@ -196,6 +199,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
       {brand?.id && plan?.global_search_enabled !== false && plan?.command_palette_enabled !== false && <GlobalCommandPalette storeId={brand.id} />}
       {brand?.id && plan?.notification_center_enabled !== false && <NotificationBell storeId={brand.id} organizationId={scope?.organization?.id ?? undefined} />}
       {brand?.id && plan?.knowledge_base_enabled !== false && <ContextualKnowledgeHelp storeId={brand.id} />}
+      {brand?.id && <ReportProblemButton storeId={brand.id} />}
       {(role === "owner" || role === "manager" || !role) && <SystemTour />}
     </section>
   </main>;

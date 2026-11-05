@@ -1,3 +1,5 @@
+import { firstOf } from "@/lib/plan-reading";
+import { PlanAlignmentPanel } from "@/components/plan-alignment-panel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EstablishmentActions, TrialButton } from "@/components/superadmin-actions";
@@ -23,7 +25,7 @@ export default async function EstablishmentDetail({ params }: { params: Promise<
     supabase.from("custom_staff_members").select("id", { count: "exact", head: true }).eq("establishment_id", id).is("archived_at", null),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("establishment_id", id).gte("created_at", monthStart.toISOString()),
   ]);
-  const store = storeQ.data; if (!store) notFound(); const subscription = store.subscriptions?.[0]; const plan = subscription?.plans; const orders = ordersQ.data ?? [];
+  const store = storeQ.data; if (!store) notFound(); const subscription = firstOf(store.subscriptions); const plan = firstOf(subscription?.plans); const orders = ordersQ.data ?? [];
   const tabs = ["visao-geral","dados","responsavel","assinatura","uso","cardapio","pedidos","garcons","mesas","pagamentos","qr-codes","logs","suporte"];
   return <><PageHead eyebrow="ESTABELECIMENTO" title={store.name} description={`/${store.slug} · cadastrado em ${date(store.created_at)}`} action={<EstablishmentActions id={id} blocked={Boolean(store.blocked_at)} menuActive={store.public_menu_active !== false} />} />
     <nav className="sa-tabs">{tabs.map(tab => <a key={tab} href={`#${tab}`}>{tab.replaceAll("-", " ")}</a>)}</nav>
@@ -37,5 +39,6 @@ export default async function EstablishmentDetail({ params }: { params: Promise<
     <section className="sa-split"><article id="garcons" className="sa-panel"><header><h2>Garçons</h2></header>{waitersQ.data?.map(w => <div className="sa-list-row" key={w.id}><b>{w.display_name}</b><Badge value={w.active ? "Ativo" : "Inativo"} /></div>)}{!waitersQ.data?.length && <Empty title="Sem garçons" text="Nenhum garçom cadastrado." />}</article><article id="mesas" className="sa-panel"><header><h2>Mesas</h2></header>{tablesQ.data?.map(t => <div className="sa-list-row" key={t.id}><b>{t.name}</b><Badge value={t.active ? "Ativa" : "Inativa"} /></div>)}{!tablesQ.data?.length && <Empty title="Sem mesas" text="Nenhuma mesa cadastrada." />}</article></section>
     <section id="logs" className="sa-panel"><header><div><small>LOGS</small><h2>Auditoria do estabelecimento</h2></div></header>{logsQ.data?.map(log => <div className="sa-log" key={log.id}><div><b>{log.action}</b><small>{log.entity_type} · {log.profiles?.[0]?.full_name ?? "Sistema"}</small></div><time>{date(log.created_at, true)}</time></div>)}{!logsQ.data?.length && <Empty title="Nenhum log registrado" text="As futuras ações auditáveis aparecerão aqui." />}</section>
     <section id="suporte" className="sa-panel"><header><div><small>SUPORTE</small><h2>Chamados vinculados</h2></div><Link className="sa-link-button" href={`/superadmin/suporte?estabelecimento=${id}`}>Abrir chamado →</Link></header>{ticketsQ.data?.map(ticket => <div className="sa-list-row" key={ticket.id}><div><b>{ticket.title}</b><small>{date(ticket.created_at, true)}</small></div><Badge value={statusLabel(ticket.status)} /></div>)}{!ticketsQ.data?.length && <Empty title="Sem chamados" text="Não há ocorrências abertas para este estabelecimento." />}</section>
+  <PlanAlignmentPanel storeId={store.id} />
   </>;
 }

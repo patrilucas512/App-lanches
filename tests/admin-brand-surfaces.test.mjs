@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-const css=await readFile(new URL('../app/globals.css',import.meta.url),'utf8');
+// Fase 99F: o painel carrega globals.css e app/painel/dashboard.css, nessa ordem
+const css=await readFile(new URL('../app/globals.css',import.meta.url),'utf8')+'\n'+await readFile(new URL('../app/painel/dashboard.css',import.meta.url),'utf8');
 const bridge=css.slice(css.indexOf('/* Complete legacy-to-brand bridge.'));
 test('Legacy administration surfaces use saved colors as foreground/background pairs',()=>{
  for(const selector of ['.printer-manager-form','.register-chip-list span','.custom-role-form','.custom-member-form','.team-member-row','.team-summary article','.waiter-admin-form','.catalog-addon-card','.setting-toggle','.weekly-day-card','.delivery-operational-alerts.all-clear']) {

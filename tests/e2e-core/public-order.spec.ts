@@ -6,7 +6,11 @@ import type { Page } from "@playwright/test";
 async function openBagWith(page: Page, product: string) {
   await page.goto(`/loja/${STORE_SLUG}`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: `Aumentar quantidade de ${product}` }).click();
+  // o botão existe antes da página ficar interativa; repete até o item entrar na sacola
+  await expect(async () => {
+    await page.getByRole("button", { name: `Aumentar quantidade de ${product}` }).click();
+    await expect(page.getByRole("button", { name: `Diminuir quantidade de ${product}` })).toBeEnabled({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await page.getByRole("button", { name: /Sacola|Ver sacola/ }).first().click();
   await expect(page.getByRole("heading", { name: "Revise seu pedido" })).toBeVisible();
   await page.getByRole("button", { name: /^Continuar/ }).click();

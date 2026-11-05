@@ -5,7 +5,7 @@ import test from "node:test";
 test("motoboy team card follows the same readable action-card pattern", async () => {
   const [manager, css] = await Promise.all([
     fs.readFile("components/custom-staff-manager.tsx", "utf8"),
-    fs.readFile("app/globals.css", "utf8"),
+    fs.readFile("app/globals.css", "utf8").then(async (css) => css + "\n" + await fs.readFile("app/painel/dashboard.css", "utf8")), // Fase 99F
   ]);
 
   assert.match(manager, /driver-member-row/);

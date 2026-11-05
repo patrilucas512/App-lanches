@@ -24,6 +24,17 @@ jobs:
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
       E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
+      # Fase 98D/99E: equipe da loja de teste e confirmação de cadastro (só a chave secreta do masterapp-dev).
+      E2E_WAITER_NAME: ${{ secrets.E2E_WAITER_NAME }}
+      E2E_WAITER_PASSWORD: ${{ secrets.E2E_WAITER_PASSWORD }}
+      E2E_KITCHEN_NAME: ${{ secrets.E2E_KITCHEN_NAME }}
+      E2E_KITCHEN_PASSWORD: ${{ secrets.E2E_KITCHEN_PASSWORD }}
+      E2E_CASHIER_NAME: ${{ secrets.E2E_CASHIER_NAME }}
+      E2E_CASHIER_PASSWORD: ${{ secrets.E2E_CASHIER_PASSWORD }}
+      E2E_DRIVER_NAME: ${{ secrets.E2E_DRIVER_NAME }}
+      E2E_DRIVER_PASSWORD: ${{ secrets.E2E_DRIVER_PASSWORD }}
+      E2E_SUPABASE_URL: https://bfmrcvjxbmxxmdustrgo.supabase.co
+      E2E_SUPABASE_SECRET_KEY: ${{ secrets.E2E_SUPABASE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ github.event.deployment.sha || github.sha }}" }
@@ -37,11 +48,15 @@ jobs:
           test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || { echo "::error::Falta o segredo VERCEL_AUTOMATION_BYPASS_SECRET (ver docs/ambientes.md)"; exit 1; }
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e-core
-      # Screenshots only: traces and error-context snapshots carry typed field values, including the test password.
+      # Só capturas: traces e error-context.md guardam o que foi digitado nos campos, inclusive as senhas de teste.
+      # Fase 99: a exclusão é explícita e o teste tests/unit/ci-artifacts-phase99.test.mjs falha se ela sumir.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: e2e-core-screenshots
-          path: test-results/e2e-core/artifacts/**/*.png
+          path: |
+            test-results/e2e-core/artifacts/**/*.png
+            !test-results/**/error-context.md
+            !test-results/**/*.zip
           if-no-files-found: ignore
           retention-days: 14

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 // Phase 97E, seen in the E2E screenshots of the kitchen: unreadable cash receipt, raw payment code, squeezed button.
-const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8") + "\n" + readFileSync(new URL("../../app/painel/dashboard.css", import.meta.url), "utf8"); // Fase 99F
 const board = readFileSync(new URL("../../components/kitchen-board.tsx", import.meta.url), "utf8");
 
 test("the cash receipt keeps dark text on its light background", () => {

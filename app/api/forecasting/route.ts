@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-ts-comment */
 // @ts-nocheck -- Forecast orchestration joins the certified analytical mart and operational context.
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,7 +11,7 @@ const rows = (result: any) => result?.error ? [] : result?.data || [];
 const nowIso = () => new Date().toISOString();
 
 async function authorize(storeId: string) {
-  if (!uuid.test(storeId)) throw new Error("Unidade inválida.");
+  if (!uuid.test(storeId)) throw new Error("Unidade inválida."); await requireModuleEnabled(storeId,"forecast");
   const client = await createClient();
   const { data: claims } = await client.auth.getClaims();
   const userId = String(claims?.claims?.sub || "");
