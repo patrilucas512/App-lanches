@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +11,7 @@ const ADMIN = new Set(["owner", "admin", "supervisor", "manager"]);
 const R = (value: unknown, status = 200) => NextResponse.json(value, { status, headers: { "cache-control": "no-store" } });
 
 async function auth(storeId: string) {
-  if (!UUID.test(storeId)) throw new Error("FORBIDDEN");
+  if (!UUID.test(storeId)) throw new Error("FORBIDDEN"); await requireModuleEnabled(storeId,"my-learning");
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = String(data?.claims?.sub || "");
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
     ]);
     const rows = allEnrollments.data || [], completed = rows.filter(x => x.status === "completed").length, overdue = rows.filter(x => x.due_at && new Date(x.due_at) < new Date() && !["completed", "exempted", "cancelled"].includes(x.status)).length;
     return R({ mode: "admin", courses: courses.data || [], paths: paths.data || [], requirements: requirements.data || [], enrollments: rows, employees: employees.data || [], certifications: certifications.data || [], policies: policies.data || [], summary: { activeCourses: (courses.data || []).filter(x => x.status === "published").length, assigned: rows.length, completed, overdue, completionRate: rows.length ? Math.round(completed / rows.length * 100) : 0 }, permissions: { manage: true, publish: true, assign: true, validatePractical: true } });
-  } catch (error: any) { const message = error?.message || "Falha"; return R({ error: message }, message === "AUTH" ? 401 : message === "FORBIDDEN" ? 403 : 500); }
+  } catch (error: any) { const message = error?.message || "Falha"; return R({ error: message }, message === "AUTH" ? 401 : message === "FORBIDDEN"||message === "FEATURE_DISABLED" ? 403 : 500); }
 }
 
 export async function POST(req: Request) {

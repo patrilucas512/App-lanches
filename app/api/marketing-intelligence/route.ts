@@ -1,3 +1,4 @@
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -7,7 +8,7 @@ import { MarketingOpportunityEngine, audienceEligibility, deterministicAssignmen
 
 async function identity(permission="marketing:view"){
   const client=await createClient(),{data}=await client.auth.getClaims(),userId=String(data?.claims?.sub||"");if(!userId)throw new Error("Sessão expirada.");
-  const{data:memberships}=await client.from("establishment_members").select("establishment_id,role").eq("user_id",userId).eq("status","active").order("created_at"),preferred=(await cookies()).get("masterapp_active_store")?.value,selected=(memberships||[]).find((m:any)=>m.establishment_id===preferred)||(memberships||[])[0],storeId=String(selected?.establishment_id||"");if(!storeId)throw new Error("Estabelecimento não encontrado.");
+  const{data:memberships}=await client.from("establishment_members").select("establishment_id,role").eq("user_id",userId).eq("status","active").order("created_at"),preferred=(await cookies()).get("masterapp_active_store")?.value,selected=(memberships||[]).find((m:any)=>m.establishment_id===preferred)||(memberships||[])[0],storeId=String(selected?.establishment_id||"");if(!storeId)throw new Error("Estabelecimento não encontrado."); await requireModuleEnabled(storeId,"marketing-intelligence");
   const a=createAdminClient(),{data:store}=await a.from("establishments").select("id,organization_id,name,timezone").eq("id",storeId).single();if(!store)throw new Error("Estabelecimento inválido.");
   const{data:member}=await a.from("establishment_members").select("role").eq("establishment_id",storeId).eq("user_id",userId).eq("status","active").maybeSingle();
   const{data:grant}=await a.from("marketing_intelligence_permissions").select("permissions,active").eq("organization_id",store.organization_id).eq("user_id",userId).maybeSingle();

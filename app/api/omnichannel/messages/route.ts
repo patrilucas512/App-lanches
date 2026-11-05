@@ -1,3 +1,4 @@
+import { storeModuleEnabled, moduleUnavailableBody } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
     const { data: claims } = await (supabase.auth as unknown as { getClaims: () => Promise<{ data: { claims?: { sub?: string } } }> }).getClaims();
     const userId = claims?.claims?.sub; if (!userId) return NextResponse.json({ error: "Sessão expirada." }, { status: 401 });
     const { data: canonical } = await supabase.from("omnichannel_conversations").select("*").eq("id", conversationId).maybeSingle();
-    if (!canonical) return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
+    if (!canonical) return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 }); if (!(await storeModuleEnabled(String(canonical.establishment_id), "inbox"))) return NextResponse.json(moduleUnavailableBody("inbox"), { status: 403 });
     const { data: member } = await supabase.from("establishment_members").select("role").eq("establishment_id", canonical.establishment_id).eq("user_id", userId).eq("status", "active").maybeSingle();
     const { data: permission } = await supabase.from("omnichannel_member_permissions").select("can_reply_web_chat,can_reply_whatsapp").eq("establishment_id", canonical.establishment_id).eq("user_id", userId).maybeSingle();
     const manager = member && ["owner", "manager"].includes(member.role);

@@ -1,3 +1,4 @@
+import { requireOrganizationModuleEnabled } from "@/lib/module-gate";
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +14,7 @@ async function context(organizationId?: string) {
   const { data: memberships } = await admin.from("organization_members").select("organization_id,role,active").eq("user_id", userId).eq("active", true);
   const membership = (memberships || []).find(item => !organizationId || item.organization_id === organizationId);
   if (!membership || !["owner", "admin", "manager", "supervisor"].includes(membership.role)) throw new Error("Sem permissão para gerenciar canais.");
-  return { admin, userId, organizationId: membership.organization_id as string };
+  await requireOrganizationModuleEnabled(membership.organization_id as string, "marketplace-integrations"); return { admin, userId, organizationId: membership.organization_id as string };
 }
 
 async function audit(admin: ReturnType<typeof createAdminClient>, organizationId: string, eventType: string, userId: string, metadata: Record<string, unknown>) {

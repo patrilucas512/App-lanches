@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,7 +9,7 @@ const UUID=/^[0-9a-f-]{36}$/i;
 const response=(body:any,status=200)=>NextResponse.json(body,{status,headers:{"cache-control":"private, no-store"}});
 
 async function context(storeId:string){
-  if(!UUID.test(storeId)) throw new Error("FORBIDDEN");
+  if(!UUID.test(storeId)) throw new Error("FORBIDDEN"); await requireModuleEnabled(storeId,"vendor-management");
   const client=await createClient();
   const {data}=await client.auth.getClaims();
   const userId=String(data?.claims?.sub||"");
@@ -40,7 +41,7 @@ async function dashboard(ctx:any){
   return {vendors:list,onboarding:onboarding.data||[],requirements:requirements.data||[],dueDiligence:dueDiligence.data||[],contracts:contracts.data||[],performance:performance.data||[],measurements:measurements.data||[],slas:slas.data||[],slaEvents:slaList,costs:costList,variances:variances.data||[],risks:risks.data||[],continuity:continuity.data||[],dependencies:dependencies.data||[],alternatives:alternatives.data||[],renewals:renewalList,reviews:reviews.data||[],decisions:decisions.data||[],exitPlans:exitList,exitSteps:exitSteps.data||[],offboarding:offboarding.data||[],access:access.data||[],exceptions:exceptions.data||[],cards:{active:list.filter((x:any)=>x.relationship_status==="active").length,critical:list.filter((x:any)=>x.criticality==="critical").length,onboardingBlocked:(onboarding.data||[]).filter((x:any)=>x.status==="blocked").length,slaAlerts:slaList.filter((x:any)=>["at_risk","breach_candidate","breached_reviewed"].includes(x.status)).length,renewalsDue:renewalList.filter((x:any)=>["upcoming","review_required","under_review"].includes(x.status)).length,exitBlocked:exitList.filter((x:any)=>x.status==="blocked").length,costAmount:currencies.length===1?costList.reduce((sum:number,x:any)=>sum+Number(x.amount||0),0):null,costCurrency:currencies.length===1?currencies[0]:null},boundaries:{procurementCanonical:true,contractsCanonical:true,riskCanonical:true,reliabilityCanonical:true,continuityCanonical:true,architectureCanonical:true,finopsCanonical:true,automaticApproval:false,automaticTermination:false,silentCurrencyConversion:false}};
 }
 
-export async function GET(req:Request){try{return response(await dashboard(await context(String(new URL(req.url).searchParams.get("store_id")||""))))}catch(error:any){return response({error:error.message},error.message==="AUTH"?401:error.message==="FORBIDDEN"?403:500)}}
+export async function GET(req:Request){try{return response(await dashboard(await context(String(new URL(req.url).searchParams.get("store_id")||""))))}catch(error:any){return response({error:error.message},error.message==="AUTH"?401:error.message==="FORBIDDEN"||error.message==="FEATURE_DISABLED"?403:500)}}
 
 export async function POST(req:Request){
   try{

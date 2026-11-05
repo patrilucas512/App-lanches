@@ -5,6 +5,8 @@ export type MenuPlan = Record<string, unknown>;
 export type ModuleRule = { label: string; flags: readonly string[]; mode?: "all" | "any" | "strict" };
 
 export const MODULE_RULES: Record<string, ModuleRule> = {
+  // Fase 99A: busca global e paleta de comandos (não é item do menu; o shell só mostra a paleta com as duas ligadas).
+  "global-search": { label: "Busca global", flags: ["global_search_enabled", "command_palette_enabled"] },
   "overview": { label: "Minha Home", flags: ["workspace_enabled", "personalized_home_enabled"] },
   "cashier": { label: "Caixa", flags: ["cashier_enabled"] },
   "network": { label: "Rede", flags: ["network_governance_enabled"] },

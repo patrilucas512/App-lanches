@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { requireModuleEnabled } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,7 +10,7 @@ const R=(v:unknown,s=200)=>NextResponse.json(v,{status:s,headers:{"cache-control
 const FULL=new Set(["workforce_planning:view","workforce_planning:create","workforce_planning:edit","workforce_planning:publish","workforce_planning:approve","workforce_planning:view_cost","workforce_planning:manage_rules","workforce_planning:manage_open_shifts","workforce_planning:approve_swaps","workforce_planning:view_network"]);
 
 async function auth(storeId:string){
- if(!UUID.test(storeId))throw new Error("FORBIDDEN");const s=await createClient(),{data}=await s.auth.getClaims(),userId=String(data?.claims?.sub||"");if(!userId)throw new Error("AUTH");
+ if(!UUID.test(storeId))throw new Error("FORBIDDEN"); await requireModuleEnabled(storeId,"workforce-planning");const s=await createClient(),{data}=await s.auth.getClaims(),userId=String(data?.claims?.sub||"");if(!userId)throw new Error("AUTH");
  const{data:store}=await s.from("establishments").select("id,organization_id,name").eq("id",storeId).maybeSingle();if(!store)throw new Error("FORBIDDEN");
  const[{data:local},{data:org}]=await Promise.all([s.from("establishment_members").select("role").eq("establishment_id",storeId).eq("user_id",userId).eq("status","active").maybeSingle(),s.from("organization_members").select("role,all_stores").eq("organization_id",store.organization_id).eq("user_id",userId).eq("active",true).maybeSingle()]);if(!local&&!org)throw new Error("FORBIDDEN");
  const role=String(org?.role||local?.role||"member"),a=createAdminClient(),permissions=new Set<string>();if(["owner","admin","manager","supervisor"].includes(role))for(const p of FULL)permissions.add(p);
@@ -39,7 +40,7 @@ export async function GET(req:Request){try{const u=new URL(req.url),c=await auth
  ]);
  const shiftRows=shifts.data||[],forecastRows=forecasts.data||[],coverageRows=forecastRows.map((f:any)=>{const scheduled=shiftRows.filter((x:any)=>x.role_id===f.role_id&&new Date(x.starts_at)<new Date(f.bucket_end)&&new Date(x.ends_at)>new Date(f.bucket_start)).length;return{...f,...coverage(Number(f.recommended_headcount),scheduled)}});const labor=LaborPlanningService.estimate(shiftRows.map((x:any)=>({minutes:(new Date(x.ends_at).getTime()-new Date(x.starts_at).getTime())/60000,roleRateCents:0})),c.permissions.has("workforce_planning:view_cost"));
  return R({mode:"manager",schedules:schedules.data||[],shifts:shiftRows,rules:rules.data||[],coverageRequirements:requirements.data||[],forecasts:forecastRows,coverage:coverageRows,employees:employees.data||[],roles:roles.data||[],openShifts:openShifts.data||[],swaps:swaps.data||[],exceptions:exceptions.data||[],liveCoverage:live.data||[],settings:settings.data||{},scenarios:scenarios.data||[],labor,permissions:[...c.permissions],freshness:{generatedAt:forecastRows[0]?.forecast_generated_at||null,now:new Date().toISOString()},safety:{humanPublishes:true,automaticEmploymentDecisions:false,legalComplianceClaim:false}});
- }catch(e:any){const m=e?.message||"Falha";return R({error:m},m==="AUTH"?401:m==="FORBIDDEN"?403:500)}}
+ }catch(e:any){const m=e?.message||"Falha";return R({error:m},m==="AUTH"?401:m==="FORBIDDEN"||m==="FEATURE_DISABLED"?403:500)}}
 
 export async function POST(req:Request){try{const b=await req.json(),c=await auth(String(b.store_id||"")),action=String(b.action||"");
  if(!automationActionAllowed(action))return R({error:"Ação automática de emprego não permitida."},409);

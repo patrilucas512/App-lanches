@@ -31,3 +31,17 @@ export async function storeModuleEnabled(storeId: string, moduleKey: string): Pr
 export async function requireModuleEnabled(storeId: string, moduleKey: string) {
   if (!(await storeModuleEnabled(storeId, moduleKey))) throw new Error(FEATURE_DISABLED);
 }
+
+// Fase 99A: módulos que trabalham por organização (canais de delivery): basta uma loja ativa da organização ter
+// o módulo.
+export async function requireOrganizationModuleEnabled(organizationId: string, moduleKey: string) {
+  const { data: stores } = await createAdminClient().from("establishments").select("id").eq("organization_id", organizationId).eq("active", true).limit(50);
+  for (const store of (stores ?? []) as { id: string }[]) if (await storeModuleEnabled(store.id, moduleKey)) return;
+  throw new Error(FEATURE_DISABLED);
+}
+
+// Fase 99A: rotas públicas por slug da loja (portal do cliente).
+export async function storeModuleEnabledBySlug(slug: string, moduleKey: string): Promise<boolean> {
+  const { data: store } = await createAdminClient().from("establishments").select("id").eq("slug", slug).maybeSingle();
+  return Boolean(store) && (await storeModuleEnabled((store as { id: string }).id, moduleKey));
+}

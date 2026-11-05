@@ -1,3 +1,4 @@
+import { storeModuleEnabled, moduleUnavailableBody } from "@/lib/module-gate";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { answerManagerQuestion } from "@/lib/intelligence/copilot-tools";
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const establishmentId = String(body.establishment_id || "");
-    if (!uuid.test(establishmentId)) return NextResponse.json({ error: "Estabelecimento inválido." }, { status: 400 });
+    if (!uuid.test(establishmentId)) return NextResponse.json({ error: "Estabelecimento inválido." }, { status: 400 }); if (!(await storeModuleEnabled(establishmentId, "intelligence"))) return NextResponse.json(moduleUnavailableBody("intelligence"), { status: 403 });
     const supabase = await createClient();
     const { data: claims } = await (supabase.auth as any).getClaims();
     if (!claims?.claims?.sub) return NextResponse.json({ error: "Sessão expirada." }, { status: 401 });
