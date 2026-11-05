@@ -95,7 +95,12 @@ test("pedido feito no cardápio aparece para o dono e na cozinha, e o cliente v�
   await card.screenshot({ path: test.info().outputPath("comanda-cozinha.png") });
   // The kitchen accepts the order ("Aceitar pedido" or "Aceitar e imprimir") and marks it ready.
   await card.scrollIntoViewIfNeeded();
-  await card.getByRole("button", { name: /^Aceitar/ }).click();
+  // a tela pode não estar interativa ainda (ou o banco do dev pode estar no pico dos jobs): repete o aceite
+  await expect(async () => {
+    const accept = card.getByRole("button", { name: /^Aceitar/ });
+    if (await accept.count()) await accept.click({ timeout: 5_000 });
+    await expect(card.getByRole("button", { name: "Marcar como pronto" })).toBeVisible({ timeout: 15_000 });
+  }).toPass({ timeout: 60_000 });
   await card.getByRole("button", { name: "Marcar como pronto" }).click();
   await expect(card).toContainText("Aguardando retirada do cliente.");
   await expect(customer.getByText(/PRONTO!/)).toBeVisible({ timeout: 45_000 });

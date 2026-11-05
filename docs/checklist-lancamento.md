@@ -14,9 +14,10 @@ Toda escrita em produção precisa de aprovação do dono, uma por vez, depois d
 | Registro de erros do app e alerta de taxa de erro (99G) | ✅ no código e no dev | Claude |
 | "Relatar problema" e Painel do piloto (99H) | ✅ no código e no dev | Claude |
 | CI não publica `error-context.md` | ✅ | Claude |
-| Fluxos completos de ponta a ponta (99E) | ver `docs/phase99-launch-closure-report.md` | Claude |
-| Lighthouse e desempenho (99F) | ver `docs/phase99-launch-closure-report.md` | Claude |
-| Lint, typecheck e testes unitários passando | ver relatório | Claude |
+| Fluxos completos de ponta a ponta (99E), com 5 defeitos corrigidos | ✅ no build local + dev; ⬜ na homologação | Claude |
+| CSS separado, contraste e letras do cardápio (99F) | ✅ | Claude |
+| Lighthouse no celular (meta: desempenho 80, acessibilidade 95) | ⬜ falta a homologação | Claude |
+| Lint, typecheck e testes unitários passando | ✅ 128 testes unitários; lint sem erros | Claude |
 | Revisão e merge do PR da Fase 99 | ⬜ | Dono |
 
 ## Produção (cada item com aprovação separada)
@@ -26,6 +27,7 @@ Toda escrita em produção precisa de aprovação do dono, uma por vez, depois d
 | Migrations da Fase 98 (98A, 98B piloto, 98D, 98F, 98G lotes 1 e 2, 98I) | ✅ aplicadas em 05/11/2026 | Dono aprovou |
 | Agendamento dos alertas do piloto (`masterapp-pilot-alerts`) | ✅ desde 05/11/2026 | Dono aprovou |
 | Limpeza do plano Básico (`20261104132000_phase98b_plan_cleanup`) | ⬜ bloqueada pela permissão da sessão; rodar no SQL Editor ou liberar | Dono |
+| Migrations 99E (mesa, pedido pela equipe, motoboy, entrega em loja nova) | ⬜ **as mais urgentes** | Dono aprova |
 | Migration 99D (funções restantes) | ⬜ | Dono aprova |
 | Migration 99C (alinhar loja ao plano) | ⬜ | Dono aprova |
 | Migration 99G (registro de erros) | ⬜ | Dono aprova |
@@ -51,7 +53,7 @@ Toda escrita em produção precisa de aprovação do dono, uma por vez, depois d
 | Termos de uso e política de privacidade publicados | ⬜ | Dono (jurídico) |
 | Canal de contato do titular de dados | ⬜ | Dono |
 | Forma de pagamento do piloto definida | ⬜ | Dono e Loja |
-| Cadastro da loja, cardápio e equipe (runbook, seção 2) | ⬜ | Loja |
+| Cadastro da loja, cardápio, zona de entrega, terminal de caixa e equipe (runbook, seção 2) | ⬜ | Loja |
 | Teste de fumaça em produção (runbook, seção 3) | ⬜ | Loja |
 | Checklist do dia 1 (runbook, seção 8) | ⬜ | Dono e Loja |
 

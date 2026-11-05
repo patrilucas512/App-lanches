@@ -142,6 +142,8 @@ select status_code, count(*) from net._http_response where created > now() - int
 | 2 | Loja piloto no plano certo, conferido com a prévia de "Alinhar loja ao plano" | dono do MasterApp |
 | 3 | Cardápio, horários, área de entrega e formas de pagamento revisados pela loja | dono da loja |
 | 4 | Equipe com acesso ativado (garçom, cozinha, caixa, entregador), cada um entrou uma vez | dono da loja |
+| 4a | Terminal de caixa cadastrado (Configurações → Terminais de caixa): sem ele o caixa não abre o turno | dono da loja |
+| 4b | Zona de entrega com o nome do bairro como o cliente vai digitar (a cotação compara o nome) | dono da loja |
 | 5 | Impressora dá sinal (Painel do piloto → Impressoras) | dono da loja |
 | 6 | Teste de fumaça da seção 3 feito, com um pedido real de baixo valor | dono da loja |
 | 7 | Painel do piloto sem pedidos parados e Alertas do piloto sem alertas abertos | dono do MasterApp |
