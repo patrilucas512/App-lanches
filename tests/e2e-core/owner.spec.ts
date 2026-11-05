@@ -72,7 +72,10 @@ test("pedido feito no cardÃ¡pio aparece para o dono e na cozinha, e o cliente vÃ
   const customerName = `Cliente E2E ${Date.now().toString().slice(-6)}`;
   const customer = await browser.newPage();
   await customer.goto(`/loja/${STORE_SLUG}`);
-  await customer.getByRole("button", { name: "Aumentar quantidade de Brownie Teste" }).click();
+  await expect(async () => {
+    await customer.getByRole("button", { name: "Aumentar quantidade de Brownie Teste" }).click();
+    await expect(customer.getByRole("button", { name: "Diminuir quantidade de Brownie Teste" })).toBeEnabled({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await customer.getByRole("button", { name: /Sacola|Ver sacola/ }).first().click();
   await customer.getByRole("button", { name: /^Continuar/ }).click();
   await customer.getByPlaceholder("Ex.: Maria Oliveira").fill(customerName);
