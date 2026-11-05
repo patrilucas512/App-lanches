@@ -3,6 +3,7 @@ import { brandName } from "@/lib/operation-theme";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DriverDispatchConsole } from "@/components/driver-dispatch-console";
+import { ReportProblemButton } from "@/components/report-problem-button";
 
 export default async function DriverPage() {
   const supabase = await createClient();
@@ -28,5 +29,5 @@ export default async function DriverPage() {
     establishmentName={brandName(establishment || {})}
     initialAvailability={availability}
     initialAssignments={(assignments || []) as never[]}
-  /></EstablishmentTheme>;
+  /><ReportProblemButton storeId={driver.establishment_id} /></EstablishmentTheme>;
 }

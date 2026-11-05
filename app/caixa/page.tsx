@@ -2,6 +2,7 @@ import { EstablishmentTheme } from "@/components/establishment-theme";
 import { brandName } from "@/lib/operation-theme";
 import { redirect } from "next/navigation";
 import { PosConsole } from "@/components/pos-console";
+import { ReportProblemButton } from "@/components/report-problem-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PosPage() {
@@ -31,5 +32,5 @@ export default async function PosPage() {
   const paidIds = new Set((paid || []).map(item => item.source_order_id));
   const pending = (orders || []).filter(order => !paidIds.has(order.id)).map(order => ({ ...order, order_items: (orderItems || []).filter(item => item.order_id === order.id) }));
   const normalizedShift=shift?{...shift,cash_register_name:(shift.cash_registers as {name?:string}|null)?.name}:null;
-  return <EstablishmentTheme brand={establishment || {}}><PosConsole establishmentName={brandName(establishment)} employeeName={employee.name} registers={(registers||[]) as never[]} initialShift={normalizedShift as never} products={(products || []) as never[]} productLoadError={productsError?.message || null} initialOrders={pending as never[]} tablePayments={(payments || []) as never[]} initialSales={(sales || []) as never[]} initialMovements={(movements || []) as never[]} /></EstablishmentTheme>;
+  return <EstablishmentTheme brand={establishment || {}}><PosConsole establishmentName={brandName(establishment)} employeeName={employee.name} registers={(registers||[]) as never[]} initialShift={normalizedShift as never} products={(products || []) as never[]} productLoadError={productsError?.message || null} initialOrders={pending as never[]} tablePayments={(payments || []) as never[]} initialSales={(sales || []) as never[]} initialMovements={(movements || []) as never[]} /><ReportProblemButton storeId={establishment.id} /></EstablishmentTheme>;
 }
