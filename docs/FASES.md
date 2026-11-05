@@ -155,6 +155,7 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
     - a limpeza de planos da 98, `20261105075337`;
     - a troca do job `masterapp-pilot-alerts` para `evaluate_pilot_alerts_and_purge()`.
   - Loja piloto: **MARIAH EL LANCHES** (`app-lanches`), no plano Piloto. Foi alinhada ao plano: 161 módulos desligados, o financeiro foi mantido por uso.
+  - Código publicado com o merge do PR #32 (`5621bef`) em 2026-11-05, com a CI verde. Na produção, a página inicial passou a baixar 178 KB de CSS (35 KB comprimido), antes 430 KB.
   - Os fluxos completos da 99E acharam 5 defeitos que bloqueavam o piloto. Os 3 primeiros também estão em produção:
     - o garçom não abria mesa (desde a Fase 42);
     - a equipe não mudava o pedido por causa do gatilho de métricas;
