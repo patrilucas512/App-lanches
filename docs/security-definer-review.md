@@ -310,3 +310,28 @@ Categorias: **app** = a tela chama com a sessão do usuário; **app (pública)**
 | `workforce_record_clock` | app | app (sessão): employee-time-clock.tsx | mantida |
 | `workforce_request_clock_correction` | morta | — | apontada: sem chamada direta no código; revisar (pode ser chamada por nome dinâmico) |
 | `workforce_save_shift` | app | app (nome dinâmico): workforce-phase18-console.tsx | mantida |
+
+## Fase 99D (05/11/2026)
+
+Migration `20261105120000_phase99d_remaining_definer`, aplicada no `masterapp-dev`:
+
+| | Depois da 98G | Depois da 99D |
+|---|---|---|
+| Executáveis por `anon` | 20 | 17 |
+| Executáveis por usuário logado | 254 | 225 |
+
+- **Chat do site:** `start_web_chat_session`, `get_web_chat_history` e `post_web_chat_message` perderam `anon` e `authenticated`. O app só as chama pelo servidor (`createAdminClient` em `app/api/web-chat`).
+  - Consequência: o limite de abertura de chat que a 98G pôs no banco não vale para essas chamadas, porque o `service_role` fica fora do limite. Para o chat, o limite de frequência tem de ficar na rota do app (pendência).
+- **As 32 "sem chamada direta" da 98:**
+  - **26 revogadas.** Nenhuma aparece no código (nem por nome dinâmico ou montado), nas funções do Supabase, em outra função do banco, em gatilho ou no `pg_cron`:
+    - `assign_product_experiment`, `claim_waiter_invite`, `confirm_table_payment`
+    - `deactivate_printer_device`, `delete_printer_device`, `update_printer_device`
+    - `estimate_crm_segment`, `fiscal_add_digital_document`, `fiscal_link_received_to_finance`
+    - `get_customer_voice_timeline`, `get_effective_loyalty_balance`, `get_organization_report`
+    - `get_reservation_dashboard`, `get_saas_lifecycle_messages`, `get_table_pix_data`, `get_voice_call_detail`
+    - `open_table_session`, `purge_old_driver_locations`, `request_voice_callback`
+    - `save_table_combination`, `set_cash_register_active`, `set_manager_copilot_permissions`
+    - `superadmin_change_subscription_plan`, `transfer_whatsapp_conversation_store`
+    - `workforce_decide_clock_correction`, `workforce_request_clock_correction`
+  - **6 mantidas**, porque são chamadas por nome dinâmico: `configure_platform_payment_gateway`, `configure_voice_connection`, `register_driver_push_subscription`, `register_operations_push_subscription`, `superadmin_extend_trial`, `update_driver_location`.
+- Nada foi apagado; o `service_role` mantém acesso a todas.
