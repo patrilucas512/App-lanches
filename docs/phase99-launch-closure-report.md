@@ -1,6 +1,18 @@
 # Fase 99 — Fechamento para o lançamento
 
-Branch `claude/fase-99-fechamento-lancamento`. Sem módulos novos. Produção **só leitura** durante a fase: nada foi aplicado lá. Toda escrita em produção está na lista da seção 6, para aprovação uma a uma depois do merge.
+Branch `claude/fase-99-fechamento-lancamento`. Sem módulos novos.
+
+**Situação final em 05/11/2026:**
+- **Código:** o PR #32 foi mesclado (`5621bef`, 08:20 UTC) com as 13 verificações da CI verdes, e a Vercel publicou em produção.
+- **Conferido depois do deploy:**
+  - a página inicial baixa 178 KB de CSS, 35 KB comprimido (antes, 430 KB e 82 KB);
+  - `/`, `/login`, `/cadastro`, `/garcom/login` e `/api/health` respondem 200;
+  - nenhum erro registrado em `app_error_events`.
+- **Banco:** os itens 2 a 13 da seção 6 foram aprovados e aplicados na produção, um a um, antes do merge, e conferidos.
+- **Loja piloto:** MARIAH EL LANCHES, no plano Piloto.
+- **Pendências do dono:** chaves VAPID, textos legais definitivos e o pedido de teste (seção 8).
+
+Durante a fase, até a aprovação do dono, a produção foi só leitura.
 
 ## 1. O que mudou em cada etapa
 
@@ -253,7 +265,7 @@ Cada item é uma aprovação separada. Só depois do merge do PR (o merge public
 ## 7. Checklist de lançamento
 
 Status atual em `docs/checklist-lancamento.md`. Resumo:
-- **Código:** ✅ 99A a 99H no PR; ⬜ revisão e merge.
+- **Código:** ✅ 99A a 99H; ✅ PR #32 mesclado e publicado em 05/11/2026.
 - **Produção:** ✅ Fase 98, exceto a limpeza de planos; ⬜ itens 2 a 14 da seção 6.
 - **Homologação:** ⬜ segredos do GitHub, `SUPABASE_SECRET_KEY` no Preview, bypass, Vault do dev.
 - **Antes do dia 1:** ⬜ termos e política publicados, canal do titular, forma de pagamento, cadastro da loja com terminal de caixa e zona de entrega, teste de fumaça.
@@ -263,7 +275,7 @@ Status atual em `docs/checklist-lancamento.md`. Resumo:
 
 **Loja piloto escolhida em 05/11/2026: MARIAH EL LANCHES**, a loja que já está em produção (`app-lanches`, nome interno "App Lanches", plano Básico em período de teste). Hoje ela já tem 1 zona de entrega, 1 terminal de caixa, 6 produtos ativos e a configuração de entrega. A impressão automática da cozinha está ligada, então a tela da cozinha precisa da migration `20261105126000` (item 2 da seção 6) para funcionar com o login de um funcionário.
 
-1. Revisar e fazer o merge do PR. Depois aprovar, uma a uma, as migrations dos itens 2 a 7 da seção 6. As quatro da 99E são as que destravam garçom, cozinha, caixa e entregador.
+1. ✅ Feito em 05/11/2026: merge do PR e migrations dos itens 2 a 13 da seção 6, aprovadas e aplicadas.
 2. Decidir o plano da loja piloto (Piloto ou Básico alinhado) e aprovar os itens 11 a 13.
 3. Publicar os textos definitivos dos termos e da política de privacidade. Hoje são rascunho, com a faixa "RASCUNHO".
 4. Definir a forma de pagamento do piloto. Para Pix online, a loja cadastra a credencial de produção.

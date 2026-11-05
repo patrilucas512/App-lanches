@@ -20,7 +20,7 @@ Toda escrita em produção precisa de aprovação do dono, uma por vez, depois d
 | CSS separado, contraste e letras do cardápio (99F) | ✅ | Claude |
 | Lighthouse no celular (meta: desempenho 80, acessibilidade 95) | ⬜ falta a homologação | Claude |
 | Lint, typecheck e testes unitários passando | ✅ 128 testes unitários; lint sem erros | Claude |
-| Revisão e merge do PR da Fase 99 | ⬜ | Dono |
+| Revisão e merge do PR da Fase 99 | ✅ PR #32 mesclado e publicado em 05/11/2026 | Dono aprovou |
 
 ## Produção (cada item com aprovação separada)
 
