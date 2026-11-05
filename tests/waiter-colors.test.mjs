@@ -6,7 +6,8 @@ import ts from 'typescript';
 const require = createRequire(import.meta.url);
 const postcss = require(require.resolve('postcss', { paths: [require.resolve('vite')] }));
 const read = name => readFile(new URL('../' + name, import.meta.url), 'utf8');
-const css = postcss.parse(await read('app/globals.css'));
+// Fase 99F: o painel carrega globals.css e app/painel/dashboard.css, nessa ordem
+const css = postcss.parse(await read('app/globals.css') + '\n' + await read('app/painel/dashboard.css'));
 const rule = selector => css.nodes.find(node => node.type === 'rule' && node.selector === selector);
 const value = (node, property) => node.nodes.find(item => item.prop === property)?.value;
 test('Tracker itself, stages and cards no longer retain fixed pale backgrounds', () => {

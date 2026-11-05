@@ -1,5 +1,7 @@
 # Checklist de lançamento (Fase 99)
 
+**Loja piloto: MARIAH EL LANCHES** (`app-lanches`, já em produção).
+
 ✅ feito · ⬜ falta. Situação em 05/11/2026. "Dono" é o dono do MasterApp; "Loja" é o dono da loja piloto.
 Toda escrita em produção precisa de aprovação do dono, uma por vez, depois do merge.
 
@@ -26,15 +28,15 @@ Toda escrita em produção precisa de aprovação do dono, uma por vez, depois d
 |---|---|---|
 | Migrations da Fase 98 (98A, 98B piloto, 98D, 98F, 98G lotes 1 e 2, 98I) | ✅ aplicadas em 05/11/2026 | Dono aprovou |
 | Agendamento dos alertas do piloto (`masterapp-pilot-alerts`) | ✅ desde 05/11/2026 | Dono aprovou |
-| Limpeza do plano Básico (`20261104132000_phase98b_plan_cleanup`) | ⬜ bloqueada pela permissão da sessão; rodar no SQL Editor ou liberar | Dono |
-| Migrations 99E (mesa, pedido pela equipe, motoboy, entrega em loja nova) | ⬜ **as mais urgentes** | Dono aprova |
-| Migration 99D (funções restantes) | ⬜ | Dono aprova |
-| Migration 99C (alinhar loja ao plano) | ⬜ | Dono aprova |
-| Migration 99G (registro de erros) | ⬜ | Dono aprova |
-| Trocar o agendamento para `evaluate_pilot_alerts_and_purge` | ⬜ depois da 99G | Dono aprova |
-| Migration 99H (relatar problema e painel do piloto) | ⬜ | Dono aprova |
-| Alinhar a loja piloto ao plano, a partir da prévia | ⬜ | Dono aprova |
-| Vincular a loja piloto ao plano Piloto, se for o caso | ⬜ | Dono aprova |
+| Limpeza do plano Básico (`20261104132000_phase98b_plan_cleanup`) | ✅ aplicada em 05/11/2026 (`20261105075337`) | Dono aprovou |
+| Migrations 99E (mesa, pedido pela equipe, motoboy, entrega em loja nova) | ✅ aplicadas em 05/11/2026 | Dono aprovou |
+| Migration 99D (funções restantes) | ✅ aplicada em 05/11/2026 | Dono aprovou |
+| Migration 99C (alinhar loja ao plano) | ✅ aplicada em 05/11/2026 | Dono aprovou |
+| Migration 99G (registro de erros) | ✅ aplicada em 05/11/2026 | Dono aprovou |
+| Trocar o agendamento para `evaluate_pilot_alerts_and_purge` | ✅ feito em 05/11/2026 | Dono aprovou |
+| Migration 99H (relatar problema e painel do piloto) | ✅ aplicada em 05/11/2026 | Dono aprovou |
+| Alinhar a MARIAH EL LANCHES ao plano, a partir da prévia | ✅ 161 módulos desligados, financeiro mantido | Dono aprovou |
+| Vincular a MARIAH EL LANCHES ao plano Piloto | ✅ feito em 05/11/2026 | Dono aprovou |
 | Par de chaves VAPID (push) | ⬜ | Dono |
 
 ## Ambiente de homologação

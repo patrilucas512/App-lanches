@@ -77,7 +77,40 @@ function keep(rule) {
   if (!classes.length) return true;
   return classes.some(used);
 }
+// As camadas de identidade da loja ("Operation uses…", "Identity bridge", "Complete legacy-to-brand bridge") ficam no
+// globals.css porque também valem nas telas da equipe, mas existem para sobrescrever regras antigas do painel, que
+// agora carregam depois, no dashboard.css. O dashboard.css termina com uma cópia exata delas, para que no painel
+// a ponte continue sendo a última regra, como antes da separação.
+const BRIDGE_START = "/* Operation uses the establishment's existing branding";
+const BRIDGE_END = "/* Phase 23 · guided onboarding";
+const COPY_START = "/* INÍCIO: cópia da ponte de identidade do globals.css (gerada; não editar aqui) */";
+const COPY_END = "/* FIM: cópia da ponte de identidade */";
+function bridgeOf(globals) {
+  const a = globals.indexOf(BRIDGE_START), b = globals.indexOf(BRIDGE_END);
+  if (a < 0 || b < a) throw new Error("marcadores da ponte de identidade não encontrados no globals.css");
+  return globals.slice(a, b).trimEnd();
+}
+// O que vier depois do FIM da cópia (correções que precisam vencer a ponte) é preservado.
+function withBridge(dash, globals) {
+  const a = dash.indexOf(COPY_START), z = dash.indexOf(COPY_END);
+  const base = (a >= 0 ? dash.slice(0, a) : dash).trimEnd();
+  const after = z >= 0 ? dash.slice(z + COPY_END.length).trim() : "";
+  return `${base}\n${COPY_START}\n${bridgeOf(globals)}\n${COPY_END}\n${after ? after + "\n" : ""}`;
+}
+if (process.argv.includes("--sync-bridge")) {
+  const dashPath = join(root, "app/painel/dashboard.css");
+  writeFileSync(dashPath, withBridge(readFileSync(dashPath, "utf8"), readFileSync(join(root, "app/globals.css"), "utf8")));
+  console.log("ponte de identidade copiada para o fim do dashboard.css");
+  process.exit(0);
+}
 if (process.argv.includes("--verify")) {
+  const dashText = readFileSync(join(root, "app/painel/dashboard.css"), "utf8").replace(/\r\n/g, "\n");
+  const globalsText = readFileSync(join(root, "app/globals.css"), "utf8").replace(/\r\n/g, "\n");
+  const tail = dashText.slice(dashText.indexOf(COPY_START) + COPY_START.length, dashText.indexOf(COPY_END)).trim();
+  if (!dashText.includes(COPY_START) || !dashText.includes(COPY_END) || tail !== bridgeOf(globalsText).trim()) {
+    console.error("a cópia da ponte de identidade no fim do dashboard.css está diferente do globals.css: rode --sync-bridge");
+    process.exit(1);
+  }
   // falha se alguma classe que só existe no dashboard.css passou a ser usada por uma rota pública
   const dash = readFileSync(join(root, "app/painel/dashboard.css"), "utf8");
   const leaked = [...new Set([...dash.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/\.(-?[A-Za-z_][A-Za-z0-9_-]*)(?=[^{}]*\{)/g)].map((m) => m[1]))]
@@ -108,5 +141,6 @@ const kb = (s) => `${Math.round(Buffer.byteLength(s) / 1024)} KB`;
 console.log(`arquivos públicos alcançados: ${seen.size}; globals ${kb(css)} → ${kb(stay.join(""))}; painel ${kb(move.join(""))}`);
 if (!check) {
   writeFileSync(join(root, "app/globals.css"), stay.join("").trimEnd() + "\n");
-  writeFileSync(join(root, "app/painel/dashboard.css"), "/* Fase 99F: regras usadas só no painel e no superadmin (geradas por scripts/quality/split-dashboard-css.mjs). */\n" + move.join(""));
+  const stayed = stay.join("").trimEnd() + "\n";
+  writeFileSync(join(root, "app/painel/dashboard.css"), withBridge("/* Fase 99F: regras usadas só no painel e no superadmin (geradas por scripts/quality/split-dashboard-css.mjs). */\n" + move.join(""), stayed));
 }

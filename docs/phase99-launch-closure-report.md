@@ -209,6 +209,27 @@ As 8 passam no `scripts/quality/migration-safety.mjs`.
 
 ## 6. O que precisa de aprovação para ir a produção, em ordem
 
+**Situação em 05/11/2026:** os itens 2 a 13 foram aprovados pelo dono ("Autorizo 2 a 12, plano piloto"; depois "Aplicar os 161") e aplicados na produção um a um. Cada um foi conferido em seguida, em transações desfeitas no fim, sem gravar pedido, mesa ou relato de teste. As migrations foram aplicadas antes do merge porque só mexem no banco e funcionam com o código que já estava no ar.
+
+| Item | Versão em produção | Conferência |
+|---|---|---|
+| 2 `phase99e_order_metrics_trigger` | `20261105074702` | cozinha muda o pedido; a tela de métricas continua exigindo permissão |
+| 3 `phase99e_table_session_scope` | `20261105074749` | mesa abre com loja e organização |
+| 4 `phase99e_driver_availability_status` | `20261105074817` | `offered` e `collecting` aceitos |
+| 5 `phase99e_delivery_settings_default` | `20261105074840` | gatilho ativo; entrega da loja intacta (taxa fixa) |
+| 7 `phase99g_app_error_log` | `20261105074941` | tabela só do servidor; 7 regras |
+| 6 `phase99h_pilot_feedback` | `20261105075035` | painel e relato funcionando (aplicada depois da 7, porque o painel lê a tabela de erros) |
+| 8 job `masterapp-pilot-alerts` (18) | `evaluate_pilot_alerts_and_purge()` | execução das 07:55 UTC com sucesso |
+| 9 `phase99c_align_store_plan` | `20261105075155` | prévia funcionando |
+| 10 `phase99d_remaining_definer` | `20261105075258` | `anon` 20 → 17, `authenticated` 254 → 229 (com as 4 funções novas da 99C e da 99H) |
+| 11 `phase98b_plan_cleanup` | `20261105075337` | Piloto 18, Básico 20, Profissional 63, MasterApp 178 módulos |
+| 13 MARIAH EL no plano Piloto | `subscriptions.plan_id` | `trialing` mantido |
+| 12 alinhar a MARIAH EL ao Piloto | `align_store_to_plan` | 161 desligados, financeiro mantido por uso; núcleo ligado |
+
+Itens que continuam pendentes: o 14 (chaves VAPID), além dos que só o dono pode fazer (seção 8).
+
+Lista original de aprovação:
+
 Cada item é uma aprovação separada. Só depois do merge do PR (o merge publica o código).
 
 1. **Merge do PR da Fase 99** (publica o código na Vercel).
@@ -225,8 +246,8 @@ Cada item é uma aprovação separada. Só depois do merge do PR (o merge public
 9. `20261105121000_phase99c_align_store_plan`: tela "Alinhar loja ao plano".
 10. `20261105120000_phase99d_remaining_definer`: as 29 revogações.
 11. Limpeza dos planos `20261104132000_phase98b_plan_cleanup`. O controle de permissões da sessão bloqueou na 98; rodar no SQL Editor de produção ou liberar.
-12. Alinhar a loja de produção ao plano, pela tela do item 9, depois de ver a prévia. Prévia de hoje: 55 flags saem, nenhum módulo usado recentemente sai.
-13. Vincular a loja piloto ao plano Piloto, se essa for a escolha (Superadmin → Estabelecimentos).
+12. Alinhar a MARIAH EL LANCHES (loja piloto) ao plano, pela tela do item 9, depois de ver a prévia. Prévia de hoje: 55 flags saem, nenhum módulo usado recentemente sai.
+13. Vincular a MARIAH EL LANCHES ao plano Piloto, se essa for a escolha, ou mantê-la no Básico alinhado (Superadmin → Estabelecimentos).
 14. Par de chaves VAPID do push, nas variáveis da Vercel.
 
 ## 7. Checklist de lançamento
@@ -239,6 +260,8 @@ Status atual em `docs/checklist-lancamento.md`. Resumo:
 - **Depois do lançamento:** ⬜ privacidade da 96, limite do chat do site, critérios de aprovação do piloto.
 
 ## 8. O que você precisa fazer antes do primeiro dia do piloto
+
+**Loja piloto escolhida em 05/11/2026: MARIAH EL LANCHES**, a loja que já está em produção (`app-lanches`, nome interno "App Lanches", plano Básico em período de teste). Hoje ela já tem 1 zona de entrega, 1 terminal de caixa, 6 produtos ativos e a configuração de entrega. A impressão automática da cozinha está ligada, então a tela da cozinha precisa da migration `20261105126000` (item 2 da seção 6) para funcionar com o login de um funcionário.
 
 1. Revisar e fazer o merge do PR. Depois aprovar, uma a uma, as migrations dos itens 2 a 7 da seção 6. As quatro da 99E são as que destravam garçom, cozinha, caixa e entregador.
 2. Decidir o plano da loja piloto (Piloto ou Básico alinhado) e aprovar os itens 11 a 13.

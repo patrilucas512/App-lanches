@@ -2576,6 +2576,282 @@ button.table-qr-card { color:inherit; }
 .mi-report-note{margin-top:15px}
 @media(max-width:900px){.mi-metric-grid,.mi-overview-grid,.mi-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mi-two,.mi-wizard{grid-template-columns:1fr}.mi-wizard ol{display:flex;overflow:auto}.mi-wizard li{flex:0 0 auto}.mi-list code{display:none}}
 @media(max-width:600px){.mi-title,.mi-list>article,.mi-preview,.mi-data-warning{align-items:stretch;flex-direction:column}.mi-metric-grid,.mi-overview-grid,.mi-card-grid,.mi-form{grid-template-columns:1fr}.mi-form h3,.mi-form button{grid-column:auto}.mi-tabs{margin-inline:-8px}.mi-wizard>div{padding:20px}}
+/* INÍCIO: cópia da ponte de identidade do globals.css (gerada; não editar aqui) */
+/* Operation uses the establishment's existing branding with automatic readable text. */
+.operation-dashboard { --admin-bg:var(--op-background,#080707); --admin-surface:var(--op-surface,#151411); --admin-surface-raised:var(--op-surface,#151411); --admin-surface-hover:var(--op-surface,#151411); --admin-text:var(--op-text,#fffaf1); --admin-muted:var(--op-text,#fffaf1); --admin-accent:var(--op-accent,#ff5a1f); --admin-accent-hover:var(--op-accent,#ff5a1f); }
+.operation-dashboard :is(.admin-sidebar,.dashboard-topbar,.mobile-dashboard-header,.mobile-nav-drawer) { background:var(--op-surface,#151411); color:var(--op-text,#fffaf1); }
+.operation-dashboard :is(.brand-mark,.admin-sidebar-user>span,.topbar-user>span,.mobile-user-avatar,.mobile-nav-drawer footer>div>span,.admin-sidebar .admin-nav-group a.active>span) { background:var(--op-accent,#ff5a1f); color:var(--op-on-accent,#000); }
+.operation-dashboard :is(.dashboard-topbar-title small,.mobile-dashboard-header small,.admin-nav-group>a>span) { color:var(--op-text,#fffaf1); }
+.operation-dashboard .dashboard-content>.dashboard-head :is(h1,p,small) { color:var(--op-background-text,#fffaf1); }
+.operation-dashboard :is(.admin-nav-group a,.dashboard-topbar-title small,.topbar-user small,.admin-sidebar-user small,.mobile-dashboard-header small,.admin-exit-link) { font-size:.875rem; line-height:1.5; }
+.catalog-personalization-link .button { flex:0 0 auto; }
+@media(max-width:700px) { .catalog-personalization-link .button { width:100%; }}
+.operation-theme { --paper:var(--op-surface,#151411); --ink:var(--op-text,#fffaf1); --muted:var(--op-text,#fffaf1); --line:color-mix(in srgb,var(--op-text,#fffaf1) 30%,transparent); background:var(--op-background,#080707); color:var(--op-background-text,#fffaf1); min-width:0; }
+.operation-theme > .dashboard-head :is(h1,p,small) { color:var(--op-background-text,#fffaf1); }
+.operation-theme :is(.waiter-tracker,.waiter-console,.waiter-panel) { min-width:0; max-width:100%; font-size:1rem; line-height:1.5; }
+.operation-theme :is(.waiter-tracker,.waiter-operation-heading,.operation-table,.panel,.waiter-modal,.waiter-stage,.waiter-stage-list article,.waiter-call,.payment-operator,.receipt-box,.account-values,.cash-total,.cash-change,.security-warning,.ready-pickup-alert,.tracker-message,.internal-product-grid article,.addon-options label,.delivery-owner,.empty,.product-placeholder,.inline-pix,.form-message) { background:var(--op-surface,#151411); color:var(--op-text,#fffaf1); border-color:var(--line); }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) :is(p,span,small,em,label,li,td,th,b,strong,h2,h3,time,.empty-stage) { color:var(--op-text,#fffaf1); }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) :is(p,span,small,em,label,li,td,th,time,.empty-stage) { font-size:.875rem; line-height:1.5; letter-spacing:normal; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) p { font-size:1rem; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) :is(h2,h3,strong) { font-family:var(--font-sans),sans-serif; line-height:1.3; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) h2 { font-size:1.5rem; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) h3 { font-size:1.125rem; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) :is(b,strong) { font-size:1rem; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) :is(input,select,textarea,option) { background:var(--op-surface,#151411); color:var(--op-text,#fffaf1); border:1px solid var(--line); font-size:1rem; min-height:44px; max-width:100%; }
+.operation-theme :is(input,textarea)::placeholder { color:var(--op-text,#fffaf1); opacity:1; }
+.operation-theme :is(.waiter-console,.waiter-tracker,.waiter-panel) button { font-size:.875rem; min-height:44px; line-height:1.4; white-space:normal; }
+.operation-theme :is(.button.outline,.menu-tools button,.waiter-alert-controls button,.waiter-cart article button,.call-filters button,.table-account-shortcut,.checkout-close) { background:var(--op-surface,#151411); color:var(--op-text,#fffaf1); border:1px solid var(--line); }
+.operation-theme :is(.button.dark,.internal-product-grid article>button,.waiter-stage-list article>button,.menu-tools button.active,.call-filters button.active,.waiter-alert-controls button.active,.waiter-alert-controls>span,.waiter-stage>header>b,.ready-alert-icon,.call-status,.status-pill) { background:var(--op-accent,#ff5a1f); color:var(--op-on-accent,#000); border-color:var(--op-accent,#ff5a1f); }
+.operation-theme :is(.button.dark,.call-status,.status-pill) :is(span,b,small) { color:inherit; }
+.operation-theme .waiter-stage>header>b { border-radius:999px; min-width:36px; width:auto; height:auto; min-height:36px; padding:4px 10px; }
+.operation-theme .waiter-stage-grid { align-items:start; grid-template-columns:repeat(4,minmax(0,1fr)); overflow:visible; margin:0; padding:0; min-width:0; }
+.operation-theme .waiter-stage { min-width:0; min-height:0; padding:14px; border:1px solid var(--line); }
+.operation-theme .waiter-stage>header { gap:10px; flex-wrap:wrap; }
+.operation-theme .waiter-stage-list article { opacity:1; min-width:0; }
+.operation-theme .waiter-stage-list time { gap:8px; flex-wrap:wrap; }
+.operation-theme .waiter-tracker>header { gap:16px; flex-wrap:wrap; }
+.operation-theme .waiter-tracker>header>div:first-child { flex:1 1 220px; min-width:0; }
+.operation-theme .empty-stage { padding:18px 8px; min-height:64px; }
+.operation-theme .waiter-call { opacity:1; }
+.operation-theme .operation-table { cursor:pointer; min-height:190px; }
+.operation-theme .operation-table.selected { outline:3px solid var(--op-accent,#ff5a1f); outline-offset:2px; }
+.operation-theme .table-account-shortcut { border-radius:8px; padding:8px 12px; }
+.operation-theme .operation-table b { font-size:1.25rem; }
+.operation-theme .operation-table>strong,.operation-theme .waiter-table strong { font-size:2rem; }
+.operation-theme .waiter-workspace { scroll-margin-top:28px; }
+.operation-theme .waiter-modal { max-height:90dvh; overflow:auto; padding:28px; }
+.operation-theme .waiter-console .form-message { border:1px solid var(--op-accent,#ff5a1f); font-size:1rem; max-width:calc(100vw - 24px); }
+.operation-theme :is(button,input,select,textarea):focus-visible { outline:3px solid var(--op-accent,#ff5a1f); outline-offset:3px; }
+.operation-theme .inline-pix { border:1px solid var(--op-accent,#ff5a1f); }
+.operation-theme .inline-pix img { background:#fff; }
+@media(max-width:1100px) { .operation-theme .waiter-stage-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }}
+@media(max-width:700px) {
+ .operation-theme .waiter-stage-grid,.operation-theme .internal-product-grid,.operation-theme .close-account { grid-template-columns:minmax(0,1fr); }
+ .operation-theme .waiter-call { grid-template-columns:minmax(0,1fr); gap:14px; }
+ .operation-theme .waiter-table { align-items:flex-start; border-right:0; }
+ .operation-theme .waiter-actions { flex-wrap:wrap; }
+ .operation-theme .waiter-alert-controls { align-items:flex-start; flex-direction:row; flex-wrap:wrap; }
+ .operation-theme .waiter-modal { width:calc(100% - 20px); }}
+.kitchen-history { margin:24px 0; padding:24px; background:#151411; color:#fffaf1; border:1px solid #49473c; border-radius:16px; }
+.kitchen-history header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.kitchen-history h2 { margin:0; font-size:26px; }
+.kitchen-history p,.kitchen-history small { color:#ddd8ce; font-size:14px; line-height:1.5; }
+.kitchen-history label { display:grid; gap:6px; font-size:14px; }
+.kitchen-history input,.kitchen-history button { background:#151411; color:#fffaf1; border:1px solid #817b70; border-radius:8px; padding:10px; min-height:44px; font-size:16px; }
+.kitchen-history-totals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:20px 0; }
+.kitchen-history-totals span { display:grid; gap:8px; padding:16px; border:1px solid #49473c; border-radius:10px; font-size:14px; }
+.kitchen-history-totals b { font-size:26px; }
+.kitchen-history summary { cursor:pointer; min-height:44px; padding:12px 0; font-size:16px; font-weight:700; }
+.kitchen-history-scroll { overflow-x:auto; }
+.kitchen-history table { width:100%; border-collapse:collapse; font-size:15px; }
+.kitchen-history :is(th,td) { text-align:left; padding:12px; border-bottom:1px solid #49473c; color:#fffaf1; }
+.kitchen-history-delivered { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+.kitchen-history-delivered article { display:grid; gap:8px; padding:16px; border:1px solid #49473c; border-radius:10px; font-size:15px; }
+@media(max-width:700px) { .operation-theme .waiter-order-layout { grid-template-columns:1fr; } .operation-theme .table-account-head { align-items:flex-start; gap:16px; flex-wrap:wrap; } .operation-theme .waiter-modal { padding:22px 16px; } .kitchen-history { padding:16px; } .kitchen-history-totals { grid-template-columns:repeat(2,minmax(0,1fr)); }}
+@media print { .kitchen-history { display:none; }}
+
+/* Identity bridge: retain component layouts, replace their independent palettes. */
+.establishment-theme {
+  --ink:var(--op-text); --paper:var(--op-background); --cream:var(--op-surface);
+  --white:var(--op-surface); --wine:var(--op-accent); --wine-dark:var(--op-link);
+  --gold:var(--op-accent); --muted:var(--op-muted);
+  --line:color-mix(in srgb,var(--op-text) 25%,transparent);
+  --admin-line:var(--line); --admin-line-strong:var(--line);
+  --admin-muted:var(--op-muted); --admin-accent-soft:color-mix(in srgb,var(--op-accent) 14%,var(--op-surface));
+  background:var(--op-background); color:var(--op-background-text); min-height:100vh;
+}
+.establishment-theme :is(.pos-shell,.kitchen-page,.driver-console) { background:var(--op-background); color:var(--op-background-text); }
+.establishment-theme :is(.panel,.dash-card,.kitchen-column,.kitchen-ticket,.kitchen-history,.pos-close-report article,.pos-product-grid button,.pos-pending>button,.pos-cart-items button,.kitchen-operator-form,.driver-finance-form,.driver-finance-stats article,.driver-finance-tabs button,.driver-finance-history>header,.driver-offer-card dl div,.dispatch-card dl div,.driver-location-control,.invite-box) {
+  background:var(--op-surface); color:var(--op-text); border-color:var(--line);
+}
+.establishment-theme :is(.custody-step,.driver-address-card,.pickup-code-panel>div,.manual-completion) {
+  background:var(--op-surface); color:var(--op-text); border-color:var(--line);
+}
+.establishment-theme :is(.custody-step,.driver-address-card,.pickup-code-panel>div,.manual-completion) :is(h2,h3,p,b,strong,span,small,label,li,a) { color:inherit; }
+.driver-console { min-width:0; overflow-x:hidden; }
+.driver-console :is(.panel,.driver-address-card,.custody-step) { max-width:100%; min-width:0; }
+.driver-address-card { overflow-wrap:anywhere; }
+.driver-address-card ul { display:grid; gap:6px; margin:0; padding-left:20px; }
+.driver-address-card .button { color:var(--op-text); }
+.establishment-theme :is(.kitchen-head small,.kitchen-head p,.kitchen-head span,.kitchen-head a,.pos-top p,.pos-top small) { color:var(--op-background-text); font-size:.875rem; }
+.establishment-theme :is(.kitchen-ticket,.kitchen-history,.pos-shell,.driver-console) :is(h2,h3,p,small,th,td,dt,dd,label) { color:inherit; }
+.establishment-theme :is(.kitchen-ticket,.kitchen-history,.pos-shell,.driver-console) :is(p,small,label,dt,th,td) { font-size:.875rem; line-height:1.5; }
+.establishment-theme :is(input:not([type=checkbox]):not([type=radio]):not([type=color]),select,textarea) { background:var(--op-surface); color:var(--op-text); border-color:var(--line); font-size:1rem; min-height:44px; }
+.establishment-theme :is(input,textarea)::placeholder { color:var(--op-muted); opacity:1; }
+.establishment-theme :is(.button.dark,.button.primary,.admin-primary-button,.kitchen-ticket>footer button,.kitchen-notification-button,.kitchen-head .kitchen-admin-return,.pos-search button,.driver-finance-tabs button.active) { background:var(--op-accent); color:var(--op-on-accent); border-color:var(--op-accent); }
+.establishment-theme :is(.button.outline,.kitchen-ticket>footer .print-ticket,.kitchen-history button) { background:var(--op-surface); color:var(--op-text); border-color:var(--line); }
+.establishment-theme :is(.kitchen-column>header>b,.kitchen-waiter-pickup,.kitchen-delivery-owner,.kitchen-delivery-stage,.kitchen-closed-note,.form-message,.pos-message) { background:var(--op-surface); color:var(--op-text); border:1px solid var(--op-accent); }
+.establishment-theme :is(.kitchen-waiter-pickup,.kitchen-delivery-owner,.kitchen-delivery-stage) :is(b,span,small) { color:var(--op-text); font-size:.875rem; }
+.establishment-theme :is(.kitchen-column>header h2,.kitchen-ticket>footer button,.kitchen-notification-button) { font-size:.875rem; }
+.establishment-theme .pos-total { border-color:var(--op-text); }
+.establishment-theme .brand img,.establishment-theme .mobile-user-avatar img { object-fit:contain; border-radius:8px; width:42px; height:42px; }
+.establishment-theme .brand b { color:var(--op-text); letter-spacing:.04em; overflow-wrap:anywhere; }
+.establishment-theme .brand small { color:var(--op-muted); }
+.operation-brand { background:var(--op-surface); color:var(--op-text); border-bottom:1px solid var(--line); padding:14px 24px; }
+.operation-brand .brand { pointer-events:none; }
+.establishment-theme :is(.admin-store-link,.catalog-new-button,.admin-switch.is-on) { color:var(--op-on-accent); background:var(--op-accent); }
+.establishment-theme .admin-nav-group>small { color:var(--op-muted); font-size:.875rem; }
+.establishment-theme :is(.admin-product-info>strong,.admin-campaign-info>strong,.admin-category-count,.catalog-addon-card button) { color:var(--op-link); }
+.establishment-theme :is(.catalog-addon-card,.menu-branding-panel,.kitchen-operator-form) { background:var(--op-surface); color:var(--op-text); }
+@media print { .operation-brand { display:none; }}
+.inventory-recipes .panel { display:grid; align-content:start; gap:16px; }
+.inventory-manager .admin-button { font-size:.875rem; min-height:44px; }
+.inventory-manager .admin-button-primary { background:var(--op-accent); color:var(--op-on-accent); }
+.inventory-manager .admin-modal p,.inventory-manager .admin-field-label { font-size:.875rem; line-height:1.6; }
+/* Complete legacy-to-brand bridge. Screen UI only: paper/QR previews stay neutral. */
+@media screen {
+  .establishment-theme {
+    --surface-soft:var(--op-surface);
+    --admin-subtle:var(--op-muted);
+    --admin-success:var(--op-link);
+    --admin-warning:var(--op-link);
+    --admin-danger:var(--op-link);
+    --admin-focus:0 0 0 3px var(--op-accent);
+  }
+  .establishment-theme :is(
+    .printer-manager-form,.printer-device-list article,.register-chip-list span,
+    .printer-connection-grid button,.printer-auto-print,.printer-summary span,
+    .printer-preview-modal,.printer-open-installer,
+    .waiter-admin-form,.custom-role-form,.custom-member-form,
+    .custom-role-card,.custom-member-row,.team-member-row,.team-summary article,
+    .waiter-invite-ready,.invite-link-box,.invite-phone-warning,.invite-confirm,
+    .category-tab,.catalog-addon-card,.setting-toggle,.manual-item .form,
+    .payment-operator,.cash-total,.cash-change,.receipt-box,.security-warning,
+    .operation-table.status-paid,.pos-close-report.balanced,.pos-close-report article.balanced,
+    .pos-close-report article.divergent,.admin-modal,.admin-drawer,
+    .admin-product-card,.admin-category-row,.admin-addon-group,.admin-campaign-card,
+    .weekly-day-card,.weekly-day-card.is-today,.inline-customizer,.inline-customizer label,
+    .customize-card fieldset label,.ticket-customer,.ticket-top time,.ticket-items em,
+    .delivery-operational-alerts.all-clear,.delivery-operational-alerts.has-alerts,
+    .delivery-operational-alert-list article,.dispatch-alert-summary,
+    .customer-driver-location.available,.customer-driver-location.waiting
+  ) {
+    background:var(--op-surface);
+    color:var(--op-text);
+    border-color:var(--line);
+  }
+  .establishment-theme :is(
+    .status-pill,.store-status-badge.open,.store-status-badge.closed,
+    .waiter-status,.team-status,.driver-status,.call-status,.security-badge,
+    .printer-wizard-head>span,.printer-ready,.admin-badge,
+    .delivery-operational-alerts>header>span,.delivery-alert-icon,
+    .admin-badge-success,.admin-badge-warning,.admin-badge-danger,
+    .form-message,.form-success,.invite-phone-warning
+  ) {
+    background:var(--op-surface);
+    color:var(--op-text);
+    border:1px solid var(--op-accent);
+  }
+  .establishment-theme :is(
+    .waiter-row-actions button,.catalog-row-actions button,.addon-admin-row button,
+    .team-delete-button,.danger-action,.text-danger,.admin-button-danger,
+    .printer-preview-close,.printer-test-card .button
+  ) {
+    background:var(--op-surface);
+    color:var(--op-text);
+    border:1px solid var(--line);
+    min-height:44px;
+  }
+  .establishment-theme :is(
+    .waiter-row-actions button,.catalog-row-actions button,.addon-admin-row button,
+    .team-delete-button,.danger-action,.text-danger,.admin-button-danger
+  ):hover:not(:disabled) { border-color:var(--op-accent); text-decoration:underline; }
+  .establishment-theme :is(
+    .printer-test-card,.printer-test-card.connector-online,.button.whatsapp,
+    .category-tab.active,.printer-progress i.active,
+    .admin-button-primary,.admin-primary-button,.catalog-new-button
+  ) { background:var(--op-accent); color:var(--op-on-accent); border-color:var(--op-accent); }
+  .establishment-theme :is(.printer-test-card,.printer-test-card.connector-online)
+    :is(h2,h3,p,b,span,small,a,.printer-browser-fallback,.printer-edit-button) { color:inherit; }
+  .establishment-theme :is(
+    .panel,.printer-manager-form,.printer-preview-modal,.custom-role-card,
+    .custom-member-row,.team-member-row,.waiter-admin-form,.admin-modal,.admin-drawer
+  ) :is(h2,h3,h4,p,label,small,legend,th,td,dt,dd) { color:inherit; }
+  .establishment-theme :is(
+    .payment-operator,.cash-change,.printer-open-installer,.invite-confirm,
+    .register-chip-list,.team-summary,.custom-role-form,.custom-member-form
+  ) :is(b,strong,span,small) { color:inherit; }
+  .establishment-theme :is(
+    .field label,.field small,.check-line,.table th,.table td,.panel p,
+    .team-member-row p,.custom-member-row p,.waiter-admin-form small,
+    .printer-manager-form p,.printer-manager-form label,.printer-connection-grid span,
+    .printer-summary small,.status-pill,.waiter-status,.team-status,.admin-badge
+  ) { font-size:.875rem; line-height:1.5; }
+  .establishment-theme :is(input,textarea,select,option) { -webkit-text-fill-color:var(--op-text); }
+  .establishment-theme :is(input,textarea)::placeholder { -webkit-text-fill-color:var(--op-muted); color:var(--op-muted); opacity:1; }
+  .establishment-theme input:is([type=checkbox],[type=radio]) { accent-color:var(--op-accent); }
+  .establishment-theme :is(.money-in,.money-out,.pos-product-grid button span,.weekly-day-card>strong,.team-delete-error,.delivery-operational-alert-list article small,.dispatch-alert-summary small,.customer-driver-location small) { color:var(--op-link); }
+  .establishment-theme .delivery-operational-alert-list article.severity-critical { background:var(--op-surface); border:2px solid var(--op-accent); box-shadow:inset 4px 0 var(--op-accent); }
+  .establishment-theme .dispatch-alert-summary.severity-critical { background:var(--op-surface); border:2px solid var(--op-accent); }
+  .establishment-theme .custom-role-header.has-image .button.outline { background:var(--op-surface); color:var(--op-text); }
+  .establishment-theme .printer-progress:before { background:var(--line); }
+  .establishment-theme .printer-progress i { background:var(--op-surface); color:var(--op-text); border-color:var(--line); }
+  .establishment-theme .printer-progress i.active { background:var(--op-accent); color:var(--op-on-accent); }
+  .establishment-theme :is(.admin-switch[aria-checked="true"],.setting-toggle input:checked+span) { background:var(--op-accent); }
+  .establishment-theme .admin-switch[aria-checked="true"] span { background:var(--op-on-accent); }
+  .establishment-theme :is(.admin-button,.button,.register-chip-list span,.printer-device-actions,.team-heading-actions) { overflow-wrap:anywhere; }
+  /* Production design refresh: no legacy pale/green surfaces may override the saved identity. */
+  .establishment-theme .dashboard-content :is(
+    .printer-manager-grid,.printer-manager-form,.printer-device-list article,.register-chip-list span,
+    .team-summary article,.team-member-row,.custom-role-card,.custom-member-row,
+    .delivery-group-suggestions,.delivery-group-card,.delivery-audit-grid>article,
+    .delivery-incident-list>div,.delivery-operational-alerts,.delivery-operational-alert-list article,
+    .driver-finance-tabs button,.driver-finance-form,.driver-finance-history,
+    .custody-step,.driver-address-card,.pickup-code-panel>div,.manual-completion
+  ) { background:var(--op-surface); color:var(--op-text); border-color:var(--line); }
+  .establishment-theme .dashboard-content :is(
+    .printer-manager-grid,.printer-manager-form,.printer-device-list article,.register-chip-list span,
+    .team-summary article,.team-member-row,.custom-role-card,.custom-member-row,
+    .delivery-group-suggestions,.delivery-group-card,.delivery-audit-grid>article,
+    .delivery-incident-list>div,.delivery-operational-alerts,.delivery-operational-alert-list article,
+    .driver-finance-tabs button,.driver-finance-form,.driver-finance-history,
+    .custody-step,.driver-address-card,.pickup-code-panel>div,.manual-completion
+  ) :is(h2,h3,h4,p,b,strong,span,small,label,legend,dt,dd) { color:inherit; }
+  .establishment-theme .connector-status-dot.online { background:var(--op-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--op-accent) 22%,transparent); }
+  .establishment-theme .dashboard-content :is(.delivery-group-progress,.delivery-group-approved) { color:var(--op-link); }
+  .establishment-theme .dashboard-content :is(.delivery-group-approved,.dispatch-group-link) { background:var(--op-surface); border-color:var(--op-accent); }
+  /* One visual source for every current and future administration surface. */
+  .establishment-theme .dashboard-content :is(
+    .panel,.dash-card,
+    [class$="-card"],[class*="-card "],
+    [class$="-panel"],[class*="-panel "],
+    [class$="-form"],[class*="-form "],
+    [class$="-row"],[class*="-row "]
+  ) { background-color:var(--op-surface); color:var(--op-text); border-color:var(--line); }
+  .establishment-theme .dashboard-content :is(
+    .delivery-operations-stats article,.delivery-driver-card,
+    .dispatch-card,.dispatch-assignee,.dispatch-card dl div,
+    .driver-offer-card dl div,.delivery-incident-list>div
+  ) { background:var(--op-surface); color:var(--op-text); border-color:var(--line); }
+  .establishment-theme .dashboard-content :is(
+    .delivery-driver-card,.dispatch-card,.delivery-operations-stats article,
+    .dispatch-assignee,.delivery-incident-list>div
+  ) :is(h2,h3,h4,p,b,strong,span,small,dt,dd) { color:inherit; }
+  .establishment-theme .dashboard-content :is(
+    .delivery-driver-card.status-available,.delivery-driver-card.status-offered,
+    .delivery-driver-card.status-collecting,.delivery-driver-card.status-delivering,
+    .dispatch-card.status-ready_for_dispatch,.dispatch-card.status-searching_driver,
+    .dispatch-card.status-driver_assigned,.dispatch-card.status-picked_up,
+    .dispatch-card.status-on_route,.dispatch-card.status-arrived
+  ) { border-color:var(--op-accent); }
+  .establishment-theme .dashboard-content :is(
+    .driver-dot.status-available,.driver-dot.status-offered,
+    .driver-dot.status-collecting,.driver-dot.status-delivering,
+    .delivery-alert-icon,.delivery-map-route i,.delivery-event-timeline li>i
+  ) { background:var(--op-accent); color:var(--op-on-accent); }
+  .establishment-theme .dashboard-content .delivery-driver-card.selected { box-shadow:0 0 0 2px var(--op-accent); }
+  .establishment-theme :is(.printer-test-preview,.printer-test-preview *) { color:#000; -webkit-text-fill-color:#000; }
+  .establishment-theme .printer-test-preview { background:#fff; }
+}.sa-entitlements .enabled{background:#092b23;border-color:#147d61;color:#77e2bf}.sa-entitlements .disabled{background:#2b1115;border-color:#7f1d2d;color:#fca5a5}
+.saas-checkout-page{background:#070b11;color:#f8fafc;display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,520px);min-height:100dvh;padding:clamp(28px,6vw,90px);gap:clamp(32px,7vw,110px);align-items:center}.saas-checkout-summary>small{color:#ff5c35;font-weight:900;letter-spacing:.18em}.saas-checkout-summary h1{font-size:clamp(48px,7vw,92px);letter-spacing:-.06em;line-height:.92;margin:18px 0}.saas-checkout-summary>p{color:#aeb8c5;font-size:18px;line-height:1.7;max-width:620px}.saas-checkout-price{align-items:baseline;display:flex;gap:8px;margin:30px 0}.saas-checkout-price strong{font-size:48px}.saas-checkout-price span{color:#aeb8c5}.saas-checkout-summary ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;padding:0}.saas-checkout-summary li{border-bottom:1px solid #1e293b;padding:10px 0}.saas-checkout-summary li:before{color:#ff5c35;content:'✓';font-weight:900;margin-right:9px}.saas-checkout-box{background:#101721;border:1px solid #263244;border-radius:24px;padding:clamp(24px,4vw,46px)}.saas-checkout-box h2{font-size:32px;margin:0}.saas-checkout-box>p{color:#aeb8c5;line-height:1.6}.saas-checkout-form{display:grid;gap:16px;margin-top:26px}.saas-checkout-form label{display:grid;font-size:14px;font-weight:800;gap:7px}.saas-checkout-form input,.saas-checkout-form select{background:#070b11;border:1px solid #334155;border-radius:10px;color:#fff;font-size:16px;min-height:52px;padding:0 14px}.saas-checkout-form button,.saas-result-page .sa-button{background:#ff4b25;border:0;border-radius:999px;color:#090b0e;font-size:16px;font-weight:900;min-height:54px;padding:0 24px}.saas-checkout-form small{color:#8a99aa;text-align:center}.saas-checkout-error{color:#fca5a5}.saas-checkout-warning{background:#291c08;border:1px solid #7c5510;border-radius:14px;color:#fde8a8;padding:18px}.saas-result-page{align-items:center;background:#070b11;color:#fff;display:flex;justify-content:center;min-height:100dvh;padding:24px}.saas-result-page section{background:#101721;border:1px solid #263244;border-radius:24px;max-width:650px;padding:52px;text-align:center}.saas-result-page h1{font-size:clamp(38px,7vw,68px);letter-spacing:-.05em}.saas-result-page p{color:#aeb8c5;font-size:18px;line-height:1.7;margin-bottom:30px}
+@media(max-width:900px){.sa-payment-grid,.saas-checkout-page{grid-template-columns:1fr}.saas-checkout-page{padding:30px 18px}.saas-checkout-summary ul{grid-template-columns:1fr}.saas-checkout-summary h1{font-size:52px}}.whatsapp-webhook-box .admin-button{justify-self:start}.whatsapp-automation-form>.admin-button{justify-self:start}.whatsapp-conversation-scroll>button.active{background:color-mix(in srgb,var(--op-accent) 12%,var(--op-surface))}.whatsapp-message-history article.inbound{align-self:flex-start;background:var(--op-surface)}.whatsapp-message-history article.outbound{align-self:flex-end;background:color-mix(in srgb,var(--op-accent) 18%,var(--op-surface));border-color:var(--op-accent)}.ai-tabs button.active,.ai-periods button:hover{background:var(--admin-accent,#ff2b22);border-color:var(--admin-accent,#ff2b22);color:#080808}.ai-orb.active span{background:#21c989;box-shadow:0 0 34px #21c989}.ai-orb.inactive span{background:#ff4d4d;box-shadow:0 0 34px #ff4d4d}.ai-health-grid span.ok{background:#20bc80}.ai-form-grid .wide{grid-column:1/-1}
+@media(max-width:680px){.ai-form-grid .wide{grid-column:auto}}.unit-status.active{color:#38d39f}.unit-status.inactive{color:#ff6b6b}
+/* FIM: cópia da ponte de identidade */
+/* Fase 99F: correções que precisam vencer a ponte de identidade (ficam depois da cópia). */
 /* Fase 99F: o quadro de foto é claro; ".admin-theme .field label" e o tema da loja davam texto claro sobre creme. */
 :is(.admin-theme,.establishment-theme,.operation-dashboard) .field label.photo-picker,
 :is(.admin-theme,.establishment-theme,.operation-dashboard) .field label.photo-picker span { color:#2a211b; }
+/* No painel com a cor da loja, a ponte força inherit nos cartões de despacho; o quadro de previsão é claro. */
+.establishment-theme .dashboard-content .dispatch-card .dispatch-eta small { color: #6b4a16; }
+.establishment-theme .dashboard-content .dispatch-card .dispatch-eta b { color: #2b1d08; }
+.establishment-theme .dashboard-content .dispatch-card .dispatch-eta span { color: #4f4334; }

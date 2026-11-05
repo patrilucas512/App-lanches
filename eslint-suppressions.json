@@ -69,7 +69,7 @@
   },
   "app/api/integrations/manage/route.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 3
+      "count": 2
     }
   },
   "app/api/intelligence/actions/route.ts": {
@@ -99,7 +99,7 @@
   },
   "app/api/marketplace/manage/route.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 9
+      "count": 8
     }
   },
   "app/api/network-governance/route.ts": {
@@ -119,7 +119,7 @@
   },
   "app/api/oauth/authorize/route.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 4
+      "count": 2
     }
   },
   "app/api/oauth/token/route.ts": {

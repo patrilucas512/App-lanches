@@ -41,7 +41,7 @@ test("keeps the public menu bag, campaigns and secure quantity addons integrated
     readFile(new URL("../supabase/migrations/20260819234500_integrate_public_addons_campaigns.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260820013000_public_order_cash_change.sql", import.meta.url), "utf8"),
     readFile(new URL("../components/kitchen-board.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
   assert.match(menu, /Sacola/);
   assert.match(menu, /masterapp:menu-theme/);
@@ -105,7 +105,7 @@ test("keeps the administrative CRUD, filters and responsive layouts available", 
     readFile(new URL("../components/catalog-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/addon-groups-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/campaigns-manager.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(catalog, /Buscar produtos/);
@@ -134,7 +134,7 @@ test("keeps the public menu identity editable and connected to real data", async
     readFile(new URL("../app/painel/personalizacao/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/dashboard-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260820005649_customize_public_menu_branding.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(catalogPage, /\/painel\/personalizacao/);
@@ -161,7 +161,7 @@ test("keeps delivery quotes, protected addresses and admin delivery rules integr
     readFile(new URL("../components/delivery-settings-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/painel/configuracoes/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260824193446_phase3_delivery_checkout.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(menu, /quote_public_delivery/);
@@ -191,7 +191,7 @@ test("keeps kitchen and delivery statuses synchronized without closing delivery 
     readFile(new URL("../components/kitchen-board.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/cozinha/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260824213000_phase4_kitchen_delivery_status.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(kitchenPage, /from\("deliveries"\)/);
@@ -234,7 +234,7 @@ test("keeps fair driver availability and concurrency-safe delivery dispatch inte
     readFile(new URL("../app/motoboy/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/painel/pedidos/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260825001000_phase6_driver_dispatch.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(driverPage, /DriverDispatchConsole/);
@@ -260,7 +260,7 @@ test("keeps delivery custody, protected address and customer PIN integrated", as
     readFile(new URL("../components/public-menu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/painel/pedidos/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260825013000_phase7_delivery_custody.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(driverConsole, /verify_pickup_code/);
@@ -298,7 +298,7 @@ test("keeps driver location private and customer tracking approximate", async ()
     readFile(new URL("../components/driver-dispatch-console.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/public-menu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260825020000_phase8_driver_location_tracking.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(driverConsole, /navigator\.geolocation\.watchPosition/);
@@ -321,7 +321,7 @@ test("keeps delivery completion atomic, auditable and protected by PIN", async (
     readFile(new URL("../components/delivery-dispatch-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/public-menu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260825022000_phase9_delivery_completion_proof.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(driverConsole, /requested_pin: deliveryPin/);
@@ -347,7 +347,7 @@ test("keeps delivery completion atomic, auditable and protected by PIN", async (
 test("saves the customer's last order and restores it with the current menu", async () => {
   const [publicMenu, css] = await Promise.all([
     readFile(new URL("../components/public-menu.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(publicMenu, /masterapp:\$\{menu\.establishment\.slug\}:ultimo-pedido/);
@@ -365,7 +365,7 @@ test("all staff areas keep registration collapsed behind the same active-count c
     readFile(new URL("../components/attendance-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/kitchen-access.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/custom-staff-manager.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(controls, /ativos de \$\{totalCount\} cadastrados/);
@@ -383,7 +383,7 @@ test("keeps the administrative delivery monitor tenant-safe and auditable", asyn
     readFile(new URL("../components/delivery-dispatch-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/painel/pedidos/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260825023000_phase10_delivery_admin_monitoring.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(ordersPage, /get_delivery_operations_dashboard/);
@@ -409,7 +409,7 @@ test("keeps driver payouts separated, immutable and auditable", async () => {
     readFile(new URL("../app/painel/equipe/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/custom-staff-manager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260825030000_phase11_driver_financials.sql", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);
 
   assert.match(teamPage, /get_driver_financial_dashboard/);

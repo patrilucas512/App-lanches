@@ -1,5 +1,7 @@
 # Roteiro da loja piloto (Fases 97G e 99H)
 
+**Loja piloto escolhida em 05/11/2026: MARIAH EL LANCHES** (`app-lanches`). Ela já está cadastrada em produção, com cardápio, zona de entrega, terminal de caixa e impressão automática da cozinha. Por isso a seção 2 vira uma conferência do que já existe, não um cadastro do zero.
+
 Este roteiro **só documenta**. Nada aqui foi executado em produção. Cada passo marcado com 🔒 é escrita em produção e precisa da aprovação explícita do dono antes.
 
 ## 1. Pré-requisitos

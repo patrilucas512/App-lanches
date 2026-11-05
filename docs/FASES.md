@@ -149,7 +149,12 @@ Em 2026-11-02 o app passou a ser publicado na Vercel, no projeto `app-lanches` d
 ## Diferenças entre repositório e produção
 
 - **Fase 99 (fechamento para o lançamento):** relatório em `docs/phase99-launch-closure-report.md`.
-  - As 8 migrations `20261105120000` a `20261105127000` foram aplicadas **só no `masterapp-dev`** em 2026-11-05. Produção não foi tocada. A ordem de aprovação está na seção 6 do relatório.
+  - As 8 migrations `20261105120000` a `20261105127000` foram aplicadas no `masterapp-dev`.
+  - **Em produção, em 2026-11-05, com aprovação**, foram aplicadas uma a uma e conferidas (versões na seção 6 do relatório):
+    - as 8 migrations, de `20261105074702` a `20261105075258`;
+    - a limpeza de planos da 98, `20261105075337`;
+    - a troca do job `masterapp-pilot-alerts` para `evaluate_pilot_alerts_and_purge()`.
+  - Loja piloto: **MARIAH EL LANCHES** (`app-lanches`), no plano Piloto. Foi alinhada ao plano: 161 módulos desligados, o financeiro foi mantido por uso.
   - Os fluxos completos da 99E acharam 5 defeitos que bloqueavam o piloto. Os 3 primeiros também estão em produção:
     - o garçom não abria mesa (desde a Fase 42);
     - a equipe não mudava o pedido por causa do gatilho de métricas;
