@@ -387,7 +387,7 @@ export default function GlyphPortal({
         @media(prefers-reduced-motion:reduce){${q} [data-gp-pin]{position:relative!important;} ${q} [data-gp-content]{margin-top:0!important;opacity:1!important;background:var(--gp-field)!important;min-height:0;padding-block:64px;} ${q} [data-gp-caption]{opacity:1!important;}}
         @media(prefers-reduced-motion:reduce){${q} [data-gp-hint]{display:none;}}
       `}</style>
-      {/* JS reveals only measured geometry. The unmeasured poster is reserved for no-JS. */}
+      {/* JS reveals only measured geometry. The unmeasured poster is kept only for no-JS. */}
       <noscript><style>{`${q} [data-gp-fallback]{display:grid}${q} [data-gp-hint]{display:none}`}</style></noscript>
       <div data-gp-viewport aria-hidden="true" />
       <div data-gp-pin>
