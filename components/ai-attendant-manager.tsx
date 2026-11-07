@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FormEvent, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AdminBadge, AdminButton, AdminEmptyState, AdminField, AdminInput, AdminSelect, AdminSwitch, AdminTextarea } from "@/components/admin-ui";
 
@@ -22,10 +22,7 @@ export function AIAttendantManager(props:{establishmentId:string;userId:string;p
   const isDraft=editing?.status==="draft";const status=props.connection?.status==="connected"&&props.connection?.ai_enabled?"active":props.connection?.last_error?"problem":"inactive";
   const resolution=Number(metrics.messages)?Math.round(Number(metrics.resolved||0)/Number(metrics.messages)*100):0;const estimatedCost=Number(metrics.estimated_cost_micros||0)/1_000_000;
   const filteredAnalysis=props.analysis.filter(item=>conversationFilter==="all"||item.resolution===conversationFilter||item.category===conversationFilter||(conversationFilter==="sale"&&Number(item.generated_sale_cents)>0));
-  const [section,setSection]=useState<"passos"|"acompanhar"|"avancado">(props.connection?.ai_enabled&&active&&!draft?"acompanhar":"passos");const [step,setStep]=useState(0);const [seen,setSeen]=useState<number[]>([]);const [followTab,setFollowTab]=useState(followTabs[0]);const [faqQuestion,setFaqQuestion]=useState("");
-  const storageKey=`ai-wizard-${props.establishmentId}`;
-  useEffect(()=>{try{const saved=JSON.parse(window.localStorage.getItem(storageKey)||"null");if(saved){if(typeof saved.step==="number")setStep(saved.step);if(Array.isArray(saved.seen))setSeen(saved.seen);if(saved.section)setSection(saved.section);}}catch{}},[storageKey]);
-  useEffect(()=>{try{window.localStorage.setItem(storageKey,JSON.stringify({step,seen,section}));}catch{}},[storageKey,step,seen,section]);
+  const [section,setSection]=useState<"passos"|"acompanhar"|"avancado">(props.connection?.ai_enabled&&active&&!draft?"acompanhar":"passos");const [step,setStep]=useState(()=>props.connection?.status!=="connected"?0:!String(editing?.introduction||"").trim()?1:props.knowledge.length+props.faqs.length===0?2:active&&!draft?0:4);const [seen,setSeen]=useState<number[]>([]);const [followTab,setFollowTab]=useState(followTabs[0]);const [faqQuestion,setFaqQuestion]=useState("");
   const show=(message:string)=>{setNotice(message);window.setTimeout(()=>setNotice(""),5000)};
   async function createDraft(){setBusy(true);const {error}=await supabase.rpc("create_ai_config_draft",{requested_establishment_id:props.establishmentId});setBusy(false);if(error)return show(error.message);window.location.reload();}
   async function updateConfig(values:Row){if(!draft){show("Clique em “Começar a editar” antes de mudar.");return false;}setBusy(true);const {error}=await supabase.from("ai_config_versions").update(values).eq("id",draft.id).eq("establishment_id",props.establishmentId);setBusy(false);show(error?error.message:"Salvo. Teste no último passo antes de ligar.");return !error;}
@@ -45,7 +42,7 @@ export function AIAttendantManager(props:{establishmentId:string;userId:string;p
     {title:"Conectar o WhatsApp",short:"WhatsApp",done:props.connection?.status==="connected"},
     {title:"Nome e jeito de falar",short:"Jeito de falar",done:Boolean(String(editing?.introduction||"").trim())},
     {title:"O que ela precisa saber",short:"Respostas",done:knowledge.length+faqs.length>0},
-    {title:"Quando chamar você",short:"Chamar você",done:seen.includes(3)&&knowledge.length+faqs.length>0},
+    {title:"Quando chamar você",short:"Chamar você",done:knowledge.length+faqs.length>0&&(seen.includes(3)||Boolean(active))},
     {title:"Testar e ligar",short:"Testar e ligar",done:Boolean(active)&&!draft},
   ];
   const readyCount=steps.filter(s=>s.done).length;
@@ -79,7 +76,7 @@ export function AIAttendantManager(props:{establishmentId:string;userId:string;p
     </nav>
 
     {section==="passos"&&<div className="ai-wizard">
-      <ol className="ai-stepper">{steps.map((s,i)=><li key={s.title}><button className={`${i===step?"current":""} ${s.done?"done":""}`} onClick={()=>goStep(i)} aria-current={i===step?"step":undefined}><span className="ai-step-number">{s.done?"✓":i+1}</span><span><b>{s.title}</b><small>{s.done?"Pronto":i===step?"Você está aqui":"Pendente"}</small></span></button></li>)}</ol>
+      <ol className="ai-stepper">{steps.map((s,i)=><li key={s.title}><button className={`${i===step?"ai-step-current":""} ${s.done?"ai-step-done":""}`} onClick={()=>goStep(i)} aria-current={i===step?"step":undefined}><span className="ai-step-number">{s.done?"✓":i+1}</span><span><b>{s.title}</b><small>{s.done?"Pronto":i===step?"Você está aqui":"Pendente"}</small></span></button></li>)}</ol>
 
       <div className="ai-step-body">
         {step===0&&<section className="ai-panel ai-step">

@@ -2880,9 +2880,9 @@ button.table-qr-card { color:inherit; }
 .ai-stepper button>span:last-child{display:grid;gap:2px}
 .ai-stepper small{color:#8e9799;font-size:12px}
 .ai-step-number{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid #3a4447;font-weight:900}
-.ai-stepper button.done .ai-step-number{background:#163d2c;border-color:#20bc80;color:#7fe0b4}
-.ai-stepper button.current{border-color:var(--admin-accent,#ff2b22);background:color-mix(in srgb,var(--admin-accent,#ff2b22) 9%,#0b0f11)}
-.ai-stepper button.current .ai-step-number{background:var(--admin-accent,#ff2b22);border-color:var(--admin-accent,#ff2b22);color:#080808}
+.ai-stepper button.ai-step-done .ai-step-number{background:#163d2c;border-color:#20bc80;color:#7fe0b4}
+.ai-stepper button.ai-step-current{border-color:var(--admin-accent,#ff2b22);background:color-mix(in srgb,var(--admin-accent,#ff2b22) 9%,#0b0f11)}
+.ai-stepper button.ai-step-current .ai-step-number{background:var(--admin-accent,#ff2b22);border-color:var(--admin-accent,#ff2b22);color:#080808}
 .ai-step{display:grid;gap:16px}
 .ai-step>header{margin-bottom:0}
 .ai-step-lead{margin:0;color:#c1c6c6;font-size:16px;line-height:1.55;max-width:70ch}
