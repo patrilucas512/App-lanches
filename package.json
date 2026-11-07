@@ -90,16 +90,21 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.5.0",
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "drizzle-orm": "0.45.2",
     "exceljs": "4.4.0",
     "jspdf": "4.2.1",
+    "lucide-react": "0.575.0",
     "next": "16.4.3",
     "qrcode": "1.5.4",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "stripe": "22.3.2",
+    "tailwind-merge": "^3.7.0",
     "zod": "4.6.7"
   },
   "devDependencies": {

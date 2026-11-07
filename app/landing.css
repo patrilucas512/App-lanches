@@ -1,0 +1,128 @@
+/*
+ * Landing MasterApp (página inicial "/"), trazida do projeto delivery-land-page.
+ * Fica isolada do resto do app: as cores valem só dentro de .masterapp-landing,
+ * e as classes do Tailwind daqui são !important para não sofrerem com o globals.css.
+ * Este arquivo só é carregado na página inicial.
+ */
+@import "tailwindcss" source(none) important;
+@source "../components/landing";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-landing-sans), "DM Sans", sans-serif;
+  --font-display: var(--font-landing-display), "Outfit", sans-serif;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
+  --color-surface-warm: var(--surface-warm);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-preview: var(--preview);
+  --color-preview-foreground: var(--preview-foreground);
+  --color-preview-muted: var(--preview-muted);
+  --color-preview-line: var(--preview-line);
+}
+
+.masterapp-landing {
+  --radius: 0.5rem;
+  --background: oklch(0.995 0.008 45);
+  --foreground: oklch(0.18 0.018 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.018 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.018 258);
+  --primary: oklch(0.62 0.2 39);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.966 0.026 43);
+  --secondary-foreground: oklch(0.29 0.03 35);
+  --muted: oklch(0.96 0.01 45);
+  --muted-foreground: oklch(0.49 0.014 255);
+  --accent: oklch(0.9 0.06 43);
+  --accent-foreground: oklch(0.29 0.03 35);
+  --destructive: oklch(0.57 0.22 28);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.89 0.016 53);
+  --input: oklch(0.89 0.016 53);
+  --ring: oklch(0.62 0.2 39);
+  --brand-dark: oklch(0.52 0.21 30);
+  --brand-soft: oklch(0.96 0.038 39);
+  --surface-warm: oklch(0.984 0.02 41);
+  --success: oklch(0.52 0.15 157);
+  --success-soft: oklch(0.93 0.04 157);
+  --preview: oklch(0.15 0.016 265);
+  --preview-foreground: oklch(0.97 0.005 260);
+  --preview-muted: oklch(0.69 0.012 260);
+  --preview-line: oklch(0.32 0.015 265);
+  --shadow-button: 0 7px 14px oklch(0.55 0.18 34 / 0.18);
+  --shadow-device: 0 25px 70px oklch(0.31 0.06 30 / 0.19);
+  --shadow-float: 0 15px 42px oklch(0.31 0.06 30 / 0.13);
+  --hero-wash: radial-gradient(ellipse at 28% 12%, oklch(0.92 0.09 42 / 0.75), transparent 38%), radial-gradient(ellipse at 88% 85%, oklch(0.9 0.1 17 / 0.47), transparent 38%), var(--background);
+  --brand-text: linear-gradient(105deg, var(--primary), var(--brand-dark));
+}
+
+.masterapp-landing { background: var(--background); color: var(--foreground); font-family: var(--font-landing-sans), "DM Sans", sans-serif; }
+.masterapp-landing * { border-color: var(--border); }
+.masterapp-landing button, .masterapp-landing a { -webkit-tap-highlight-color: transparent; }
+.masterapp-landing ::selection { background: var(--accent); color: var(--foreground); }
+/* Neutraliza a regra solta de footer do globals.css. */
+.masterapp-landing footer { display: block; padding: 0; }
+
+.hero-wash { background: var(--hero-wash); }
+.brand-gradient-text { background: var(--brand-text); background-clip: text; -webkit-text-fill-color: transparent; }
+.device-shadow { box-shadow: var(--shadow-device); }
+.float-shadow { box-shadow: var(--shadow-float); }
+.hero-food { filter: drop-shadow(0 18px 18px oklch(0.4 0.07 40 / 0.17)); }
+.phone-tilt { transform: rotate(-8deg); }
+
+.food-float { filter: drop-shadow(0 14px 18px oklch(0.35 0.07 38 / 0.18)); animation: food-bob 5.5s ease-in-out infinite; transition: filter 250ms ease, scale 250ms ease; }
+.food-delay-1 { animation-delay: -1s; }
+.food-delay-2 { animation-delay: -2.8s; }
+.food-delay-3 { animation-delay: -4s; }
+.food-delay-4 { animation-delay: -1.8s; }
+.food-perimeter .food-float:hover { scale: 1.16; filter: drop-shadow(0 22px 24px oklch(0.35 0.07 38 / 0.3)); }
+@keyframes food-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-9px) rotate(3deg); } }
+
+@keyframes float-slow { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-7px) rotate(-8deg); } }
+.phone-motion { animation: float-slow 6s ease-in-out infinite; }
+.masterapp-portal { --gp-paper: var(--surface-warm); --gp-ink: var(--foreground); --gp-field: var(--preview); --gp-foreground: var(--preview-foreground); }
+.masterapp-portal-intro { position: absolute; top: clamp(24px, 8%, 76px); left: 5%; right: 5%; text-align: center; }
+.masterapp-portal-scene { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 3%; padding: 5%; background: var(--preview); transform: scale(var(--gp-field-scale, 1)); }
+.masterapp-portal-dashboard { width: min(68%, 850px); max-height: 75%; object-fit: contain; }
+.masterapp-portal-phone { width: min(18%, 180px); max-height: 68%; object-fit: contain; }
+.masterapp-portal [data-gp-content] { padding: 80px 0 96px; align-content: start; background: var(--primary); color: var(--primary-foreground); }
+.masterapp-portal[data-gp-motion=on] [data-gp-content] { background: var(--primary); }
+.masterapp-portal [data-gp-caption] { justify-content: center; }
+.masterapp-portal [data-gp-enter] { padding: 0 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); font-weight: 600; }
+.masterapp-portal [data-gp-enter]:hover { border-color: var(--primary); }
+.masterapp-portal [data-gp-hint] { display: none; }
+@media (max-width: 640px) {
+  .masterapp-portal [data-gp-content] { padding: 64px 0 80px; }
+  .masterapp-portal-intro { top: 12%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phone-motion { animation: none; }
+  .food-float { animation: none; }
+  .masterapp-portal [data-gp-content] { background: var(--primary) !important; }
+}
