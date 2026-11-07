@@ -21,7 +21,7 @@ test("as quatro páginas existem e saem como rascunho", () => {
 });
 
 test("links no site, no cadastro, no cardápio público e no portal", () => {
-  assert.match(read("app/page.tsx"), /<Link href="\/termos">Termos de uso<\/Link><Link href="\/privacidade">Privacidade<\/Link>/);
+  assert.match(read("components/landing/landing-page.tsx"), /<a href="\/termos"[^>]*>Termos de uso<\/a><a href="\/privacidade"[^>]*>Privacidade<\/a>/);
   assert.match(read("components/auth-form.tsx"), /href=\{LEGAL_LINKS\.saasTerms\}/);
   assert.match(read("components/public-menu.tsx"), /<LegalLinks audience="customer"/);
   assert.equal((read("components/customer-portal.tsx").match(/<LegalLinks audience="customer"/g) || []).length, 2);
