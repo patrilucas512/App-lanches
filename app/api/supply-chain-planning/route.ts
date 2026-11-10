@@ -84,4 +84,4 @@ export async function POST(request:Request){try{
     requirePermission(c,"supply_chain:simulate");const simulation=new SupplyScenarioService().simulate(Array.isArray(b.base)?b.base:[],b.scenario||{type:"base"});return reply({simulation,executed:false});
   }
   return reply({error:"Ação inválida."},400);
-}catch(error:any){const message=error?.message||"Falha na operação de Supply Chain.";return reply({error:message},message==="AUTH"?401:message==="FORBIDDEN"?403:500)}}
+}catch(error:any){const message=error?.message||"Falha na operação de abastecimento.";return reply({error:message},message==="AUTH"?401:message==="FORBIDDEN"?403:500)}}

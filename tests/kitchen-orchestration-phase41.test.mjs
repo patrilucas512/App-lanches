@@ -30,7 +30,7 @@ test("26 tenant isolation has RLS and membership",()=>{assert.match(migration,/e
 test("27 KDS screen has large actions",()=>["Iniciar","Pronto","Pausar","Problema"].forEach(v=>assert.match(ui,new RegExp(v))));
 test("28 event ordering cannot regress completed tasks",()=>assert.match(migration,/Status final não pode regredir/));
 test("29 AI cannot complete a task",()=>assert.match(migration,/Item precisa ser iniciado por evento operacional real/));
-test("30 navigation and classic KDS coexist",()=>{assert.match(shell,/KDS Avançado/);assert.match(page,/Abrir KDS clássico/)});
+test("30 navigation and classic KDS coexist",()=>{assert.match(shell,/Cozinha Avançada/);assert.match(page,/Abrir tela clássica da cozinha/)});
 test("31 semantic kitchen metrics exist",()=>["Prep Time","Station Wait Time","Late Prep Rate","Remake Rate","Kitchen Throughput","Expedition Wait Time","Station Utilization"].forEach(v=>assert.match(migration,new RegExp(v))));
 test("32 copilot reads but does not mutate",()=>{assert.match(core,/getKitchenStatus/);assert.match(core,/getBottleneckStations/);assert.doesNotMatch(core,/from\(|update\(/)});
 test("33 sensitive actions require confirmation",()=>assert.match(api,/Confirmação humana obrigatória/));

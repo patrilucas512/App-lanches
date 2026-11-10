@@ -47,16 +47,16 @@ test("caixa abre para o dono", async () => {
   await expect(page.locator("main")).toContainText(/Caixa/);
 });
 
-// Fase 98C: módulo desligado (Digital Twin fica fora do Básico e do Piloto) mostra o aviso padrão, some do menu
+// Fase 98C: módulo desligado (o Simulador da Operação fica fora do Básico e do Piloto) mostra o aviso padrão, some do menu
 // e a API responde 403 FEATURE_DISABLED.
 test("módulo fora do plano mostra o aviso padrão, some do menu e a API recusa", async () => {
   await page.goto("/painel/planejamento/digital-twin");
   await expect(page).toHaveURL(/\/painel\/modulo-indisponivel\?m=digital-twin/);
   const notice = page.locator("section.module-unavailable");
   await expect(notice).toContainText("Módulo não disponível");
-  await expect(notice).toContainText("Digital Twin não faz parte do plano desta loja.");
+  await expect(notice).toContainText("Simulador da Operação não faz parte do plano desta loja.");
   await expect(notice.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/painel/assinatura");
-  await expect(page.getByRole("navigation").first().getByRole("link", { name: "Digital Twin" })).toHaveCount(0);
+  await expect(page.getByRole("navigation").first().getByRole("link", { name: "Simulador da Operação" })).toHaveCount(0);
   await notice.screenshot({ path: test.info().outputPath("modulo-indisponivel.png") });
 
   const html = await (await page.request.get("/painel")).text();
