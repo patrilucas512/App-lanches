@@ -1,7 +1,8 @@
 import { isMenuItemEntitled, moduleOffReason, type MenuPlan } from "@/lib/menu-entitlements";
 import { ModuleUnavailable } from "@/components/module-unavailable";
 import Link from "next/link";
-import { departmentLabels, departments, type Department } from "@/lib/menu-departments";
+import type { Department } from "@/lib/menu-departments";
+import { NavDepartments } from "@/components/nav-departments";
 import { Brand } from "@/components/ui";
 import { DashboardMobileNav } from "@/components/dashboard-mobile-nav";
 import { DashboardTopbar } from "@/components/dashboard-topbar";
@@ -176,15 +177,7 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     <aside className="sidebar admin-sidebar">
       <div className="admin-sidebar-brand"><Brand href="/painel" name={name} logo={logo} /></div>
       <nav aria-label="Navegação principal">
-        {departments.map(group => {
-          const groupLinks = links.filter(link => link.group === group);
-          if (!groupLinks.length) return null;
-          return <div className="admin-nav-group" key={group}>
-            <small>{departmentLabels[group]}</small>
-            {groupLinks.map(link => <Link key={link.key} className={active === link.key ? "active" : ""} href={link.href} aria-current={active === link.key ? "page" : undefined}><span aria-hidden="true">{link.icon}</span><b>{link.label}</b></Link>)}
-            {group === "loja" && storeSlug && <Link className="admin-store-link" href={`/loja/${storeSlug}`} target="_blank"><span aria-hidden="true">↗</span><b>Ver minha loja</b></Link>}
-          </div>;
-        })}
+        <NavDepartments links={links} active={active} storeSlug={storeSlug} variant="sidebar" />
       </nav>
       <div className="sidebar-bottom">
         <div className="admin-sidebar-user"><span>MA</span><div><b>Administrador</b><small>{roleLabel(role)}</small></div></div>
