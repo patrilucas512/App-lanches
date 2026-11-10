@@ -870,7 +870,15 @@ button.table-qr-card { color:inherit; }
   .catalog-addons-grid { grid-template-columns:1fr; }}
 .admin-sidebar { background:#0c0c0a; border-right:1px solid var(--admin-line); height:100vh; overflow-y:auto; padding:0 18px 22px; position:sticky; top:0; }
 .admin-sidebar-brand { align-items:center; border-bottom:1px solid var(--admin-line); display:flex; min-height:86px; padding:0 10px; }
-.admin-sidebar>nav { display:grid; gap:24px; margin-top:25px; }
+.admin-sidebar>nav { display:grid; gap:6px; margin-top:25px; }
+/* Departamentos do menu que abrem e fecham (computador e celular). */
+.nav-departments-all { background:none; border:0; color:var(--op-muted,var(--admin-muted)); cursor:pointer; font-size:.75rem; font-weight:700; justify-self:end; padding:4px 10px; text-decoration:underline; }
+.nav-department-toggle { align-items:center; background:none; border:1px solid transparent; border-radius:10px; color:var(--op-muted,var(--admin-muted)); cursor:pointer; display:flex; font-size:.75rem; font-weight:900; justify-content:space-between; letter-spacing:.12em; min-height:44px; padding:0 12px; text-align:left; text-transform:uppercase; width:100%; }
+.nav-department-toggle:hover { background:var(--op-background-muted,var(--admin-surface)); border-color:var(--admin-line); }
+.nav-department-toggle>i { font-size:1.1rem; font-style:normal; transition:transform .15s ease-out; }
+.nav-department.is-open>.nav-department-toggle>i { transform:rotate(90deg); }
+.nav-department-links { display:grid; gap:5px; padding-bottom:8px; }
+@media (prefers-reduced-motion: reduce) { .nav-department-toggle>i { transition:none; } }
 .admin-nav-group { display:grid; gap:5px; }
 .admin-nav-group>small { color:#625e57; font-size:8px; font-weight:900; letter-spacing:.15em; padding:0 12px 7px; text-transform:uppercase; }
 .admin-sidebar .admin-nav-group a { align-items:center; border:1px solid transparent; border-radius:10px; color:var(--admin-muted); display:grid; font-size:11px; gap:11px; grid-template-columns:29px 1fr; min-height:44px; padding:6px 9px; }
@@ -991,7 +999,7 @@ button.table-qr-card { color:inherit; }
   .mobile-nav-drawer>nav { display:grid; gap:6px; overflow-y:auto; padding:20px 0; }
   .mobile-nav-drawer>nav a { align-items:center; border:1px solid transparent; border-radius:10px; color:var(--admin-muted); display:grid; font-size:11px; gap:10px; grid-template-columns:32px 1fr; min-height:47px; padding:6px 10px; }
   .mobile-nav-group { display:grid; gap:6px; }
-  .mobile-nav-group+.mobile-nav-group { margin-top:12px; }
+  .mobile-nav-group+.mobile-nav-group { margin-top:2px; }
   .mobile-nav-group>small { color:var(--op-muted,var(--admin-muted)); font-size:.75rem; font-weight:900; letter-spacing:.12em; padding:0 10px 4px; text-transform:uppercase; }
   .mobile-nav-drawer>nav a>span {align-items:center; background:var(--admin-surface); border:1px solid var(--admin-line); border-radius:8px; display:flex; height:30px; justify-content:center; width:30px; }
   .mobile-nav-drawer>footer { border-top:1px solid var(--admin-line); display:grid; gap:13px; margin-top:auto; padding:17px 4px 0; }
