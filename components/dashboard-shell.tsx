@@ -1,6 +1,7 @@
 import { isMenuItemEntitled, moduleOffReason, type MenuPlan } from "@/lib/menu-entitlements";
 import { ModuleUnavailable } from "@/components/module-unavailable";
 import Link from "next/link";
+import { departmentLabels, departments, type Department } from "@/lib/menu-departments";
 import { Brand } from "@/components/ui";
 import { DashboardMobileNav } from "@/components/dashboard-mobile-nav";
 import { DashboardTopbar } from "@/components/dashboard-topbar";
@@ -22,7 +23,7 @@ export type DashboardLink = {
   href: string;
   label: string;
   icon: string;
-  group: "principal" | "operacao" | "gestao";
+  group: Department;
 };
 
 type PlanEntitlements = { network_governance_enabled?:boolean; franchise_management_enabled?:boolean; central_catalog_enabled?:boolean; network_pricing_enabled?:boolean; network_benchmarking_enabled?:boolean; hardware_hub_enabled?:boolean; local_hardware_agent_enabled?:boolean; advanced_printing_enabled?:boolean; payment_terminal_integration_enabled?:boolean; scale_integration_enabled?:boolean; cashier_enabled?: boolean; inventory_enabled?: boolean; financial_management_enabled?:boolean; workforce_management_enabled?:boolean; fiscal_module_enabled?:boolean; staff_management_enabled?: boolean; drivers_enabled?: boolean; waiter_mode_enabled?: boolean; kitchen_enabled?: boolean; advanced_kds_enabled?:boolean; kitchen_orchestration_enabled?:boolean; advanced_dining_room_enabled?:boolean; table_tabs_enabled?:boolean; waiter_orchestration_enabled?:boolean; split_bill_enabled?:boolean; table_qr_ordering_enabled?:boolean; self_service_enabled?:boolean; kiosk_payments_enabled?:boolean; pickup_display_enabled?:boolean; kiosk_loyalty_enabled?:boolean; kiosk_analytics_enabled?:boolean; offline_operations_enabled?:boolean; voice_ai_enabled?:boolean; subscriptions_enabled?:boolean; reservations_enabled?:boolean; marketplace_integrations_enabled?:boolean; app_marketplace_enabled?:boolean;partner_platform_enabled?:boolean;mfa_enabled?:boolean; demand_forecasting_enabled?:boolean; menu_engineering_enabled?:boolean; marketing_intelligence_enabled?:boolean; procurement_intelligence_enabled?:boolean; advanced_delivery_enabled?:boolean };
@@ -43,107 +44,106 @@ type TransportEntitlements = { transport_management_enabled?:boolean; ibp_enable
 type StoreOnlyEntitlements = { delivery_enabled?:boolean; whatsapp_enabled?:boolean; ai_enabled?:boolean; mdm_enabled?:boolean; drivers_enabled?:boolean };
 
 const allLinks: DashboardLink[] = [
-  { key: "overview", href: "/home", label: "Minha Home", icon: "⌂", group: "principal" },
-  { key: "notifications", href: "/painel/notificacoes", label: "Central de Notificações", icon: "🔔", group: "principal" },
-  { key: "intelligence", href: "/painel/inteligencia", label: "Inteligência", icon: "✦", group: "principal" },
-  { key: "forecast", href: "/painel/previsao", label: "Previsão", icon: "⌁", group: "principal" },
-  { key: "menu-engineering", href: "/painel/engenharia-cardapio", label: "Engenharia de Cardápio", icon: "◫", group: "principal" },
-  { key: "marketing-intelligence", href: "/painel/marketing-inteligencia", label: "Marketing · Inteligência", icon: "◎", group: "principal" },
-  { key: "analytics", href: "/painel/analytics", label: "Analytics & Dados", icon: "⌁", group: "principal" },
-  { key: "process-intelligence", href: "/painel/analytics/processos", label: "Process Intelligence", icon: "⇢", group: "principal" },
-  { key: "reports", href: "/painel/relatorios", label: "Relatórios", icon: "▥", group: "principal" },
-  { key: "performance-management", href: "/painel/metas", label: "Metas e Performance", icon: "◎", group: "principal" },
-  { key: "enterprise-portfolio", href: "/painel/estrategia/portfolio", label: "Portfólio Estratégico", icon: "◫", group: "principal" },
-  { key: "my-learning", href: "/painel/aprendizado", label: "Meu aprendizado", icon: "◫", group: "principal" },
-  { key: "knowledge", href: "/painel/conhecimento", label: "Conhecimento", icon: "▧", group: "principal" },
-  { key: "units", href: "/painel/unidades", label: "Unidades", icon: "▣", group: "principal" },
-  { key: "network", href: "/painel/rede", label: "Rede", icon: "◉", group: "principal" },
-  { key: "geo-map", href: "/painel/rede/mapa", label: "Rede · Mapa", icon: "⌖", group: "principal" },
-  { key: "audits", href: "/painel/auditorias", label: "Auditorias", icon: "✓", group: "operacao" },
-  { key: "quality", href: "/painel/qualidade", label: "Qualidade", icon: "✓", group: "principal" },
-  { key: "assets", href: "/painel/ativos", label: "Ativos e Manutenção", icon: "◇", group: "operacao" },
-  { key: "documents", href: "/painel/documentos", label: "Documentos e Obrigações", icon: "▧", group: "gestao" },
-  { key: "automation", href: "/painel/automacao", label: "Automação", icon: "⌁", group: "gestao" },
-  { key: "onboarding", href: "/onboarding", label: "Primeiros passos", icon: "✓", group: "principal" },
-  { key: "attendance", href: "/painel/atendimento", label: "Atendimento", icon: "◌", group: "operacao" },
-  { key: "inbox", href: "/painel/caixa-de-entrada", label: "Caixa de Entrada", icon: "◎", group: "operacao" },
-  { key: "voice", href: "/painel/voz", label: "Voz", icon: "☎", group: "operacao" },
-  { key: "whatsapp-supervision", href: "/painel/whatsapp/supervisao", label: "Supervisão", icon: "◫", group: "gestao" },
-  { key: "ai-attendant", href: "/painel/atendente-ia", label: "Atendente IA", icon: "✦", group: "gestao" },
-  { key: "crm", href: "/painel/crm", label: "CRM", icon: "◇", group: "gestao" },
-  { key: "customer360", href: "/painel/clientes-360", label: "Clientes · Perfil 360", icon: "◎", group: "gestao" },
-  { key: "customer-experience", href: "/painel/clientes/experiencia", label: "Clientes · Experiência & Reputação", icon: "★", group: "gestao" },
-  { key: "journeys", href: "/painel/jornadas", label: "Jornadas de clientes", icon: "↝", group: "gestao" },
-  { key: "subscriptions", href: "/painel/assinaturas", label: "Assinaturas", icon: "◉", group: "gestao" },
-  { key: "kitchen", href: "/cozinha", label: "Cozinha", icon: "◆", group: "operacao" },
-  { key: "kitchen-orchestration", href: "/painel/cozinha", label: "KDS Avançado", icon: "◈", group: "operacao" },
-  { key: "capacity", href: "/painel/capacidade", label: "Capacidade", icon: "◴", group: "operacao" },
-  { key: "central-production", href: "/painel/producao-central", label: "Produção Central", icon: "◆", group: "operacao" },
-  { key: "supply-chain", href: "/painel/supply-chain", label: "Supply Chain", icon: "⌁", group: "operacao" },
-  { key: "warehouse", href: "/painel/armazem", label: "Armazém WMS", icon: "▦", group: "operacao" },
-  { key: "transport", href: "/painel/transporte", label: "Transporte TMS", icon: "⇄", group: "operacao" },
-  { key: "ibp", href: "/painel/planejamento/ibp", label: "Planejamento IBP", icon: "◎", group: "gestao" },
-  { key: "digital-twin", href: "/painel/planejamento/digital-twin", label: "Digital Twin", icon: "◇", group: "gestao" },
-  { key: "revenue-management", href: "/painel/comercial/revenue-management", label: "Revenue Management", icon: "↗", group: "gestao" },
-  { key: "network-operations", href: "/painel/operacoes/central-da-rede", label: "Central da Rede", icon: "◉", group: "operacao" },
-  { key: "service-reliability", href: "/painel/operacoes/confiabilidade", label: "Confiabilidade", icon: "◌", group: "operacao" },
-  { key: "business-continuity", href: "/painel/operacoes/continuidade-negocio", label: "Continuidade de Negócios", icon: "↻", group: "operacao" },
-  { key: "master-data", href: "/painel/dados-mestres", label: "Dados Mestres", icon: "◈", group: "gestao" },
-  { key: "data-governance", href: "/painel/governanca-dados", label: "Governança de Dados", icon: "⌘", group: "gestao" },
-  { key: "enterprise-risk", href: "/painel/governanca/riscos", label: "Riscos Empresariais", icon: "△", group: "gestao" },
-  { key: "change-management", href: "/painel/governanca/mudancas", label: "Mudanças", icon: "⇄", group: "gestao" },
-  { key: "enterprise-architecture", href: "/painel/governanca/arquitetura", label: "Arquitetura Empresarial", icon: "⌬", group: "gestao" },
-  { key: "vendor-management", href: "/painel/governanca/terceiros", label: "Terceiros & Fornecedores", icon: "◇", group: "gestao" },
-  { key: "security-operations", href: "/painel/seguranca/soc", label: "Security Operations Center", icon: "◆", group: "gestao" },
-  { key: "identity-governance", href: "/painel/seguranca/acessos", label: "Governança de Acessos", icon: "◆", group: "gestao" },
-  { key: "privacy-operations", href: "/painel/seguranca/privacidade", label: "Privacidade & LGPD", icon: "◆", group: "gestao" },
-  { key: "orders", href: "/painel/pedidos", label: "Pedidos", icon: "≡", group: "operacao" },
-  { key: "dining", href: "/painel/salao", label: "Salão", icon: "▦", group: "operacao" },
-  { key: "self-service", href: "/painel/autoatendimento", label: "Autoatendimento", icon: "▣", group: "operacao" },
-  { key: "continuity", href: "/painel/continuidade", label: "Continuidade", icon: "↻", group: "operacao" },
-  { key: "incidents", href: "/painel/incidentes", label: "Incidentes", icon: "!", group: "operacao" },
-  { key: "internal-communications", href: "/painel/operacoes/comunicacao-interna", label: "Comunicação Interna", icon: "✉", group: "operacao" },
-  { key: "my-announcements", href: "/painel/comunicados", label: "Comunicados", icon: "✉", group: "operacao" },
-  { key: "hardware", href: "/painel/hardware", label: "Hardware", icon: "⌘", group: "gestao" },
-  { key: "deliveries", href: "/painel/pedidos#despacho-entregas", label: "Entregas", icon: "🚚", group: "operacao" },
-  { key: "logistics", href: "/painel/logistica", label: "Central de Despacho", icon: "⌖", group: "operacao" },
-  { key: "cashier", href: "/painel/caixa", label: "Caixa", icon: "$", group: "operacao" },
-  { key: "catalog", href: "/painel/cardapio", label: "Cardápio", icon: "▦", group: "gestao" },
-  { key: "central-catalog", href: "/painel/catalogo-central", label: "Catálogo central", icon: "◫", group: "gestao" },
-  { key: "customize", href: "/painel/personalizacao", label: "Personalizar site", icon: "✦", group: "gestao" },
-  { key: "inventory", href: "/painel/estoque", label: "Estoque", icon: "▤", group: "gestao" },
-  { key: "procurement", href: "/painel/compras", label: "Compras", icon: "◧", group: "gestao" },
-  { key: "finance", href: "/painel/financeiro", label: "Financeiro", icon: "R$", group: "gestao" },
-  { key: "franchise-finance", href: "/painel/franquias-financeiro", label: "Franquias · Financeiro", icon: "%", group: "gestao" },
-  { key: "store-opening", href: "/painel/novas-unidades", label: "Expansão · Novas Unidades", icon: "↗", group: "gestao" },
-  { key: "fiscal", href: "/painel/fiscal", label: "Fiscal", icon: "▧", group: "gestao" },
-  { key: "integrations", href: "/painel/integracoes", label: "Integrações", icon: "↔", group: "gestao" },
-  { key: "integration-orchestration", href: "/painel/integracoes/orquestracao", label: "Orquestração iPaaS", icon: "⌘", group: "gestao" },
-  { key: "marketplace-integrations", href: "/painel/integracoes/marketplaces", label: "Canais de delivery", icon: "⇄", group: "gestao" },
-  { key: "marketplace", href: "/painel/marketplace", label: "Marketplace", icon: "▦", group: "gestao" },
-  { key: "developers", href: "/painel/desenvolvedores", label: "Desenvolvedores", icon: "</>", group: "gestao" },
-  { key: "security", href: "/painel/seguranca", label: "Segurança", icon: "◈", group: "gestao" },
-  { key: "calls", href: "/painel/chamados", label: "Chamados", icon: "!", group: "operacao" },
-  { key: "team", href: "/painel/equipe", label: "Equipe", icon: "◎", group: "gestao" },
-  { key: "workforce", href: "/painel/equipe/gestao", label: "Gestão de Pessoas", icon: "◷", group: "gestao" },
-  { key: "workforce-planning", href: "/painel/escalas", label: "Escalas e Cobertura", icon: "▦", group: "gestao" },
-  { key: "learning-admin", href: "/painel/treinamentos", label: "Centro de Aprendizado", icon: "▤", group: "gestao" },
-  { key: "settings", href: "/painel/configuracoes", label: "Configurações", icon: "⚙", group: "gestao" },
-  { key: "billing", href: "/painel/assinatura", label: "Plano e cobrança", icon: "◇", group: "gestao" },
-  { key: "help", href: "/painel/ajuda", label: "Ajuda", icon: "?", group: "gestao" },
-  { key: "saas-support", href: "/painel/suporte", label: "Suporte MasterApp", icon: "◉", group: "gestao" },
+  { key: "overview", href: "/home", label: "Minha Home", icon: "⌂", group: "inicio" },
+  { key: "notifications", href: "/painel/notificacoes", label: "Central de Notificações", icon: "🔔", group: "inicio" },
+  { key: "onboarding", href: "/onboarding", label: "Primeiros passos", icon: "✓", group: "inicio" },
+  { key: "orders", href: "/painel/pedidos", label: "Pedidos", icon: "≡", group: "pedidos" },
+  { key: "deliveries", href: "/painel/pedidos#despacho-entregas", label: "Entregas", icon: "🚚", group: "pedidos" },
+  { key: "logistics", href: "/painel/logistica", label: "Central de Despacho", icon: "⌖", group: "pedidos" },
+  { key: "cashier", href: "/painel/caixa", label: "Caixa", icon: "$", group: "pedidos" },
+  { key: "kitchen", href: "/cozinha", label: "Cozinha", icon: "◆", group: "pedidos" },
+  { key: "kitchen-orchestration", href: "/painel/cozinha", label: "KDS Avançado", icon: "◈", group: "pedidos" },
+  { key: "dining", href: "/painel/salao", label: "Salão", icon: "▦", group: "pedidos" },
+  { key: "self-service", href: "/painel/autoatendimento", label: "Autoatendimento", icon: "▣", group: "pedidos" },
+  { key: "capacity", href: "/painel/capacidade", label: "Capacidade", icon: "◴", group: "pedidos" },
+  { key: "attendance", href: "/painel/atendimento", label: "Atendimento", icon: "◌", group: "atendimento" },
+  { key: "inbox", href: "/painel/caixa-de-entrada", label: "Caixa de Entrada", icon: "◎", group: "atendimento" },
+  { key: "voice", href: "/painel/voz", label: "Voz", icon: "☎", group: "atendimento" },
+  { key: "whatsapp-supervision", href: "/painel/whatsapp/supervisao", label: "Supervisão", icon: "◫", group: "atendimento" },
+  { key: "ai-attendant", href: "/painel/atendente-ia", label: "Atendente IA", icon: "✦", group: "atendimento" },
+  { key: "calls", href: "/painel/chamados", label: "Chamados", icon: "!", group: "atendimento" },
+  { key: "crm", href: "/painel/crm", label: "CRM", icon: "◇", group: "atendimento" },
+  { key: "customer360", href: "/painel/clientes-360", label: "Clientes · Perfil 360", icon: "◎", group: "atendimento" },
+  { key: "customer-experience", href: "/painel/clientes/experiencia", label: "Clientes · Experiência & Reputação", icon: "★", group: "atendimento" },
+  { key: "journeys", href: "/painel/jornadas", label: "Jornadas de clientes", icon: "↝", group: "atendimento" },
+  { key: "subscriptions", href: "/painel/assinaturas", label: "Assinaturas", icon: "◉", group: "atendimento" },
+  { key: "catalog", href: "/painel/cardapio", label: "Cardápio", icon: "▦", group: "loja" },
+  { key: "central-catalog", href: "/painel/catalogo-central", label: "Catálogo central", icon: "◫", group: "loja" },
+  { key: "customize", href: "/painel/personalizacao", label: "Personalizar site", icon: "✦", group: "loja" },
+  { key: "menu-engineering", href: "/painel/engenharia-cardapio", label: "Engenharia de Cardápio", icon: "◫", group: "loja" },
+  { key: "marketplace-integrations", href: "/painel/integracoes/marketplaces", label: "Canais de delivery", icon: "⇄", group: "loja" },
+  { key: "marketing-intelligence", href: "/painel/marketing-inteligencia", label: "Marketing · Inteligência", icon: "◎", group: "loja" },
+  { key: "team", href: "/painel/equipe", label: "Equipe", icon: "◎", group: "equipe" },
+  { key: "workforce", href: "/painel/equipe/gestao", label: "Gestão de Pessoas", icon: "◷", group: "equipe" },
+  { key: "workforce-planning", href: "/painel/escalas", label: "Escalas e Cobertura", icon: "▦", group: "equipe" },
+  { key: "learning-admin", href: "/painel/treinamentos", label: "Centro de Aprendizado", icon: "▤", group: "equipe" },
+  { key: "my-learning", href: "/painel/aprendizado", label: "Meu aprendizado", icon: "◫", group: "equipe" },
+  { key: "internal-communications", href: "/painel/operacoes/comunicacao-interna", label: "Comunicação Interna", icon: "✉", group: "equipe" },
+  { key: "my-announcements", href: "/painel/comunicados", label: "Comunicados", icon: "✉", group: "equipe" },
+  { key: "knowledge", href: "/painel/conhecimento", label: "Conhecimento", icon: "▧", group: "equipe" },
+  { key: "inventory", href: "/painel/estoque", label: "Estoque", icon: "▤", group: "estoque" },
+  { key: "procurement", href: "/painel/compras", label: "Compras", icon: "◧", group: "estoque" },
+  { key: "supply-chain", href: "/painel/supply-chain", label: "Supply Chain", icon: "⌁", group: "estoque" },
+  { key: "warehouse", href: "/painel/armazem", label: "Armazém WMS", icon: "▦", group: "estoque" },
+  { key: "transport", href: "/painel/transporte", label: "Transporte TMS", icon: "⇄", group: "estoque" },
+  { key: "central-production", href: "/painel/producao-central", label: "Produção Central", icon: "◆", group: "estoque" },
+  { key: "assets", href: "/painel/ativos", label: "Ativos e Manutenção", icon: "◇", group: "estoque" },
+  { key: "finance", href: "/painel/financeiro", label: "Financeiro", icon: "R$", group: "financeiro" },
+  { key: "billing", href: "/painel/assinatura", label: "Plano e cobrança", icon: "◇", group: "financeiro" },
+  { key: "fiscal", href: "/painel/fiscal", label: "Fiscal", icon: "▧", group: "financeiro" },
+  { key: "franchise-finance", href: "/painel/franquias-financeiro", label: "Franquias · Financeiro", icon: "%", group: "financeiro" },
+  { key: "revenue-management", href: "/painel/comercial/revenue-management", label: "Revenue Management", icon: "↗", group: "financeiro" },
+  { key: "intelligence", href: "/painel/inteligencia", label: "Inteligência", icon: "✦", group: "inteligencia" },
+  { key: "forecast", href: "/painel/previsao", label: "Previsão", icon: "⌁", group: "inteligencia" },
+  { key: "analytics", href: "/painel/analytics", label: "Analytics & Dados", icon: "⌁", group: "inteligencia" },
+  { key: "process-intelligence", href: "/painel/analytics/processos", label: "Process Intelligence", icon: "⇢", group: "inteligencia" },
+  { key: "reports", href: "/painel/relatorios", label: "Relatórios", icon: "▥", group: "inteligencia" },
+  { key: "performance-management", href: "/painel/metas", label: "Metas e Performance", icon: "◎", group: "inteligencia" },
+  { key: "enterprise-portfolio", href: "/painel/estrategia/portfolio", label: "Portfólio Estratégico", icon: "◫", group: "inteligencia" },
+  { key: "ibp", href: "/painel/planejamento/ibp", label: "Planejamento IBP", icon: "◎", group: "inteligencia" },
+  { key: "digital-twin", href: "/painel/planejamento/digital-twin", label: "Digital Twin", icon: "◇", group: "inteligencia" },
+  { key: "units", href: "/painel/unidades", label: "Unidades", icon: "▣", group: "rede" },
+  { key: "network", href: "/painel/rede", label: "Rede", icon: "◉", group: "rede" },
+  { key: "geo-map", href: "/painel/rede/mapa", label: "Rede · Mapa", icon: "⌖", group: "rede" },
+  { key: "store-opening", href: "/painel/novas-unidades", label: "Expansão · Novas Unidades", icon: "↗", group: "rede" },
+  { key: "network-operations", href: "/painel/operacoes/central-da-rede", label: "Central da Rede", icon: "◉", group: "rede" },
+  { key: "audits", href: "/painel/auditorias", label: "Auditorias", icon: "✓", group: "rede" },
+  { key: "quality", href: "/painel/qualidade", label: "Qualidade", icon: "✓", group: "rede" },
+  { key: "integrations", href: "/painel/integracoes", label: "Integrações", icon: "↔", group: "governanca" },
+  { key: "integration-orchestration", href: "/painel/integracoes/orquestracao", label: "Orquestração iPaaS", icon: "⌘", group: "governanca" },
+  { key: "marketplace", href: "/painel/marketplace", label: "Marketplace", icon: "▦", group: "governanca" },
+  { key: "developers", href: "/painel/desenvolvedores", label: "Desenvolvedores", icon: "</>", group: "governanca" },
+  { key: "master-data", href: "/painel/dados-mestres", label: "Dados Mestres", icon: "◈", group: "governanca" },
+  { key: "data-governance", href: "/painel/governanca-dados", label: "Governança de Dados", icon: "⌘", group: "governanca" },
+  { key: "enterprise-risk", href: "/painel/governanca/riscos", label: "Riscos Empresariais", icon: "△", group: "governanca" },
+  { key: "change-management", href: "/painel/governanca/mudancas", label: "Mudanças", icon: "⇄", group: "governanca" },
+  { key: "enterprise-architecture", href: "/painel/governanca/arquitetura", label: "Arquitetura Empresarial", icon: "⌬", group: "governanca" },
+  { key: "vendor-management", href: "/painel/governanca/terceiros", label: "Terceiros & Fornecedores", icon: "◇", group: "governanca" },
+  { key: "security-operations", href: "/painel/seguranca/soc", label: "Security Operations Center", icon: "◆", group: "governanca" },
+  { key: "identity-governance", href: "/painel/seguranca/acessos", label: "Governança de Acessos", icon: "◆", group: "governanca" },
+  { key: "privacy-operations", href: "/painel/seguranca/privacidade", label: "Privacidade & LGPD", icon: "◆", group: "governanca" },
+  { key: "automation", href: "/painel/automacao", label: "Automação", icon: "⌁", group: "governanca" },
+  { key: "documents", href: "/painel/documentos", label: "Documentos e Obrigações", icon: "▧", group: "governanca" },
+  { key: "hardware", href: "/painel/hardware", label: "Hardware", icon: "⌘", group: "governanca" },
+  { key: "service-reliability", href: "/painel/operacoes/confiabilidade", label: "Confiabilidade", icon: "◌", group: "governanca" },
+  { key: "business-continuity", href: "/painel/operacoes/continuidade-negocio", label: "Continuidade de Negócios", icon: "↻", group: "governanca" },
+  { key: "continuity", href: "/painel/continuidade", label: "Continuidade", icon: "↻", group: "governanca" },
+  { key: "incidents", href: "/painel/incidentes", label: "Incidentes", icon: "!", group: "governanca" },
+  { key: "settings", href: "/painel/configuracoes", label: "Configurações", icon: "⚙", group: "conta" },
+  { key: "security", href: "/painel/seguranca", label: "Segurança", icon: "◈", group: "conta" },
+  { key: "help", href: "/painel/ajuda", label: "Ajuda", icon: "?", group: "conta" },
+  { key: "saas-support", href: "/painel/suporte", label: "Suporte MasterApp", icon: "◉", group: "conta" },
 ];
 
 const attendantLinks: DashboardLink[] = [
-  { key: "my-announcements", href: "/painel/comunicados", label: "Comunicados", icon: "✉", group: "operacao" },
-  { key: "inbox", href: "/painel/caixa-de-entrada", label: "Caixa de Entrada", icon: "◎", group: "operacao" },
-  { key: "voice", href: "/painel/voz", label: "Voz", icon: "☎", group: "operacao" },
-  { key: "whatsapp-supervision", href: "/painel/whatsapp/supervisao", label: "Supervisão", icon: "◫", group: "gestao" },
-  { key: "waiter", href: "/painel/garcom", label: "Pedidos", icon: "≡", group: "operacao" },
-  { key: "calls", href: "/painel/chamados", label: "Chamados", icon: "!", group: "operacao" },
+  { key: "my-announcements", href: "/painel/comunicados", label: "Comunicados", icon: "✉", group: "equipe" },
+  { key: "inbox", href: "/painel/caixa-de-entrada", label: "Caixa de Entrada", icon: "◎", group: "atendimento" },
+  { key: "voice", href: "/painel/voz", label: "Voz", icon: "☎", group: "atendimento" },
+  { key: "whatsapp-supervision", href: "/painel/whatsapp/supervisao", label: "Supervisão", icon: "◫", group: "atendimento" },
+  { key: "waiter", href: "/painel/garcom", label: "Pedidos", icon: "≡", group: "pedidos" },
+  { key: "calls", href: "/painel/chamados", label: "Chamados", icon: "!", group: "atendimento" },
 ];
 
-const groupLabels = { principal: "Principal", operacao: "Operação", gestao: "Gestão" };
 
 function roleLabel(role?: string) {
   if (role === "owner") return "Proprietário";
@@ -176,17 +176,17 @@ export function DashboardShell({ children, active = "overview", storeSlug, role,
     <aside className="sidebar admin-sidebar">
       <div className="admin-sidebar-brand"><Brand href="/painel" name={name} logo={logo} /></div>
       <nav aria-label="Navegação principal">
-        {(["principal", "operacao", "gestao"] as const).map(group => {
+        {departments.map(group => {
           const groupLinks = links.filter(link => link.group === group);
           if (!groupLinks.length) return null;
           return <div className="admin-nav-group" key={group}>
-            <small>{groupLabels[group]}</small>
+            <small>{departmentLabels[group]}</small>
             {groupLinks.map(link => <Link key={link.key} className={active === link.key ? "active" : ""} href={link.href} aria-current={active === link.key ? "page" : undefined}><span aria-hidden="true">{link.icon}</span><b>{link.label}</b></Link>)}
+            {group === "loja" && storeSlug && <Link className="admin-store-link" href={`/loja/${storeSlug}`} target="_blank"><span aria-hidden="true">↗</span><b>Ver minha loja</b></Link>}
           </div>;
         })}
       </nav>
       <div className="sidebar-bottom">
-        {storeSlug && <Link className="admin-store-link" href={`/loja/${storeSlug}`} target="_blank"><span aria-hidden="true">↗</span><b>Ver minha loja</b></Link>}
         <div className="admin-sidebar-user"><span>MA</span><div><b>Administrador</b><small>{roleLabel(role)}</small></div></div>
         <Link className="admin-exit-link" href="/">Sair do painel</Link>
       </div>
