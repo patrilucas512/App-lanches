@@ -15,13 +15,13 @@ type GatewayAccount = {
 const definitions: Record<Provider, { name: string; credential: string; help: string }> = {
   mercado_pago: {
     name: "Mercado Pago",
-    credential: "Access Token",
-    help: "Aceita Pix e cartão no checkout seguro do Mercado Pago.",
+    credential: "Chave de acesso (Access Token)",
+    help: "Aceita Pix e cartão no pagamento seguro do Mercado Pago.",
   },
   pagarme: {
     name: "Pagar.me",
-    credential: "Secret key",
-    help: "Aceita Pix e cartão no checkout seguro do Pagar.me.",
+    credential: "Chave secreta (Secret Key)",
+    help: "Aceita Pix e cartão no pagamento seguro do Pagar.me.",
   },
 };
 
@@ -60,8 +60,8 @@ export function PaymentGatewayManager({ establishmentId, initialAccounts }: {
 
   return <section className="panel payment-gateways-panel" id="pagamentos-online">
     <header className="delivery-settings-head">
-      <div><small>PEDIDOS · PAGAMENTOS ONLINE</small><h2>Receba com segurança.</h2><p>Ative um ou os dois provedores. O cartão é digitado somente no checkout protegido da empresa escolhida.</p></div>
-      <span className="status-pill active">Multi-gateway</span>
+      <div><small>PEDIDOS · PAGAMENTOS ONLINE</small><h2>Receba com segurança.</h2><p>Ative um ou os dois provedores. O cartão é digitado somente na página de pagamento protegida da empresa escolhida.</p></div>
+      <span className="status-pill active">Vários provedores</span>
     </header>
     <div className="payment-gateway-grid">
       {(["mercado_pago", "pagarme"] as Provider[]).map((provider) => {
@@ -71,7 +71,7 @@ export function PaymentGatewayManager({ establishmentId, initialAccounts }: {
           <div className="payment-gateway-title"><div><small>{account?.configured_at ? "CREDENCIAL PROTEGIDA" : "AINDA NÃO CONECTADO"}</small><h3>{definition.name}</h3><p>{definition.help}</p></div><label className="gateway-switch"><input name="active" type="checkbox" defaultChecked={account?.active} /><span>Ativo</span></label></div>
           <div className="field"><label>AMBIENTE</label><select name="environment" defaultValue={account?.environment || "test"}><option value="test">Teste</option><option value="production">Produção</option></select></div>
           <div className="field"><label>{definition.credential.toUpperCase()}</label><input name="secret" type="password" autoComplete="new-password" placeholder={account?.configured_at ? "Deixe vazio para manter a credencial atual" : "Cole a credencial secreta"} required={!account?.configured_at} /></div>
-          <div className="field"><label>SEGREDO DO WEBHOOK (RECOMENDADO)</label><input name="webhook_secret" type="password" autoComplete="new-password" placeholder="Usado para validar notificações" /></div>
+          <div className="field"><label>SEGREDO DAS NOTIFICAÇÕES · WEBHOOK (RECOMENDADO)</label><input name="webhook_secret" type="password" autoComplete="new-password" placeholder="Usado para validar notificações" /></div>
           <div className="field"><label>ID DA CONTA/RECEBEDOR (OPCIONAL)</label><input name="merchant_account_id" defaultValue={account?.merchant_account_id || ""} /></div>
           <button className="button dark" disabled={busy === provider}>{busy === provider ? "Salvando..." : `Salvar ${definition.name}`}</button>
           <small className="gateway-security-note">A chave privada fica criptografada no cofre do banco e nunca aparece no cardápio.</small>

@@ -17,9 +17,9 @@ export function SystemTour() {
   if (step < 0) return null;
   function close() { window.localStorage.setItem("masterapp_tour_v1", "done"); setStep(-1); }
   const current = tour[step];
-  return <aside className="system-tour" role="dialog" aria-label="Tour do MasterApp">
+  return <aside className="system-tour" role="dialog" aria-label="Guia do MasterApp">
     <small>GUIA {step + 1} DE {tour.length}</small>
     <h2>{current.title}</h2><p>{current.body}</p>
-    <div><button className="quiet" onClick={close}>Pular tour</button>{step === tour.length - 1 ? <Link href="/onboarding" onClick={close}>Abrir primeiros passos</Link> : <button onClick={() => setStep(value => value + 1)}>Próximo</button>}</div>
+    <div><button className="quiet" onClick={close}>Pular guia</button>{step === tour.length - 1 ? <Link href="/onboarding" onClick={close}>Abrir primeiros passos</Link> : <button onClick={() => setStep(value => value + 1)}>Próximo</button>}</div>
   </aside>;
 }
