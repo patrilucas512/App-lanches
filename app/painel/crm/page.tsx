@@ -23,7 +23,7 @@ export default async function CrmPage() {
   ]);
   const permissions=owner?{can_view:true,can_edit_customer:true,can_manage_segments:true,can_create_campaign:true,can_approve_campaign:true,can_cancel_campaign:true,can_view_metrics:true,can_configure_loyalty:true}:permission;
   return <DashboardShell brand={establishment} active="crm" storeSlug={establishment.slug} role={member.role}>
-    <header className="dashboard-head crm-page-head"><div><small>RELACIONAMENTO COM DADOS REAIS</small><h1>CRM e fidelização.</h1><p>Clientes, segmentos e campanhas oficiais do WhatsApp, com consentimento e rastreabilidade.</p></div><span className="status-pill active">Fase 5</span></header>
+    <header className="dashboard-head crm-page-head"><div><small>RELACIONAMENTO COM DADOS REAIS</small><h1>Relacionamento e fidelização.</h1><p>Clientes, segmentos e campanhas oficiais do WhatsApp, com consentimento e rastreabilidade.</p></div><span className="status-pill active">Fase 5</span></header>
     <CrmManager establishmentId={establishment.id} storeName={establishment.name} userId={userId} metrics={metrics||{}} customers={(customers||[]) as never[]} segments={(segments||[]) as never[]} templates={(templates||[]) as never[]} campaigns={(campaigns||[]) as never[]} automations={(automations||[]) as never[]} loyalty={loyalty as never} rules={rules as never} products={(products||[]) as never[]} coupons={(coupons||[]) as never[]} feedback={(feedback||[]) as never[]} permissions={permissions as never}/>
   </DashboardShell>;
 }

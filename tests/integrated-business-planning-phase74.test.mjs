@@ -37,4 +37,4 @@ test('35 scenario isolation',()=>assert.match(sql,/scenario_id uuid references p
 test('36 network and confidentiality scope',()=>{assert.match(sql,/scope_type[\s\S]*network/);assert.match(sql,/confidentiality[\s\S]*executive/)});
 test('37 financial access is separate',()=>assert.ok(core.IBP_PERMISSIONS.includes('ibp:view_financial')));
 test('38 semantic metric definitions reuse official layer',()=>assert.match(sql,/analytics_metric_catalog[\s\S]*ibp_planned_revenue/));
-test('39 integrated product surface',()=>{for(const[x,s]of[[shell,'Planejamento IBP'],[ui,'Target ≠ Forecast ≠ Plan ≠ Budget ≠ Actual'],[automation,'IBP_AUTOMATION_TRIGGERS'],[reporting,'IBP_REPORT_DATASETS'],[data,'IBP_FACTS'],[copilot,'Abrir Planejamento IBP']])assert.match(x,new RegExp(s));assert.match(api,/automaticExecution:false/)})
+test('39 integrated product surface',()=>{for(const[x,s]of[[shell,'Planejamento Integrado'],[ui,'Target ≠ Forecast ≠ Plan ≠ Budget ≠ Actual'],[automation,'IBP_AUTOMATION_TRIGGERS'],[reporting,'IBP_REPORT_DATASETS'],[data,'IBP_FACTS'],[copilot,'Abrir Planejamento Integrado']])assert.match(x,new RegExp(s));assert.match(api,/automaticExecution:false/)})

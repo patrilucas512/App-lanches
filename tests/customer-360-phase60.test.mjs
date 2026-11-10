@@ -1,7 +1,7 @@
 import test from "node:test";import assert from "node:assert/strict";import{readFileSync}from"node:fs";
 const core=await import(new URL("../lib/customer-360/core.ts",import.meta.url).href),migration=readFileSync(new URL("../supabase/migrations/20261024042537_phase60_customer_360.sql",import.meta.url),"utf8"),api=readFileSync(new URL("../app/api/customer-360/route.ts",import.meta.url),"utf8"),worker=readFileSync(new URL("../app/api/customer-360/worker/route.ts",import.meta.url),"utf8"),ui=readFileSync(new URL("../components/customer-360-center.tsx",import.meta.url),"utf8"),shell=readFileSync(new URL("../components/dashboard-shell.tsx",import.meta.url),"utf8"),copilot=readFileSync(new URL("../lib/intelligence/copilot-tools.ts",import.meta.url),"utf8");
 const orders=[{id:"1",createdAt:"2026-08-01T00:00:00Z",totalCents:2000,status:"delivered"},{id:"2",createdAt:"2026-09-01T00:00:00Z",totalCents:4000,status:"completed"}];
-test("01 Customer360 profile",()=>{assert.match(api,/customer_360_summaries/);assert.match(ui,/Perfil 360/);assert.match(shell,/Clientes · Perfil 360/)});
+test("01 Customer360 profile",()=>{assert.match(api,/customer_360_summaries/);assert.match(ui,/PERFIL COMPLETO/);assert.match(shell,/Clientes · Perfil Completo/)});
 test("02 summary aggregation",()=>{const x=core.CustomerRelationshipMetricsService.calculate(orders,new Date("2026-10-01T00:00:00Z"));assert.deepEqual([x.ordersCount,x.lifetimeRevenueCents,x.averageTicketCents],[2,6000,3000]);assert.match(worker,/customer_360_summaries/)});
 test("03 timeline",()=>assert.match(`${api}${ui}${migration}`,/customer360_timeline_index[\s\S]*nextCursor[\s\S]*Somente resumos seguros/));
 test("04 order integration",()=>assert.match(api,/from\("orders"\)[\s\S]*from\("order_items"\)/));
