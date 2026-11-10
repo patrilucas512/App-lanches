@@ -291,7 +291,7 @@ test("admin operation navigation opens the delivery monitor directly", async () 
     readFile(new URL("../components/dashboard-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/delivery-dispatch-manager.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(shell, /key: "deliveries", href: "\/painel\/pedidos#despacho-entregas", label: "Entregas", icon: "🚚", group: "operacao"/);
+  assert.match(shell, /key: "deliveries", href: "\/painel\/pedidos#despacho-entregas", label: "Entregas", icon: "🚚", group: "pedidos"/);
   assert.match(manager, /id="despacho-entregas"/);
 });
 

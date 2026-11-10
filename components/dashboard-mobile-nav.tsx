@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Brand } from "@/components/ui";
 import type { DashboardLink } from "@/components/dashboard-shell";
+import { departmentLabels, departments } from "@/lib/menu-departments";
 
 export function DashboardMobileNav({ links, active, storeSlug, currentLabel, roleLabel, brandName = "MasterApp", brandLogo }: { links: DashboardLink[]; active: string; storeSlug?: string; currentLabel: string; roleLabel: string; brandName?: string; brandLogo?: string }) {
   const [open, setOpen] = useState(false);
@@ -26,7 +27,14 @@ export function DashboardMobileNav({ links, active, storeSlug, currentLabel, rol
     {open && <div className="mobile-nav-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && setOpen(false)}>
       <aside className="mobile-nav-drawer" aria-label="Menu do painel">
         <header><Brand href="/painel" name={brandName} logo={brandLogo} /><button type="button" aria-label="Fechar menu" onClick={() => setOpen(false)}>×</button></header>
-        <nav>{links.map(link => <Link key={link.key} className={active === link.key ? "active" : ""} href={link.href} aria-current={active === link.key ? "page" : undefined} onClick={() => setOpen(false)}><span aria-hidden="true">{link.icon}</span><b>{link.label}</b></Link>)}</nav>
+        <nav>{departments.map(group => {
+          const groupLinks = links.filter(link => link.group === group);
+          if (!groupLinks.length) return null;
+          return <div className="mobile-nav-group" key={group}>
+            <small>{departmentLabels[group]}</small>
+            {groupLinks.map(link => <Link key={link.key} className={active === link.key ? "active" : ""} href={link.href} aria-current={active === link.key ? "page" : undefined} onClick={() => setOpen(false)}><span aria-hidden="true">{link.icon}</span><b>{link.label}</b></Link>)}
+          </div>;
+        })}</nav>
         <footer>
           {storeSlug && <Link href={`/loja/${storeSlug}`} target="_blank">Ver minha loja <span aria-hidden="true">↗</span></Link>}
           <div><span>MA</span><p><b>Administrador</b><small>{roleLabel}</small></p></div>
