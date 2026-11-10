@@ -24,7 +24,7 @@ export default async function SupportSupervisionPage() {
   const team=(members||[]).map((item:{user_id:string;role:string})=>({...item,name:names.get(item.user_id)||"Funcionário"}));
   const permissions={supervision:true,productivity:owner||Boolean(permission?.can_view_productivity),configureQueues:owner||Boolean(permission?.can_configure_queues),configureSla:owner||Boolean(permission?.can_configure_sla),priority:owner||Boolean(permission?.can_change_priority),transfer:owner||Boolean(permission?.can_transfer),takeOver:owner||Boolean(permission?.can_take_over),quality:owner||Boolean(permission?.can_review_quality),monitor:owner||Boolean(permission?.can_monitor),resolve:owner||Boolean(permission?.can_resolve)};
   return <DashboardShell brand={establishment} active="whatsapp-supervision" storeSlug={establishment.slug} role={member.role}>
-    <header className="admin-page-heading"><div><small>WHATSAPP · OPERAÇÃO EM TEMPO REAL</small><h1>Supervisão.</h1><p>Filas, equipe, SLA, produtividade e qualidade em uma única central.</p></div></header>
+    <header className="admin-page-heading"><div><small>WHATSAPP · OPERAÇÃO EM TEMPO REAL</small><h1>Supervisão.</h1><p>Filas, equipe, prazos de resposta, produtividade e qualidade em uma única central.</p></div></header>
     <SupportSupervision establishmentId={establishment.id} organizationId={establishment.organization_id} currentUserId={userId} initialDashboard={(dashboard||{}) as never} initialProductivity={(productivity||[]) as never[]} initialPeakHours={(peakHours||[]) as never[]} initialQueues={(queues||[]) as never[]} initialPresence={(presence||[]) as never[]} settings={(settings||{}) as never} team={team as never[]} permissions={permissions} />
   </DashboardShell>;
 }
