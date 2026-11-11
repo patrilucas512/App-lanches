@@ -1376,3 +1376,9 @@ footer nav { display:flex; gap:24px; }
   .menu-page .product-info p,.ingredient-summary { font-size:11px; }}
 /* Fase 99F: no tema claro, a cor de destaque pura (laranja) sobre o creme não passa de 3:1 em texto pequeno. */
 .menu-page.menu-light .checkout-kicker,.menu-page.menu-light .mini-quantity button,.menu-page.menu-light .fulfillment-choice.selected b { color:color-mix(in srgb,var(--menu-accent) 62%,#000); }
+
+/* Tela de escolha de plano depois do teste grátis (/painel/escolher-plano) */
+.choose-plan-page { background:var(--cream,#f5efe5); min-height:100vh; padding-bottom:60px; }
+.choose-plan-top { align-items:center; display:flex; justify-content:space-between; margin:0 auto; max-width:1120px; padding:22px; }
+.choose-plan-top > a:last-child { color:var(--muted); font-size:12px; }
+.choose-plan-note { color:var(--muted); font-size:13px; margin:0 auto; max-width:720px; padding:0 22px; text-align:center; }
