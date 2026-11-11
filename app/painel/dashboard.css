@@ -2926,3 +2926,40 @@ button.table-qr-card { color:inherit; }
 .ai-advanced[open]>summary{margin-bottom:16px}
 .ai-advanced[open]{display:grid;gap:14px}
 @media(max-width:900px){.ai-status-card{grid-template-columns:1fr}.ai-wizard{grid-template-columns:1fr}.ai-stepper{position:static;display:flex;overflow:auto}.ai-stepper li{flex:none}.ai-stepper button>span:last-child small{display:none}.ai-sections{grid-template-columns:1fr}.ai-simulator{grid-template-columns:1fr}}
+
+/* Padrão visual do painel: selos sem quebra, cabeçalhos alinhados, botões do tamanho do texto. */
+.dashboard-content .status-pill{white-space:nowrap;flex:0 0 auto;align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;width:auto;height:auto;line-height:1.2}
+.dashboard-content .section-heading{align-items:flex-start;flex-wrap:wrap;gap:14px 20px}
+.dashboard-content .section-heading>div:first-child{flex:1 1 320px;min-width:0}
+.dashboard-content .section-heading>:is(.button,.status-pill,a){flex:0 0 auto}
+.dashboard-content .panel :is(form,.printer-manager-form)>.button{align-self:flex-start;justify-self:start;height:auto;min-height:44px;width:auto;max-width:100%;white-space:normal;text-align:center}
+.dashboard-content .form-message{margin:0;font-size:.875rem}
+/* Minha Conta (portal do cliente) */
+.customer-portal-settings .portal-settings-form{display:grid;gap:18px}
+.customer-portal-settings .portal-options{border:1px solid var(--line);border-radius:14px;display:grid;gap:12px 18px;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;padding:16px}
+.customer-portal-settings .portal-options legend{font-size:11px;font-weight:800;letter-spacing:.08em;padding:0 6px}
+.customer-portal-settings input[type=color]{min-height:48px;padding:6px;cursor:pointer}
+.dashboard-content .check-line{align-items:center;display:flex;gap:10px;font-size:.875rem;line-height:1.4;margin:0}
+.dashboard-content .check-line input{flex:0 0 auto;width:18px;height:18px;min-height:0;margin:0;accent-color:var(--op-accent,#ff5a1f)}
+/* Chat do site */
+.web-chat-config>header{flex-wrap:wrap;gap:12px}
+.web-chat-config .check{gap:10px;font-size:.875rem}
+.web-chat-config .check input{width:18px;height:18px;min-height:0;padding:0;accent-color:var(--op-accent,#ff5a1f)}
+.web-chat-config form>.button{grid-column:1/-1;justify-self:start}
+.widget-snippet{display:grid;gap:10px}
+.widget-snippet .button{justify-self:start}
+/* Impressoras e caixas */
+.register-chip-list span{border-radius:12px;background:var(--op-surface,#fff);color:inherit;flex-wrap:wrap;line-height:1.3}
+.register-chip-list .text-danger{background:none;border:0;color:var(--admin-danger,#f56b6b);cursor:pointer;font-weight:700;padding:0 0 0 4px;text-decoration:underline}
+.printer-manager-form>.button.outline{justify-self:start}
+@media(max-width:1100px){.printer-manager-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.customer-portal-settings .portal-options{grid-template-columns:1fr}.dashboard-content .panel :is(form,.printer-manager-form)>.button,.web-chat-config form>.button{width:100%;justify-self:stretch}}
+/* Campos sem estilo próprio ganham o visual padrão do painel (regras específicas continuam valendo). */
+.dashboard-content :where(input:not([type=checkbox],[type=radio],[type=color],[type=file],[type=range],[type=hidden]),select,textarea){background:var(--op-surface,#151411);border:1px solid var(--line);border-radius:10px;color:inherit;font:inherit;min-height:44px;padding:8px 12px;max-width:100%}
+/* Colunas que esticavam além da tela por causa de tabelas largas. */
+.cashier-admin-stack,.support-supervision{grid-template-columns:minmax(0,1fr)}
+.cashier-admin-stack>*,.support-supervision>*{min-width:0;max-width:100%}
+.cashier-admin-stack>.panel,.support-conversation-board{overflow-x:auto}
+/* Botões que esticavam na altura do cartão (ex.: Monitorar em Pedidos). */
+.delivery-driver-card>.button{align-self:end;height:auto;min-height:44px}
+.web-chat-config input[type=color]{width:100%;min-height:44px;padding:6px;cursor:pointer}
