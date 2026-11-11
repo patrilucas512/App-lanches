@@ -168,7 +168,7 @@ export function OnboardingForm({ initial }: { initial?: OnboardingInitialData })
     {step === 6 && <div className="publish-summary">
       <span className="kicker">TUDO PRONTO</span><h2>{values.name}</h2>
       <p>Seu cardápio será publicado com identidade visual, operação, pagamentos, entrega e o produto <b>{values.productName}</b>.</p>
-      <div><span>14 dias grátis</span><span>Sem comissão por pedido</span><span>Dados isolados e protegidos</span></div>
+      <div><span>15 dias grátis</span><span>Sem comissão por pedido</span><span>Dados isolados e protegidos</span></div>
     </div>}
     {message && <div className="form-message">{message}</div>}
     <div className="form-actions">

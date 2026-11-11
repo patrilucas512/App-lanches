@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { money } from "@/lib/superadmin";
 
 export default async function SubscribePage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ ciclo?: string }> }) {
-  const { code } = await params; const query = await searchParams; const cycle = query.ciclo === "annual" ? "annual" : "monthly";
+  const { code: rawCode } = await params; let code = rawCode; try { code = decodeURIComponent(rawCode); } catch { /* código já decodificado */ } const query = await searchParams; const cycle = query.ciclo === "annual" ? "annual" : "monthly";
   const admin = createAdminClient();
   const [{ data: plan }, { data: accounts }] = await Promise.all([
     admin.from("plans").select("code,name,description,monthly_price_cents,annual_price_cents,max_establishments,max_products,max_team_members,max_monthly_orders,cashier_enabled,inventory_enabled,staff_management_enabled,drivers_enabled,kitchen_enabled,waiter_mode_enabled").eq("code", code).eq("active", true).eq("is_public", true).maybeSingle(),

@@ -35,3 +35,11 @@ export function livePlanOfStores<T = Row>(stores: unknown): T | null {
   }
   return null;
 }
+
+// Teste grátis vencido (ou assinatura expirada) num plano público: o painel fica fechado até a loja
+// escolher um plano em /painel/escolher-plano, que chama com allowBlocked. O Piloto (não público) fica de fora.
+export function isBillingBlocked(subscription: { status?: string | null; trial_ends_at?: string | null } | null | undefined, plan: { is_public?: boolean | null } | null, now = new Date()) {
+  if (!subscription || plan?.is_public === false) return false;
+  if (subscription.status === "expired") return true;
+  return subscription.status === "trialing" && Boolean(subscription.trial_ends_at) && new Date(String(subscription.trial_ends_at)) <= now;
+}
