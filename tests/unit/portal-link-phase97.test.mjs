@@ -21,5 +21,6 @@ test("an unknown store slug is a 404, not a 500", () => {
   // Seen in production on 2026-11-04: get_public_menu returns null and the page set service_mode on it.
   const page = read("app/loja/[slug]/page.tsx");
   assert.match(page, /const menu = published \|\| await menuResponse\.json\(\) as PublicMenu \| null;\s*if \(!menu\) return null;/);
-  assert.match(page, /const menu = await getMenu\(slug\);\s*if \(!menu\) notFound\(\);/);
+  // Antes do 404, um nome antigo da loja (link trocado em Configurações) redireciona para o atual.
+  assert.match(page, /const menu = await getMenu\(slug\);\s*if \(!menu\) \{[\s\S]*?resolveRenamedSlug\(slug\)[\s\S]*?notFound\(\);\s*\}/);
 });

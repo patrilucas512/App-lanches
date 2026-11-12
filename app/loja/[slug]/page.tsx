@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { resolveRenamedSlug } from "@/lib/menu-link";
 import { PublicMenuView, type PublicMenu } from "@/components/public-menu";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -55,7 +56,15 @@ export default async function PublicMenuPage({ params, searchParams }: { params:
   const { slug } = await params;
   const query = await searchParams;
   const menu = await getMenu(slug);
-  if (!menu) notFound();
+  if (!menu) {
+    // Link antigo de uma loja que trocou o nome: leva ao cardápio atual, mantendo mesa e origem.
+    const renamed = await resolveRenamedSlug(slug);
+    if (renamed) {
+      const search = new URLSearchParams(Object.entries(query).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString();
+      permanentRedirect(`/loja/${renamed}${search ? `?${search}` : ""}`);
+    }
+    notFound();
+  }
   menu.portal_enabled = slug !== "demo" && await isPortalEnabled(slug);
   return <PublicMenuView menu={menu} tableNumber={query.mesa} source={query.origem} />;
 }

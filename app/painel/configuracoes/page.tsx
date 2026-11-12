@@ -9,8 +9,18 @@ import { WhatsAppSettingsManager } from "@/components/whatsapp-settings-manager"
 import { VoiceSettingsManager } from "@/components/voice-settings-manager";
 import { WebChatWidgetManager } from "@/components/web-chat-widget-manager";
 import { CustomerPortalSettings } from "@/components/customer-portal-settings";
+import { MenuLinkSettings } from "@/components/menu-link-settings";
 import { getDashboardContext } from "@/lib/dashboard";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+
+// Endereço público usado no link do cardápio: o domínio do MasterApp (NEXT_PUBLIC_SITE_URL) ou o atual.
+async function publicBaseUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
+  if (configured) return configured;
+  const host = (await headers()).get("host") || "app-lanches-psi.vercel.app";
+  return `${/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) ? "http" : "https"}://${host}`;
+}
 
 export default async function SettingsPage() {
   const { supabase, establishment, member, userId } = await getDashboardContext();
@@ -45,6 +55,7 @@ export default async function SettingsPage() {
       estimatedMinutes: settings?.estimated_minutes ?? 45,
       logoUrl: details?.logo_url ?? "",
     }} />
+    <MenuLinkSettings establishmentId={establishment.id} currentSlug={details?.slug ?? establishment.slug} baseUrl={await publicBaseUrl()} />
     <BusinessHoursForm establishmentId={establishment.id} initial={businessHours || []} />
     <DeliverySettingsManager establishmentId={establishment.id} initialSettings={(deliverySettings || { establishment_id: establishment.id, fee_model: "fixed", fixed_fee_cents: 0, free_delivery_above_cents: null, alert_kitchen_delay_minutes: 10, alert_waiting_driver_minutes: 10, alert_driver_stale_minutes: 8, alert_route_delay_minutes: 5 }) as never} initialZones={(deliveryZones || []) as never[]} />
     <PaymentGatewayManager establishmentId={establishment.id} initialAccounts={(paymentGateways || []) as never[]} />
