@@ -7,6 +7,7 @@ create table if not exists public.establishment_slug_history (
   establishment_id uuid not null references public.establishments(id) on delete cascade,
   replaced_at timestamptz not null default now()
 );
+-- quality: allow-nonconcurrent-index reason=new-empty-slug-history-tables
 create index if not exists establishment_slug_history_store_idx on public.establishment_slug_history(establishment_id);
 alter table public.establishment_slug_history enable row level security;
 revoke all on public.establishment_slug_history from public, anon, authenticated;
