@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, BellRing, Check, ChevronDown, CircleCheck, ClipboardList, LayoutDashboard, Menu, PackageCheck, Printer, ShoppingBag, Timer, Truck, UtensilsCrossed, X, Users, Boxes, ChartNoAxesCombined, Palette, ShieldCheck, QrCode, Smartphone, Table2 } from "lucide-react";
 import { Button } from "./button";
 import { PricingSection } from "./pricing-section";
@@ -67,6 +67,23 @@ function Logo() {
     <img src={brandSymbol} alt="" className="h-9 w-10 object-contain" width={40} height={36} />
     <span>Master<span className="text-primary">App</span></span>
   </a>;
+}
+
+// Abertura da landing: cada letra chega de um ponto diferente e se encaixa (efeito "monta e digita").
+// Deslocamentos vêm de um hash inteiro do índice, iguais no servidor e no navegador (sem erro de hidratação).
+function introOffset(index: number, salt: number) {
+  let h = (index + 1) * 374761393 + salt * 668265263;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) % 1000 / 1000;
+}
+
+function FlyInText({ text, start }: { text: string; start: number }) {
+  let index = 0;
+  return <>{text.split(/(\s+)/).map((word, wordIndex) => /^\s+$/.test(word) ? word : <span key={wordIndex} className="intro-word" aria-hidden="true">{[...word].map(char => {
+    const i = index++;
+    const style = { "--dx": `${Math.round((introOffset(i, 1) - 0.5) * 160)}px`, "--dy": `${Math.round((introOffset(i, 2) - 0.5) * 120)}px`, "--rot": `${Math.round((introOffset(i, 3) - 0.5) * 70)}deg`, "--delay": `${(start + i * 0.024).toFixed(3)}s` } as CSSProperties;
+    return <span key={i} className="intro-char" style={style}>{char}</span>;
+  })}</span>)}</>;
 }
 
 function DashboardPreview() {
@@ -145,13 +162,13 @@ export function LandingPage() {
       </header>
       <div className="relative z-10 mx-auto grid max-w-[1160px] items-center gap-8 px-5 pb-12 pt-14 sm:px-8 sm:pt-16 lg:grid-cols-[0.93fr_1.07fr] lg:gap-8 lg:pb-20 lg:pt-24">
         <div className="max-w-[570px]">
-          <div className="mb-5 flex flex-wrap items-center gap-2"><span className="rounded bg-primary px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Para toda culinária</span><span className="rounded bg-success px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Mais controle</span></div>
-          <h1 className="font-display text-[clamp(2.7rem,4.3vw,4.25rem)] font-bold leading-[1.07] text-foreground">Seu movimento aumentou? Sua operação precisa <span className="brand-gradient-text">acompanhar.</span></h1>
-          <div className="mt-6 max-w-[520px] space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <div className="intro-block mb-5 flex flex-wrap items-center gap-2" style={{ "--i": 0 } as CSSProperties}><span className="rounded bg-primary px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Para toda culinária</span><span className="rounded bg-success px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Mais controle</span></div>
+          <h1 className="font-display text-[clamp(2.7rem,4.3vw,4.25rem)] font-bold leading-[1.07] text-foreground" aria-label="Seu movimento aumentou? Sua operação precisa acompanhar."><FlyInText text="Seu movimento aumentou? Sua operação precisa" start={0.55} /> <span className="brand-gradient-text intro-highlight" aria-hidden="true">acompanhar.</span></h1>
+          <div className="intro-block mt-6 max-w-[520px] space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg" style={{ "--i": 1 } as CSSProperties}>
             <p>O MasterApp não é apenas um cardápio digital. É um sistema completo para organizar pedidos, agilizar o atendimento e dar mais controle ao seu estabelecimento — principalmente quando a casa está cheia.</p>
             <p className="font-semibold text-foreground">Mais agilidade para sua equipe. Mais organização para você. Mais profissionalismo para o seu negócio.</p>
           </div>
-          <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-success" /> Pedidos à vista</span><span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-success" /> Operação organizada</span><span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-success" /> Entregas acompanhadas</span></div>
+          <div className="intro-block mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground" style={{ "--i": 2 } as CSSProperties}><span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-success" /> Pedidos à vista</span><span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-success" /> Operação organizada</span><span className="flex items-center gap-1.5"><CircleCheck className="size-3.5 text-success" /> Entregas acompanhadas</span></div>
         </div>
         <div className="relative isolate mt-6 px-5 pb-14 pt-16 sm:mx-auto sm:w-full sm:max-w-[680px] sm:px-10 sm:pb-20 sm:pt-20 lg:mt-0 lg:px-4 lg:pb-16 lg:pt-16">
           <div className="food-perimeter pointer-events-none absolute inset-0 z-0" aria-hidden="true">
@@ -162,7 +179,7 @@ export function LandingPage() {
             <img className="food-float food-delay-3 pointer-events-auto absolute bottom-0 left-[7%] w-16 sm:w-20 lg:w-20" src={acai} alt="" width={768} height={768} />
             <img className="food-float food-delay-4 pointer-events-auto absolute bottom-0 right-[9%] w-16 sm:w-20 lg:w-20" src={cake} alt="" width={768} height={768} />
           </div>
-          <div className="relative z-10"><DashboardPreview /><p className="mt-3 text-center text-xs text-muted-foreground">Prévia ilustrativa; os valores não representam dados reais.</p></div>
+          <div className="intro-block intro-preview relative z-10" style={{ "--i": 3 } as CSSProperties}><DashboardPreview /><p className="mt-3 text-center text-xs text-muted-foreground">Prévia ilustrativa; os valores não representam dados reais.</p></div>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />

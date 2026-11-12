@@ -126,3 +126,23 @@
   .food-float { animation: none; }
   .masterapp-portal [data-gp-content] { background: var(--primary) !important; }
 }
+
+/* Abertura do topo: blocos se montam (esqueleto), letras chegam voando e a prévia ganha cor. Roda uma vez, ao abrir. */
+.intro-block { position: relative; animation: intro-rise 700ms cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 110ms + 80ms); }
+.intro-block::after { content: ""; position: absolute; inset: -4px; border-radius: 12px; background: var(--muted); pointer-events: none; animation: intro-skeleton 1500ms ease both; animation-delay: calc(var(--i, 0) * 220ms + 500ms); }
+.intro-word { display: inline-block; white-space: nowrap; }
+.intro-char { display: inline-block; animation: intro-fly 620ms cubic-bezier(.16,1,.3,1) both; animation-delay: var(--delay, 0s); }
+.intro-highlight { display: inline-block; animation: intro-highlight 800ms cubic-bezier(.16,1,.3,1) 1.65s both; }
+.intro-preview img { animation: intro-color 1300ms ease 1.9s both; }
+.intro-preview > div:first-child { position: relative; }
+.intro-preview > div:first-child::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(100deg, transparent 0%, oklch(1 0 0 / .35) 48%, transparent 56%); transform: translateX(-120%); animation: intro-sweep 1300ms ease 1.9s both; }
+@keyframes intro-rise { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes intro-skeleton { 0%, 45% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes intro-fly { from { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(.6); filter: blur(3px); } 70% { opacity: 1; filter: blur(0); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes intro-highlight { from { opacity: 0; transform: translateY(.35em) scale(.92); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes intro-color { from { filter: grayscale(1) brightness(.92); } to { filter: none; } }
+@keyframes intro-sweep { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce) {
+  .intro-block, .intro-char, .intro-highlight, .intro-preview img { animation: none; }
+  .intro-block::after, .intro-preview > div:first-child::before { display: none; }
+}
