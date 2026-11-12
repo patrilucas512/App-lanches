@@ -2963,3 +2963,16 @@ button.table-qr-card { color:inherit; }
 /* Botões que esticavam na altura do cartão (ex.: Monitorar em Pedidos). */
 .delivery-driver-card>.button{align-self:end;height:auto;min-height:44px}
 .web-chat-config input[type=color]{width:100%;min-height:44px;padding:6px;cursor:pointer}
+/* Link do cardápio (Configurações) */
+.cardapio-link-settings{display:grid;gap:18px}
+.cardapio-link-current{border:1px solid var(--line);border-radius:14px;display:grid;gap:8px;padding:16px}
+.cardapio-link-current>span{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.cardapio-link-current>a{color:var(--op-accent,#ff5a1f);font-size:1.05rem;font-weight:800;overflow-wrap:anywhere;text-decoration:none}
+.cardapio-link-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.cardapio-link-form{display:grid;gap:14px}
+.cardapio-link-input{align-items:stretch;border:1px solid var(--line);border-radius:10px;display:flex;overflow:hidden;background:var(--op-surface,#151411)}
+.cardapio-link-input>span{align-items:center;display:flex;padding:0 4px 0 12px;opacity:.7;white-space:nowrap;font-size:.9rem}
+.dashboard-content .cardapio-link-input input{border:0;border-radius:0;flex:1 1 auto;min-width:0;background:transparent;padding-left:0}
+.cardapio-link-form small{font-size:.8rem;line-height:1.5;opacity:.85;overflow-wrap:anywhere}
+.cardapio-link-form>.button{justify-self:start}
+@media(max-width:640px){.cardapio-link-input{flex-direction:column}.cardapio-link-input>span{padding:8px 12px 0;white-space:normal;overflow-wrap:anywhere}.dashboard-content .cardapio-link-input input{padding-left:12px}.cardapio-link-form>.button{justify-self:stretch}}
