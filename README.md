@@ -75,7 +75,15 @@ pnpm exec supabase db push
 
 Confira o `--project-ref` antes do `db push`: ele aplica as migrações no projeto vinculado.
 
-Algumas migrações têm endereços de produção fixos em funções SQL e em um job do `pg_cron`. **Depois de aplicá-las, esses endereços precisam ser neutralizados no banco de desenvolvimento**, para que ele não chame a produção.
+Algumas migrações têm endereços de produção fixos em funções SQL e em um job do `pg_cron`. **Depois de cada aplicação de migrações no banco de desenvolvimento, rode [`supabase/dev/neutralize-production-endpoints.sql`](supabase/dev/neutralize-production-endpoints.sql)**: uma migração que recria uma dessas funções traz o endereço de produção de volta. O script troca esses endereços por um domínio que nunca responde e desliga os jobs que ainda citam a produção, então push, WhatsApp e campanhas não saem do ambiente local.
+
+Rode-o no SQL Editor do projeto de desenvolvimento, nunca no de produção, colando antes desta linha, que confirma o ambiente:
+
+```sql
+select set_config('app.masterapp_test_environment', 'development', false);
+```
+
+O script termina com erro se ainda sobrar alguma função apontando para a produção.
 
 A proteção do modo dev recusa iniciar com a URL ou uma chave JWT do Supabase de produção, Stripe live, `MASTERAPP_ENVIRONMENT=production` ou `FISCAL_ENVIRONMENT=production`, e também sem `MASTERAPP_ENVIRONMENT`. Chaves no formato `sb_secret_` não informam o projeto de origem, então a proteção não consegue identificá-las: nunca copie a chave de produção.
 
