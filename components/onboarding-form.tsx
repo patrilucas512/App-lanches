@@ -83,7 +83,8 @@ export function OnboardingForm({ initial }: { initial?: OnboardingInitialData })
         const { error: createError } = await supabase.rpc("create_establishment", {
           establishment_name: values.name.trim(), requested_slug: values.slug.trim(),
         });
-        if (createError) throw createError;
+        // A retry after a failed last step: the store already exists, so only finish the setup.
+        if (createError && !/already exists/i.test(createError.message)) throw createError;
       }
       const { data, error } = await supabase.rpc("complete_establishment_onboarding", {
         payload: {
@@ -112,7 +113,11 @@ export function OnboardingForm({ initial }: { initial?: OnboardingInitialData })
       if (error) throw error;
       setPublishedSlug(data.slug);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível publicar sua loja.");
+      const detail = error instanceof Error ? error.message : String((error as { message?: unknown })?.message || "");
+      // Database errors come in English; show the owner what to do instead of the raw text.
+      setMessage(/\b(already|exists|violates|permission|denied|null|function|column|relation|duplicate|fetch|network)\b/i.test(detail)
+        ? "Não foi possível publicar sua loja agora. Confira sua conexão e toque em Publicar de novo; nada do que você preencheu foi perdido."
+        : detail || "Não foi possível publicar sua loja.");
     } finally { setLoading(false); }
   }
 

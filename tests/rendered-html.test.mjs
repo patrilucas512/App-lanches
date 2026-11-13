@@ -191,7 +191,8 @@ test("keeps delivery quotes, protected addresses and admin delivery rules integr
 test("keeps kitchen and delivery statuses synchronized without closing delivery in the kitchen", async () => {
   const [kitchen, kitchenPage, migration, css] = await Promise.all([
     readFile(new URL("../components/kitchen-board.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/cozinha/page.tsx", import.meta.url), "utf8"),
+    // The kitchen page loads the board (deliveries included) through lib/kitchen-board-data.ts.
+    readFile(new URL("../lib/kitchen-board-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260824213000_phase4_kitchen_delivery_status.sql", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8").then(async (css) => css + "\n" + await readFile(new URL("../app/painel/dashboard.css", import.meta.url), "utf8")),
   ]);

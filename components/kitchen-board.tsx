@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { subscribeToPush, supportsPushNotifications } from "@/lib/push-notifications";
 import { getCurrentOperatingWindow, saoPauloDateKey, type BusinessHour } from "@/lib/business-hours";
 import { KitchenHistory } from "@/components/kitchen-history";
+import { loadKitchenBoardData } from "@/lib/kitchen-board-data";
 
 type Ticket = { id: string; table_order_id?: string | null; public_order_id?: string | null; status: string; created_at: string; delivered_at?: string | null; delivered_by_name?: string | null };
 type TableOrder = { id: string; table_session_id: string; order_number: number; notes?: string | null };
@@ -19,7 +20,7 @@ type DirectPrinter = { configured: boolean; online: boolean; id?: string | null;
 type KitchenPrinterDevice = { id: string; name: string; sector: string; active: boolean };
 type PrinterActivation = { id: string; name: string; token: string };
 const columns = [["received", "Novos pedidos"], ["preparing", "Em preparo"], ["ready", "Prontos"], ["delivered", "Entregues"]];
-const paymentLabels: Record<string, string> = { cash: "Dinheiro", pix: "Pix", credit_card: "Cartão de crédito", debit_card: "Cartão de débito", mercado_pago_online: "Online (Mercado Pago)", pagarme_online: "Online (Pagar.me)" };
+const paymentLabels: Record<string, string> = { cash: "Dinheiro", pix: "Pix", credit_card: "Cartão de crédito", debit_card: "Cartão de débito", credit_on_delivery: "Cartão de crédito", debit_on_delivery: "Cartão de débito",mercado_pago_online: "Online (Mercado Pago)", pagarme_online: "Online (Pagar.me)" };
 const paymentLabel = (method: string) => paymentLabels[method] || method;
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character);
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -169,18 +170,8 @@ export function KitchenBoard({ establishmentId, establishmentName, operatorName,
   }, [canReturnToAdmin, establishmentId, printerStatus.configured, supabase]);
 
   async function refresh(withAlert = false, insertedId?: string) {
-    const [{ data: tickets }, { data: tableOrders }, { data: publicOrders }, { data: deliveries }, { data: deliveryDestinations }, { data: sessions }, { data: tables }, { data: tableItems }, { data: publicItems }] = await Promise.all([
-      supabase.from("kitchen_tickets").select("*").eq("establishment_id", establishmentId).neq("status", "canceled").order("created_at"),
-      supabase.from("table_orders").select("id,table_session_id,order_number,notes").eq("establishment_id", establishmentId),
-      supabase.from("orders").select("id,order_number,notes,customer_name,fulfillment_type,restaurant_table_id,payment_method,total_cents,cash_received_cents,cash_change_cents").eq("establishment_id", establishmentId),
-      supabase.from("deliveries").select("id,order_id,status,ready_at").eq("establishment_id", establishmentId),
-      supabase.from("delivery_destinations").select("delivery_order_id,recipient_name,recipient_phone,postal_code,street,street_number,complement,neighborhood,city,state,reference").eq("establishment_id", establishmentId),
-      supabase.from("table_sessions").select("id,table_id,customer_name").eq("establishment_id", establishmentId),
-      supabase.from("restaurant_tables").select("id,table_number,table_name").eq("establishment_id", establishmentId),
-      supabase.from("table_order_items").select("id,table_order_id,product_name,quantity,notes,addons,removed_ingredients").eq("establishment_id", establishmentId),
-      supabase.from("order_items").select("id,order_id,product_name,quantity,notes,addons,removed_ingredients").eq("establishment_id", establishmentId),
-    ]);
-    const nextData = tickets && tableOrders && publicOrders && deliveries && deliveryDestinations && sessions && tables && tableItems && publicItems ? { tickets, tableOrders, publicOrders, deliveries, deliveryDestinations, sessions, tables, tableItems, publicItems } as Initial : null;
+    const nextData = await loadKitchenBoardData(supabase, establishmentId) as Initial | null;
+    const tickets = nextData?.tickets;
     if (nextData) setData(nextData);
     if (withAlert) {
       playKitchenAlert();
