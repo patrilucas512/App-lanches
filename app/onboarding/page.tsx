@@ -24,12 +24,16 @@ export default async function OnboardingPage() {
   const membership = memberships?.find(item => item.establishment_id === activeStoreId) ?? memberships?.[0];
 
   let initial: OnboardingInitialData | undefined;
+  let pendingSetup = false;
   if (membership) {
     const [{ data: establishment }, { data: settings }] = await Promise.all([
       supabase.from("establishments").select("*").eq("id", membership.establishment_id).single(),
       supabase.from("establishment_settings").select("*").eq("establishment_id", membership.establishment_id).single(),
     ]);
     if (establishment) {
+      // The store was created but the 7-step form stopped before finishing (network drop, closed tab):
+      // reopen the same form, which now only completes the setup, instead of the guided checklist.
+      pendingSetup = membership.role === "owner" && establishment.onboarding_completed === false;
       initial = {
         hasEstablishment: true,
         name: establishment.name,
@@ -48,7 +52,7 @@ export default async function OnboardingPage() {
     }
   }
 
-  if (membership) return <main className="guided-onboarding-page"><GuidedOnboarding /></main>;
+  if (membership && !pendingSetup) return <main className="guided-onboarding-page"><GuidedOnboarding /></main>;
 
   return (
     <main className="auth-page onboarding-page">

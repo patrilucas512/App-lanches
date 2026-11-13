@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeToPush } from "@/lib/push-notifications";
 import { PixPayment } from "@/components/pix-payment";
+import { ManualPixKey } from "@/components/manual-pix-key";
 import { CustomerInstallCard } from "@/components/app-install-prompt";
 import { operationTheme, readableText } from "@/lib/operation-theme";
 import { LegalLinks } from "@/components/legal-links";
@@ -333,7 +334,9 @@ export function PublicMenuView({
     ...(inlinePixAvailable ? [{ value: "mercado_pago_pix", label: "Pix online · QR Code e Copia e Cola" }] : []),
     ...service.accepted_payment_methods.filter(value => !(inlinePixAvailable && value === "pix")).map((value) => ({
       value,
-      label: value === "pix" ? "Pix do estabelecimento" : value === "cash" ? "Dinheiro" : value === "credit_card" ? "Cartão de crédito na entrega" : "Cartão de débito na entrega",
+      label: value === "pix" ? "Pix do estabelecimento" : value === "cash" ? "Dinheiro"
+        : value === "credit_card" || value === "credit_on_delivery" ? "Cartão de crédito na entrega"
+        : value === "debit_card" || value === "debit_on_delivery" ? "Cartão de débito na entrega" : value,
     })),
     ...gatewayPaymentOptions,
   ];
@@ -1177,7 +1180,8 @@ export function PublicMenuView({
           {tracking.online_payment_status === "pending" && <div className="tracking-delivery-update warning"><b>Aguardando confirmação do pagamento</b><span>O pedido será enviado à cozinha automaticamente após a aprovação do provedor.</span></div>}
           {tracking.payment_method === "mercado_pago_online" && ["pickup", "takeaway", "delivery"].includes(tracking.fulfillment_type) && tracking.online_payment_status === "pending" && <PixPayment key={trackingToken} trackingToken={trackingToken} />}
           {tracking.online_payment_status === "approved" && <div className="tracking-delivery-update success"><b>Pago online ✓</b><span>Pagamento confirmado. Não pague novamente na retirada.</span></div>}
-          {["pickup", "takeaway"].includes(tracking.fulfillment_type) && ["cash", "credit_card", "debit_card"].includes(tracking.payment_method || "") && currentStatus !== "delivered" && <div className="tracking-delivery-update warning"><b>Passe no caixa antes de retirar</b><span>Seu pedido segue normalmente para a cozinha. Pague no caixa e apresente a confirmação antes da retirada.</span></div>}
+          {tracking.payment_method === "pix" && !["delivered", "canceled"].includes(currentStatus) && <ManualPixKey key={trackingToken} trackingToken={trackingToken} />}
+          {["pickup", "takeaway"].includes(tracking.fulfillment_type) && ["cash", "credit_card", "debit_card", "credit_on_delivery", "debit_on_delivery"].includes(tracking.payment_method || "") && currentStatus !== "delivered" &&<div className="tracking-delivery-update warning"><b>Passe no caixa antes de retirar</b><span>Seu pedido segue normalmente para a cozinha. Pague no caixa e apresente a confirmação antes da retirada.</span></div>}
           {tracking.online_payment_status === "declined" && <div className="tracking-delivery-update warning"><b>Pagamento não aprovado</b><span>Este pedido não foi enviado à cozinha. Faça um novo pedido e escolha outra forma de pagamento.</span></div>}
           {tracking.fulfillment_type === "delivery" && currentStatus === "ready" && <div className="tracking-delivery-update"><b>Preparando o despacho</b><span>Estamos buscando ou aguardando o motoboy responsável.</span></div>}
           {tracking.fulfillment_type === "delivery" && currentStatus === "on_route" && <div className="tracking-delivery-update"><b>Seu pedido saiu para entrega</b><span>Acompanhe esta tela e aguarde o motoboy.</span></div>}
