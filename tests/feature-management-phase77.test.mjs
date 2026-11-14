@@ -49,7 +49,7 @@ test("44 security invoker view",()=>assert.match(sql,/feature_management_health_
 test("45 Phase 22 entitlement reused",()=>{assert.match(sql,/saas_features/);assert.match(api,/entitlement/)});
 test("46 Phase 27 release reused",()=>assert.match(sql,/references public\.platform_releases/));
 test("47 Phase 28 experiment reused",()=>assert.match(ui,/Fase 28|FASE 28/));
-test("48 Phase 46 inheritance documented",()=>assert.match(ui,/Network Governance · F46/));
+test("48 Phase 46 inheritance documented",()=>assert.match(ui,/Governança da rede · F46/));
 test("49 ActionEngine guarded actions",()=>assert.match(automation,/FEATURE_MANAGEMENT_AUTOMATION_ACTIONS[\s\S]*humanApproval:true/));
 test("50 Automation triggers",()=>assert.match(automation,/feature\.rollout_health_degraded/));
 test("51 reporting datasets",()=>assert.match(reporting,/FEATURE_MANAGEMENT_REPORT_DATASETS/));
@@ -57,7 +57,7 @@ test("52 workspace widgets",()=>assert.match(workspace,/feature_overrides_expiri
 test("53 data platform models",()=>assert.match(platform,/fact_feature_evaluations[\s\S]*dim_feature/));
 test("54 copilot guardrails",()=>assert.match(copilot,/canPublish:false[\s\S]*canActivateKillSwitch:false/));
 test("55 UI complete",()=>{for(const tab of["Overview","Features","Configurations","Rollouts","Canary","Overrides","Kill Switches","Experiments","Health","Cleanup","Audit","Settings"])assert.match(ui,new RegExp(tab))});
-test("56 superadmin route",()=>{assert.match(page,/FeatureManagementCenter/);assert.match(shell,/Feature Management/)});
+test("56 superadmin route",()=>{assert.match(page,/FeatureManagementCenter/);assert.match(shell,/Gestão de funções/)});
 test("57 cache hit",()=>{const s=new core.FeatureEvaluationService(1000),first=s.evaluate({definition,context}),second=s.evaluate({definition,context});assert.match(second.reason,/:cache$/);assert.equal(first.value,second.value)});
 test("58 cache invalidation",()=>{const s=new core.FeatureEvaluationService();s.evaluate({definition,context});s.invalidate(definition.key);assert.doesNotMatch(s.evaluate({definition,context}).reason,/:cache$/)});
 test("59 evaluate many",()=>assert.equal(new core.FeatureEvaluationService().evaluateMany(Array.from({length:100},(_,i)=>({definition,context:{...context,subjectId:String(i)},rolloutBps:5000}))).length,100));

@@ -11,5 +11,5 @@ export default async function QualityPage() {
     admin.from("qa_suite_runs").select("*").order("created_at", { ascending: false }).limit(30),
     admin.from("qa_regressions").select("*").order("detected_at", { ascending: false }).limit(30),
   ]);
-  return <><header className="sa-page-head"><div><small>QUALITY COMMAND CENTER</small><h1>Qualidade e releases</h1><p>Pipelines, golden paths, ambientes, feature flags, regressões e rollback com auditoria.</p></div><a className="sa-button" href="/api/health" target="_blank" rel="noreferrer">Health check</a></header><QualityCenter summary={summary || {}} flags={flags || []} releases={releases || []} suites={suites || []} regressions={regressions || []}/></>;
+  return <><header className="sa-page-head"><div><small>CENTRO DE COMANDO DE QUALIDADE</small><h1>Qualidade</h1><p>Qualidade e versões: etapas de entrega, fluxos principais, ambientes, chaves de função, regressões e volta à versão anterior com auditoria.</p></div><a className="sa-button" href="/api/health" target="_blank" rel="noreferrer">Verificação de saúde</a></header><QualityCenter summary={summary || {}} flags={flags || []} releases={releases || []} suites={suites || []} regressions={regressions || []}/></>;
 }

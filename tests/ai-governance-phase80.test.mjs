@@ -96,7 +96,7 @@ test("75 no unrestricted workflow code",()=>assert.match(sql,/script\|javascript
 test("76 RBAC permission catalog exists",()=>assert.ok(core.AI_GOVERNANCE_PERMISSIONS.includes("ai_governance:publish_high_risk_agent")));
 test("77 governance copilot cannot publish",()=>assert.equal(core.AI_GOVERNANCE_COPILOT_TOOLS.some(x=>/publish|grant|execute/i.test(x)),false));
 test("78 audit avoids chain of thought",()=>{assert.match(sql,/ai_governance_audit_events/);assert.doesNotMatch(sql,/chain_of_thought|private_reasoning/)});
-test("79 UI contains all required sections",()=>{for(const tab of["Visão Geral","Agentes","Modelos","Prompts","Ferramentas","Autonomia","Memória","Workflows","Avaliações","Guardrails","Custos","Incidentes","Rollouts","Analytics","Configurações"])assert.match(ui,new RegExp(tab))});
+test("79 UI contains all required sections",()=>{for(const tab of["Visão geral","Agentes","Modelos","Instruções","Ferramentas","Autonomia","Memória","Fluxos de trabalho","Avaliações","Proteções","Custos","Incidentes","Liberação gradual","Análise de dados","Configurações"])assert.match(ui,new RegExp(tab))});
 test("80 navigation exposes IA e Agentes",()=>assert.match(shell,/superadmin\/ia-agentes/));
 test("81 API requires superadmin",()=>assert.match(api,/is_superadmin/));
 test("82 API tool authorization uses deterministic service",()=>assert.match(api,/AIToolAuthorizationService/));

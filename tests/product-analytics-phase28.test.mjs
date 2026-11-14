@@ -25,4 +25,4 @@ test("21 permissions",()=>assert.match(migration,/product_analytics:view|product
 test("22 tenant safety",()=>assert.match(migration,/organization_members[\s\S]*requested_organization_id/));
 test("23 event data quality",()=>assert.deepEqual(core.dataQuality({recent:0,baseline:100,invalid:1,duplicates:0,backlog:1001}),["event_stopped","invalid_schema","processing_backlog"]));
 test("PII is rejected",()=>assert.equal(core.validateProductEvent({eventId:uuid,eventName:"account_created",organizationId:uuid,schemaVersion:1,properties:{email:"x@y.com"},source:"test",timestamp:new Date().toISOString()}).valid,false));
-test("dashboards remain MasterApp-only",()=>{assert.match(product,/PRODUCT|EVENT DEBUGGER/);assert.match(growth,/CUSTOMER HEALTH|PLAYBOOKS/);assert.doesNotMatch(product,/customer_phone|customer_name/)});
+test("dashboards remain MasterApp-only",()=>{assert.match(product,/PRODUCT|DEPURAÇÃO DE EVENTOS/);assert.match(growth,/SAÚDE DO CLIENTE|ROTEIROS/);assert.doesNotMatch(product,/customer_phone|customer_name/)});

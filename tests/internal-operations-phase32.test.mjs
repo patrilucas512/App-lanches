@@ -27,5 +27,5 @@ test("copilot is advisory and blocks sensitive autonomy",()=>{const x=core.inter
 test("soft delete, search and pagination",()=>{assert.match(api,/action==="archive"/);assert.match(api,/searchParams\.get\("page"\)/);assert.match(ui,/Buscar projeto, tarefa ou documento/)});
 test("private storage and explicit grants",()=>{assert.match(migration,/values\('internal-work','internal-work',false/);assert.match(migration,/grant select,insert,update,delete/)});
 test("cross-module links preserve sources of truth",()=>{for(const source of["support_tickets","sales_opportunities","customer_health_scores","security_incidents","platform_releases","revenue_targets"])assert.match(api,new RegExp(source))});
-test("internal nav is separate from restaurant operation",()=>{assert.match(nav,/Operações Internas/);assert.match(page,/separados da operação dos restaurantes/)});
+test("internal nav is separate from restaurant operation",()=>{assert.match(nav,/Operações internas/);assert.match(page,/separados da operação dos restaurantes/)});
 test("no invasive productivity tracking",()=>{assert.doesNotMatch(`${migration}${api}${ui}`,/keylog|mouse tracking|screen capture/i);assert.match(ui,/não é ferramenta de microgestão/)});

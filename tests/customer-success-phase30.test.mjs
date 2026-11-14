@@ -1,7 +1,7 @@
 import test from"node:test";import assert from"node:assert/strict";import{readFileSync}from"node:fs";
 const core=await import(new URL("../lib/customer-success/core.ts",import.meta.url).href),migration=readFileSync(new URL("../supabase/migrations/20261013003022_customer_success_phase30.sql",import.meta.url),"utf8"),api=readFileSync(new URL("../app/api/customer-success/route.ts",import.meta.url),"utf8"),ui=readFileSync(new URL("../components/customer-success-center.tsx",import.meta.url),"utf8");
 test("01 profile",()=>assert.match(migration,/create table public\.customer_success_profiles/));
-test("02 portfolio",()=>assert.match(ui,/Carteira[\s\S]*MRR GERENCIADO/));
+test("02 portfolio",()=>assert.match(ui,/Carteira[\s\S]*RECEITA MENSAL GERENCIADA/));
 test("03 ownership",()=>assert.match(migration,/owner_user_id uuid references auth\.users/));
 test("04 health integration",()=>{assert.match(api,/customer_health_scores/);assert.doesNotMatch(migration,/create table public\.customer_health_scores/)});
 test("05 risk event",()=>assert.match(migration,/create table public\.customer_risk_events/));
@@ -20,7 +20,7 @@ test("17 churn",()=>{assert.match(migration,/cancellation/);assert.match(ui,/can
 test("18 permissions",()=>assert.ok(core.CUSTOMER_SUCCESS_PERMISSIONS.includes("customer_success:renewals")));
 test("19 audit",()=>assert.match(api,/customer_success_audit_events/));
 test("20 multi-user",()=>assert.match(migration,/customer_success_permissions[\s\S]*permissions text\[\]/));
-test("21 dashboard",()=>assert.match(ui,/CLIENTES ATIVOS[\s\S]*NPS[\s\S]*ONBOARDING ATRASADO/));
+test("21 dashboard",()=>assert.match(ui,/CLIENTES ATIVOS[\s\S]*NPS[\s\S]*PRIMEIROS PASSOS ATRASADOS/));
 test("copilot is advisory",()=>{assert.match(api,/requires_human_confirmation:true,external_action:false/);assert.doesNotMatch(api,/sendEmail|sendMessage|cancelSubscription/)});
 test("retention metrics",()=>{const x=core.retentionMetrics({openingMrr:100,churnedMrr:10,contractionMrr:5,expansionMrr:20});assert.equal(x.grr,.85);assert.equal(x.nrr,1.05)});
 test("feature flags",()=>assert.match(migration,/customer_success_enabled[\s\S]*expansion_management_enabled/));

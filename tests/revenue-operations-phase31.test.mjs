@@ -29,5 +29,5 @@ test("24 audit",()=>{assert.match(migration,/revenue_ops_audit_events/);assert.m
 test("25 metric consistency",()=>{assert.match(api,/RevenueMetricsService/);assert.match(migration,/Billing remains the source of truth/);assert.doesNotMatch(ui,/mrr\s*=\s*monthly/)});
 test("forecast override is separated and audited",()=>assert.match(migration,/stage_probability[\s\S]*manual_probability_override[\s\S]*override_reason/));
 test("copilot is advisory",()=>{assert.match(ui,/Explica; não altera/);assert.match(core.RevenueMetricsService.toString(),/automaticChange:false/)});
-test("feature flags and executive dashboard",()=>{assert.match(migration,/revenue_ops_enabled[\s\S]*unit_economics_enabled/);assert.match(ui,/Revenue[\s\S]*Unit Economics[\s\S]*Forecast[\s\S]*Risks/)});
+test("feature flags and executive dashboard",()=>{assert.match(migration,/revenue_ops_enabled[\s\S]*unit_economics_enabled/);assert.match(ui,/Receita[\s\S]*Custo e receita por cliente[\s\S]*Previsão[\s\S]*Riscos/)});
 test("RLS uses scoped policies",()=>{assert.match(migration,/private\.revenue_ops_allowed/);assert.doesNotMatch(migration,/for all to authenticated/)});

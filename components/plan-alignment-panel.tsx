@@ -30,7 +30,7 @@ export function PlanAlignmentPanel({ storeId }: { storeId: string }) {
     setBusy(true); setMessage("");
     const { data, error } = await createClient().rpc("align_store_to_plan", { requested_store_id: storeId, requested_confirmation: confirmation, requested_confirm_used: confirmUsed });
     setBusy(false);
-    if (error) return setMessage(error.message === "CONFIRMATION_MISMATCH" ? "Digite o slug da loja exatamente como aparece." : error.message);
+    if (error) return setMessage(error.message === "CONFIRMATION_MISMATCH" ? "Digite o código da loja (slug) exatamente como aparece." : error.message);
     const result = data as { turned_off: string[]; kept_used: string[] };
     setMessage(`${result.turned_off.length} módulo(s) desligado(s); ${result.kept_used.length} mantido(s) por uso recente.`);
     await load();
@@ -53,7 +53,7 @@ export function PlanAlignmentPanel({ storeId }: { storeId: string }) {
       </fieldset>}
       {removes.length > 0 && <details><summary>{removes.length} módulo(s) que somem</summary><p>{removes.map((i) => label(i.flag)).join(", ")}</p></details>}
       {(removes.length > 0 || confirmUsed.length > 0) && <p>
-        <label>Digite <b>{preview.slug}</b> para confirmar <input value={confirmation} onChange={(e) => setConfirmation(e.target.value)} aria-label="Slug da loja para confirmar" /></label>{" "}
+        <label>Digite <b>{preview.slug}</b> para confirmar <input value={confirmation} onChange={(e) => setConfirmation(e.target.value)} aria-label="Código da loja (slug) para confirmar" /></label>{" "}
         <button type="button" className="sa-link-button" onClick={apply} disabled={busy || confirmation !== preview.slug}>Alinhar ao plano</button>
       </p>}
     </div>}

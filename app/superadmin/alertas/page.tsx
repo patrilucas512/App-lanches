@@ -11,6 +11,8 @@ const RULE_LABEL: Record<string, string> = {
   api_error_rate: "Taxa de erro",
 };
 
+const SEV: Record<string, string> = { critical: "Crítico", high: "Alto", warning: "Atenção", medium: "Médio", low: "Baixo", info: "Informativo" };
+
 type Alert = { id: string; rule_key: string; severity: string; title: string; summary: string; status: string; occurrences: number;
   first_seen_at: string; last_seen_at: string; resolved_at: string | null; establishments: { name: string } | null };
 type Rule = { rule_key: string; enabled: boolean; threshold: number; window_minutes: number; cooldown_minutes: number; notify_owner: boolean; description: string };
@@ -34,7 +36,7 @@ export default async function PilotAlertsPage() {
       {rows.map((row) => <div className="sa-log" key={row.id}>
         <div>
           <b>{row.status === "open" ? "● " : "✓ "}{row.title}</b>
-          <small>{RULE_LABEL[row.rule_key] ?? row.rule_key} · {row.severity} · {row.establishments?.name ?? "Plataforma"} · {row.occurrences} avaliação(ões)</small>
+          <small>{RULE_LABEL[row.rule_key] ?? row.rule_key} · {SEV[row.severity] ?? row.severity} · {row.establishments?.name ?? "Plataforma"} · {row.occurrences} avaliação(ões)</small>
           <p>{row.summary}</p>
         </div>
         <time>{row.status === "open" ? `desde ${date(row.first_seen_at, true)}` : `resolvido ${date(row.resolved_at ?? row.last_seen_at, true)}`}</time>
