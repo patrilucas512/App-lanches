@@ -5,8 +5,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { LEGAL_LINKS, SAAS_PRIVACY_VERSION, SAAS_TERMS_VERSION } from "@/lib/legal";
 import "@/components/legal-document.css";
+import { withLoginNext } from "@/lib/login-next";
 
-export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; notice?: string }) {
+export function AuthForm({ mode, notice = "", next = null }: { mode: "login" | "signup"; notice?: string; next?: string | null }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -52,9 +53,9 @@ export function AuthForm({ mode, notice = "" }: { mode: "login" | "signup"; noti
         if (error) throw error;
         await fetch("/api/security/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,success:true})});
         const{data:aal}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if(aal?.nextLevel==="aal2"&&aal.currentLevel!=="aal2"){window.location.assign("/auth/mfa");return;}
+        if(aal?.nextLevel==="aal2"&&aal.currentLevel!=="aal2"){window.location.assign(withLoginNext("/auth/mfa",next));return;}
         setMessage("Login realizado. Abrindo sua área...");
-        window.location.assign("/auth/after-login");
+        window.location.assign(withLoginNext("/auth/after-login",next));
         return;
       }
     } catch (error) {

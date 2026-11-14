@@ -47,7 +47,7 @@ export function SuperadminShell({ children, name }: { children: React.ReactNode;
     <aside className="sa-sidebar">
       <Link href="/superadmin/dashboard" className="sa-brand"><span>S</span><div><b>MasterApp</b><small>Super Administrador</small></div></Link>
       <nav>{links.map(([href, icon, label]) => <Link key={href} href={href} className={pathname === href || (href.includes("estabelecimentos") && pathname.startsWith(href + "/")) ? "active" : ""}><i>{icon}</i><span>{label}</span></Link>)}</nav>
-      <footer><div className="sa-user"><span>{name.slice(0, 2).toUpperCase()}</span><div><b>{name || "Super Admin"}</b><small>Acesso global protegido</small></div></div><Link href="/painel">Abrir painel comum</Link><Link href="/">Sair da área</Link></footer>
+      <footer><div className="sa-user"><span>{name.slice(0, 2).toUpperCase()}</span><div><b>{name || "Super Admin"}</b><small>Acesso global protegido</small></div></div><Link href="/painel">Abrir painel da minha loja</Link><Link href="/">Sair da área</Link></footer>
     </aside>
     <section className="sa-main"><header className="sa-topbar"><div><b>Central da plataforma</b><small>Dados reais em tempo real</small></div><Link href="/superadmin/configuracoes">Configurações globais</Link></header><div className="sa-content">{children}</div></section>
   </main>;
