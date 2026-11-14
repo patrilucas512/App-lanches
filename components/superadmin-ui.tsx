@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export function PageHead({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description: string; action?: React.ReactNode }) {
-  return <header className="sa-page-head"><div><small>{eyebrow ?? "SUPER ADMIN"}</small><h1>{title}</h1><p>{description}</p></div>{action}</header>;
+  return <header className="sa-page-head"><div><small>{eyebrow ?? "SUPER ADMINISTRADOR"}</small><h1>{title}</h1><p>{description}</p></div>{action}</header>;
 }
 
 export function Metric({ label, value, note, tone = "default" }: { label: string; value: React.ReactNode; note?: string; tone?: string }) {
@@ -12,8 +12,10 @@ export function Empty({ title, text }: { title: string; text: string }) {
   return <div className="sa-empty"><span>○</span><b>{title}</b><p>{text}</p></div>;
 }
 
+const BADGE_LABEL: Record<string, string> = { active: "Ativo", inactive: "Inativo", trialing: "Em teste grátis", past_due: "Inadimplente", canceled: "Cancelado", cancelled: "Cancelado", unpaid: "Não pago", incomplete: "Incompleto", blocked: "Bloqueado", open: "Aberto", resolved: "Resolvido", closed: "Fechado", pending: "Pendente", processing: "Processando", completed: "Concluído", in_progress: "Em andamento", not_started: "Não iniciado", failed: "Falhou", succeeded: "Pago", paid: "Pago", approved: "Aprovado", rejected: "Recusado", draft: "Rascunho", published: "Publicado", suspended: "Suspenso", submitted: "Enviado", under_review: "Em revisão", new: "Novo", confirmed: "Confirmado", preparing: "Em preparo", ready: "Pronto", out_for_delivery: "Saiu para entrega", delivered: "Entregue" };
+
 export function Badge({ value }: { value: string }) {
-  return <span className={`sa-badge status-${value}`}>{value}</span>;
+  return <span className={`sa-badge status-${value}`}>{BADGE_LABEL[value] ?? value}</span>;
 }
 
 export function DetailLink({ href, children = "Ver detalhes" }: { href: string; children?: React.ReactNode }) {

@@ -17,7 +17,7 @@ test("13 copilot rejects unknown tools",()=>assert.throws(()=>core.executiveCopi
 test("14 all controlled copilot tools are registered",()=>assert.equal(core.executiveCopilotTools.length,13));
 test("15 migration stores attention and score factors",()=>assert.match(migration,/executive_attention_items[\s\S]*score_factors[\s\S]*manual_override_reason/));
 test("16 watchlist, risk register and briefs persist",()=>{for(const t of["executive_watchlist_items","executive_risks","executive_briefs"])assert.match(migration,new RegExp(`create table public\\.${t}`))});
-test("17 decision center references source systems",()=>{assert.match(migration,/executive_decisions[\s\S]*source_type[\s\S]*source_id/);assert.match(api,/internal_approvals/);assert.match(ui,/ActionEngine/)});
+test("17 decision center references source systems",()=>{assert.match(migration,/executive_decisions[\s\S]*source_type[\s\S]*source_id/);assert.match(api,/internal_approvals/);assert.match(ui,/Aprovações de ações/)});
 test("18 official business sources are reused",()=>{for(const t of["revenue_snapshots","sales_opportunities","customer_health_scores","support_tickets","performance_baselines","platform_releases","security_incidents"])assert.match(api,new RegExp(t))});
 test("19 Revenue Ops calculations are imported",()=>assert.match(api,/from"@\/lib\/revenue-ops\/core"/));
 test("20 RLS uses explicit permissions",()=>{assert.match(migration,/enable row level security/);assert.match(migration,/executive_command_allowed/);assert.doesNotMatch(migration,/for all to authenticated/)});
@@ -25,7 +25,7 @@ test("21 all critical mutations require confirmation and reason",()=>{assert.mat
 test("22 recommendation can become an internal task",()=>assert.match(api,/recommendation_to_task[\s\S]*internal_tasks[\s\S]*executive_recommendation/));
 test("23 UI provides every mandatory executive section",()=>{for(const t of["Hoje","Receita","Clientes","Vendas","Produto","Operações","Tecnologia","Segurança","Decisões"])assert.match(ui,new RegExp(t))});
 test("24 export, board mode, search and freshness exist",()=>{assert.match(api,/format.*csv/);assert.match(ui,/Modo conselho/);assert.match(ui,/Buscar sinal/);assert.match(ui,/Atualizado/)});
-test("25 superadmin navigation exposes command center",()=>assert.match(nav,/Centro de Comando/));
+test("25 superadmin navigation exposes command center",()=>assert.match(nav,/Centro de comando/));
 test("26 severity is deterministic",()=>{assert.equal(core.severityFor(80),"critical");assert.equal(core.severityFor(60),"high");assert.equal(core.severityFor(35),"warning")});
 test("27 cache and feature flags are isolated storage",()=>{assert.match(migration,/executive_command_cache/);assert.match(migration,/executive_command_feature_flags/)});
 test("28 playbooks are guidance-only",()=>{assert.match(migration,/guidance_only boolean not null default true/);assert.match(ui,/exige decisão humana/)});
