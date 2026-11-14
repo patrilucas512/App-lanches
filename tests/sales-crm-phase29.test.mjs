@@ -25,5 +25,5 @@ test("22 audit",()=>assert.match(migration,/sales_audit_event[\s\S]*superadmin_a
 test("23 lead routing",()=>assert.equal(core.routeLead({source:"partner",estimatedUnits:1},[{id:"a",team:"inbound",openLeads:0},{id:"b",team:"partnerships",openLeads:2}]),"b"));
 test("24 import",()=>assert.deepEqual(core.csvRows("empresa,nome,email\nLoja,João,j@x.com")[0],{empresa:"Loja",nome:"João",email:"j@x.com"}));
 test("25 public lead endpoint",()=>{assert.match(capture,/sales_lead_capture_limits/);assert.match(capture,/status:429/);assert.match(capture,/website\|\|body\.company_site/)});
-test("CRM remains internal",()=>{assert.match(migration,/private\.sales_allowed/);assert.match(ui,/CRM|Pipeline/);assert.doesNotMatch(ui,/customer_orders/)});
+test("CRM remains internal",()=>{assert.match(migration,/private\.sales_allowed/);assert.match(ui,/CRM|Funil/);assert.doesNotMatch(ui,/customer_orders/)});
 test("copilot requires human confirmation",()=>{assert.match(api,/requires_human_confirmation:true/);assert.doesNotMatch(api,/sendMessage|sendEmail/)});

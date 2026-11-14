@@ -27,7 +27,7 @@ export default async function PilotPanelPage() {
       <Metric label="Pedidos parados" value={stores.reduce((sum, s) => sum + s.stuck_orders, 0)} tone={stores.some((s) => s.stuck_orders) ? "danger" : "default"} />
       <Metric label="Alertas abertos" value={overview.open_alerts} tone={overview.open_alerts ? "danger" : "default"} note="ver Alertas do piloto" />
       <Metric label="Erros do app (24 h)" value={overview.errors_24h} tone={overview.errors_24h ? "danger" : "default"} />
-      <Metric label="Relatos do piloto abertos" value={overview.pilot_tickets_open} note="na Central de Suporte" />
+      <Metric label="Relatos do piloto abertos" value={overview.pilot_tickets_open} note="no Suporte" />
     </section>
     {stores.map((store) => <article className="sa-panel" key={store.id}>
       <h2>{store.name}</h2>
@@ -49,6 +49,6 @@ export default async function PilotPanelPage() {
       </div>)}
       {!overview.top_errors.length && <Empty title="Nenhum erro registrado" text="Erros de rota e de API aparecem aqui, sem dados pessoais." />}
     </article>
-    <p><Link href="/superadmin/alertas">Alertas do piloto</Link> · <Link href="/superadmin/suporte">Central de Suporte</Link></p>
+    <p><Link href="/superadmin/alertas">Alertas do piloto</Link> · <Link href="/superadmin/suporte">Suporte</Link></p>
   </>;
 }
