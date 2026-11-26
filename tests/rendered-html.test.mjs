@@ -14,9 +14,10 @@ test("server-renders the MasterApp marketing page", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>MasterApp \| Seu delivery em um só lugar<\/title>/i);
+  assert.match(html, /<title>MasterApp \| Um sistema para cada tipo de cozinha<\/title>/i);
   assert.match(html, /MASTERAPP/);
-  assert.match(html, /Começar teste grátis/);
+  assert.match(html, /<h1>Um sistema para cada tipo de cozinha\.<\/h1>/);
+  assert.match(html, /<a[^>]*href="\/cadastro"[^>]*>Testar 15 dias grátis/);
   assert.match(html, /<a[^>]*href="\/login"[^>]*>Entrar/);
   assert.doesNotMatch(html, /mais vivo/);
   assert.doesNotMatch(html, /codex-preview|Building your site/);
