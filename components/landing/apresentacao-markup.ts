@@ -73,7 +73,7 @@ export const apresentacaoMarkup = `<header class="top"><div class="wrap">
 
 <section class="band client" id="cliente" style="background:var(--bg2)">
   <div class="wrap">
-    <div class="phone real" aria-label="Cardápio real do MasterApp no celular do cliente"><img src="/images/landing-nova/cardapio-loja.jpg" alt="Cardápio da loja de teste aberto no celular, feito no MasterApp"></div>
+    <div class="phone real" aria-label="Cardápio real do MasterApp no celular do cliente"><img src="/images/landing-nova/cardapio-loja.jpg" alt="Cardápio de uma lanchonete aberto no celular do cliente, feito no MasterApp"></div>
     <div>
       <p class="mono kick"><span>02</span><i></i><span>06</span><b>Seu cliente</b></p><h2>Seu cliente pede pelo celular e acompanha até chegar.</h2>
       <ul class="ticks">
